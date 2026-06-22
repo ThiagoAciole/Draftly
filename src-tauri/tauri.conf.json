@@ -1,0 +1,100 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Draftly",
+  "version": "../package.json",
+  "identifier": "com.thiagoaciole.draftly",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../build"
+  },
+  "app": {
+    "windows": [],
+    "security": {
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self' 'unsafe-inline'",
+        "style-src": "'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "img-src": "'self' asset: https: http://asset.localhost blob: data:",
+        "connect-src": "'self'",
+        "frame-src": "https://www.youtube.com https://www.youtube-nocookie.com",
+        "font-src": "'self' https://fonts.gstatic.com"
+      },
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["**"]
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["deb", "appimage", "dmg", "rpm", "app", "nsis"],
+    "resources": {
+      "icons/file-types/": "file-icons/"
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "fileAssociations": [
+      {
+        "ext": ["md", "markdown", "mdown", "mkd"],
+        "contentTypes": [
+          "net.daringfireball.markdown",
+          "public.markdown"
+        ],
+        "mimeType": "text/markdown",
+        "name": "Markdown File",
+        "description": "Opens Markdown files with Draftly",
+        "role": "Editor"
+      },
+      {
+        "ext": ["txt"],
+        "contentTypes": ["public.plain-text"],
+        "mimeType": "text/plain",
+        "name": "Text File",
+        "description": "Opens Text files with Draftly",
+        "role": "Editor"
+      },
+      {
+        "ext": ["js", "jsx"],
+        "mimeType": "text/javascript",
+        "name": "JavaScript File",
+        "description": "Opens JavaScript files with Draftly",
+        "role": "Editor"
+      },
+      {
+        "ext": ["html", "htm"],
+        "mimeType": "text/html",
+        "name": "HTML File",
+        "description": "Opens HTML files with Draftly",
+        "role": "Editor"
+      },
+      {
+        "ext": ["json"],
+        "mimeType": "application/json",
+        "name": "JSON File",
+        "description": "Opens JSON files with Draftly",
+        "role": "Editor"
+      }
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "both",
+        "installerHooks": "hooks.nsi"
+      }
+    },
+    "macOS": {
+      "entitlements": null,
+      "exceptionDomain": "",
+      "frameworks": [],
+      "providerShortName": null,
+      "signingIdentity": null
+    }
+  },
+  "plugins": {}
+}
