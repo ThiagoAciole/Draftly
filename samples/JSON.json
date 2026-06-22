@@ -1,0 +1,12 @@
+{
+  "name": "Jane Smith",
+  "age": 32,
+  "is_active": true,
+  "skills": ["Python", "JSON", "JavaScript"],
+  "contact_info": {
+    "email": "jane.smith@example.com",
+    "phone": null
+  },
+  "city": [Campinas, ]
+  
+}
