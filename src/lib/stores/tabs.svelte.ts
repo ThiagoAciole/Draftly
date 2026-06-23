@@ -1,18 +1,7 @@
 import { t } from '../utils/i18n.js';
 import { settings } from './settings.svelte.js';
 import type { DocumentSnapshot } from '../services/document-session.js';
-
-const markdownExtensions = ['.md', '.markdown', '.mdown', '.mkd'];
-
-function isMarkdownPath(path: string) {
-	if (path === '') return true;
-	const normalizedPath = path.toLowerCase();
-	return markdownExtensions.some((extension) => normalizedPath.endsWith(extension));
-}
-
-function isPlainTextPath(path: string) {
-	return path.toLowerCase().endsWith('.txt');
-}
+import { isMarkdownPath, isPlainTextPath } from '../features/files/file-types.js';
 
 export interface Tab {
 	id: string;
@@ -24,8 +13,8 @@ export interface Tab {
 	scrollTop: number;
 	isDirty: boolean;
 	isEditing: boolean;
-	history: string[];
-	historyIndex: number;
+	navigationHistory: string[];
+	navigationIndex: number;
 	editorViewState: any; // monaco.editor.ICodeEditorViewState | null
 	scrollPercentage: number;
 	anchorLine: number;
@@ -118,8 +107,8 @@ class TabManager {
 			scrollTop: 0,
 			isDirty: false,
 			isEditing: false,
-			history: [content],
-			historyIndex: 0,
+			navigationHistory: [path],
+			navigationIndex: 0,
 			editorViewState: null,
 			scrollPercentage: 0,
 			anchorLine: 0,
@@ -147,8 +136,8 @@ class TabManager {
 			scrollTop: 0,
 			isDirty: false,
 			isEditing: true,
-			history: [content],
-			historyIndex: 0,
+			navigationHistory: [''],
+			navigationIndex: 0,
 			editorViewState: null,
 			scrollPercentage: 0,
 			anchorLine: 0,
@@ -174,8 +163,8 @@ class TabManager {
 			scrollTop: 0,
 			isDirty: true,
 			isEditing: true,
-			history: [snapshot.content],
-			historyIndex: 0,
+			navigationHistory: [''],
+			navigationIndex: 0,
 			editorViewState: null,
 			scrollPercentage: 0,
 			anchorLine: 0,
@@ -205,8 +194,8 @@ class TabManager {
 			scrollTop: 0,
 			isDirty: false,
 			isEditing: false,
-			history: [],
-			historyIndex: 0,
+			navigationHistory: ['HOME'],
+			navigationIndex: 0,
 			editorViewState: null,
 			scrollPercentage: 0,
 			anchorLine: 0,
@@ -366,11 +355,11 @@ class TabManager {
 				tab.isSplit = false;
 				tab.isEditing = true;
 			}
-			if (tab.history.length > 0) {
-				tab.history[tab.historyIndex] = path;
+			if (tab.navigationHistory.length > 0) {
+				tab.navigationHistory[tab.navigationIndex] = path;
 			} else {
-				tab.history = [path];
-				tab.historyIndex = 0;
+				tab.navigationHistory = [path];
+				tab.navigationIndex = 0;
 			}
 		}
 	}
@@ -380,8 +369,8 @@ class TabManager {
 		if (tab) {
 			tab.path = newPath;
 			tab.title = newPath.split(/[/\\]/).pop() || 'Untitled';
-			if (tab.history.length > 0) {
-				tab.history[tab.historyIndex] = newPath;
+			if (tab.navigationHistory.length > 0) {
+				tab.navigationHistory[tab.navigationIndex] = newPath;
 			}
 		}
 	}
@@ -391,9 +380,9 @@ class TabManager {
 		if (tab) {
 			if (tab.path === path) return;
 
-			tab.history = tab.history.slice(0, tab.historyIndex + 1);
-			tab.history.push(path);
-			tab.historyIndex++;
+			tab.navigationHistory = tab.navigationHistory.slice(0, tab.navigationIndex + 1);
+			tab.navigationHistory.push(path);
+			tab.navigationIndex++;
 
 			tab.path = path;
 			tab.title = path.split(/[/\\]/).pop() || 'Untitled';
@@ -404,19 +393,19 @@ class TabManager {
 
 	canGoBack(id: string): boolean {
 		const tab = this.tabs.find(t => t.id === id);
-		return tab ? tab.historyIndex > 0 : false;
+		return tab ? tab.navigationIndex > 0 : false;
 	}
 
 	canGoForward(id: string): boolean {
 		const tab = this.tabs.find(t => t.id === id);
-		return tab ? tab.historyIndex < tab.history.length - 1 : false;
+		return tab ? tab.navigationIndex < tab.navigationHistory.length - 1 : false;
 	}
 
 	goBack(id: string): string | null {
 		const tab = this.tabs.find(t => t.id === id);
-		if (tab && tab.historyIndex > 0) {
-			tab.historyIndex--;
-			const path = tab.history[tab.historyIndex];
+		if (tab && tab.navigationIndex > 0) {
+			tab.navigationIndex--;
+			const path = tab.navigationHistory[tab.navigationIndex];
 			tab.path = path;
 			tab.title = path.split(/[/\\]/).pop() || 'Untitled';
 			tab.isDirty = false;
@@ -427,9 +416,9 @@ class TabManager {
 
 	goForward(id: string): string | null {
 		const tab = this.tabs.find(t => t.id === id);
-		if (tab && tab.historyIndex < tab.history.length - 1) {
-			tab.historyIndex++;
-			const path = tab.history[tab.historyIndex];
+		if (tab && tab.navigationIndex < tab.navigationHistory.length - 1) {
+			tab.navigationIndex++;
+			const path = tab.navigationHistory[tab.navigationIndex];
 			tab.path = path;
 			tab.title = path.split(/[/\\]/).pop() || 'Untitled';
 			tab.isDirty = false;

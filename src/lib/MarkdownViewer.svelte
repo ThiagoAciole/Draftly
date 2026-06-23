@@ -23,7 +23,8 @@
 	import RecoveryDialog from './components/RecoveryDialog.svelte';
 	import ExternalConflictDialog from './components/ExternalConflictDialog.svelte';
 	import { tauriCommands } from './api/tauri.js';
-	import { processMarkdownHtml } from './utils/markdown';
+	import { processMarkdownHtml, highlightColorMap, renderRichContent as _renderRichContent } from './features/preview/markdown.processor.js';
+	import { getLanguage, isMarkdownPath, isPlainTextPath, MARKDOWN_EXTENSIONS } from './features/files/file-types.js';
 	import { recoveryStore } from './services/recovery.js';
 	import type { DocumentSnapshot, SaveStatus } from './services/document-session.js';
 	import { DOCUMENT_TEMPLATES, type DocumentTemplate } from './utils/templates.js';
@@ -117,17 +118,6 @@ import { t } from './utils/i18n.js';
 	const renderDebounceMs = 50;
 	let renderTimeout: ReturnType<typeof setTimeout> | null = null;
 	
-	const highlightColorMap: Record<string, string> = {
-		default: 'color-mix(in srgb, var(--color-accent-fg) 40%, transparent)',
-		yellow: 'rgba(255, 208, 0, 0.4)',
-		orange: 'rgba(255, 140, 0, 0.4)',
-		red: 'rgba(255, 60, 60, 0.4)',
-		pink: 'rgba(255, 105, 180, 0.4)',
-		purple: 'rgba(164, 108, 244, 0.4)',
-		blue: 'rgba(67, 138, 243, 0.4)',
-		cyan: 'rgba(43, 185, 178, 0.4)',
-		green: 'rgba(77, 177, 88, 0.4)',
-	};
 	let editorPane = $state<{ 
 		syncScrollToLine: (line: number, ratio?: number) => void; 
 		handleDroppedFile: (path: string, x: number, y: number) => Promise<void>;
@@ -233,14 +223,9 @@ import { t } from './utils/i18n.js';
 
 	// derived from tab manager
 	let currentFile = $derived(tabManager.activeTab?.path ?? '');
-	const markdownLinkExtensions = ['.md', '.markdown', '.mdown', '.mkd'];
-	function hasMarkdownLinkExtension(path: string) {
-		const normalizedPath = path.toLowerCase();
-		return markdownLinkExtensions.some((ext) => normalizedPath.endsWith(ext));
-	}
 	let newFileType = $derived(activeTab?.newFileType ?? 'markdown');
-	let isMarkdown = $derived(currentFile === '' ? newFileType === 'markdown' : hasMarkdownLinkExtension(currentFile));
-	let isPlainText = $derived(currentFile === '' ? newFileType === 'text' : currentFile.toLowerCase().endsWith('.txt'));
+	let isMarkdown = $derived(currentFile === '' ? newFileType === 'markdown' : isMarkdownPath(currentFile));
+	let isPlainText = $derived(currentFile === '' ? newFileType === 'text' : isPlainTextPath(currentFile));
 	let editorLanguage = $derived(
 		currentFile === ''
 			? newFileType === 'json'
@@ -251,7 +236,7 @@ import { t } from './utils/i18n.js';
 			: getLanguage(currentFile),
 	);
 	let htmlContent = $derived(tabManager.activeTab?.content ?? '');
-	const markdownLinkExtensionPattern = markdownLinkExtensions
+	const markdownLinkExtensionPattern = MARKDOWN_EXTENSIONS
 		.map((ext) => ext.slice(1).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
 		.join('|');
 	const allowedMarkdownUriPattern = new RegExp(`^(?:(?:[a-z]:[^?#]*\\.(?:${markdownLinkExtensionPattern})(?:[?#].*)?$)|(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|asset|tauri):|[^a-z]|[a-z+.\\-]+(?:[^a-z+.\\-:]|$))`, 'i');
@@ -413,183 +398,11 @@ import { t } from './utils/i18n.js';
 		appWindow.close();
 	}
 
-	function getLanguage(path: string) {
-		if (!path) return 'markdown';
-		const ext = path.split('.').pop()?.toLowerCase();
-		switch (ext) {
-			case 'js':
-			case 'jsx':
-				return 'javascript';
-			case 'ts':
-			case 'tsx':
-				return 'typescript';
-			case 'html':
-				return 'html';
-			case 'css':
-				return 'css';
-			case 'json':
-			case 'jsonc':
-				return 'json';
-			case 'py':
-				return 'python';
-			case 'java':
-				return 'java';
-			case 'c':
-			case 'h':
-				return 'c';
-			case 'cpp':
-			case 'hpp':
-				return 'cpp';
-			case 'cs':
-				return 'csharp';
-			case 'go':
-				return 'go';
-			case 'rs':
-				return 'rust';
-			case 'php':
-				return 'php';
-			case 'rb':
-				return 'ruby';
-			case 'sh':
-			case 'bash':
-				return 'shell';
-			case 'ps1':
-				return 'powershell';
-			case 'sql':
-				return 'sql';
-			case 'xml':
-				return 'xml';
-			case 'yaml':
-			case 'yml':
-				return 'yaml';
-			case 'md':
-			case 'markdown':
-			case 'mdown':
-			case 'mkd':
-				return 'markdown';
-			default:
-				return 'plaintext';
-		}
-	}
-
 	$effect(() => {
 		const _ = tabManager.activeTabId;
 		showHome = false;
 		findOpen = false;
 	});
-
-	function processHighlights(root: Element) {
-		const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-			acceptNode(node) {
-				let curr = node.parentElement;
-				while (curr && curr !== root) {
-					if (['CODE', 'PRE', 'SCRIPT', 'STYLE'].includes(curr.tagName)) return NodeFilter.FILTER_REJECT;
-					curr = curr.parentElement;
-				}
-				return NodeFilter.FILTER_ACCEPT;
-			},
-		});
-
-		const toReplace: { node: Text; replaced: string }[] = [];
-		let node: Node | null;
-		while ((node = walker.nextNode())) {
-			const text = (node as Text).nodeValue || '';
-			if (text.includes('==')) {
-				const replaced = text.replace(/==([^=\n]+)==/g, '<mark>$1</mark>');
-				if (replaced !== text) toReplace.push({ node: node as Text, replaced });
-			}
-		}
-		for (const { node, replaced } of toReplace) {
-			const span = root.ownerDocument!.createElement('span');
-			span.innerHTML = replaced;
-			node.parentNode?.replaceChild(span, node);
-		}
-	}
-
-	function processBlockIds(root: Element, doc: Document) {
-		// handle pre-emitted block-id spans from rust parser
-		for (const el of Array.from(root.querySelectorAll('.block-id, [data-block-id]'))) {
-			const rawId = el.getAttribute('data-block-id') || (el as HTMLElement).textContent?.replace(/^\^/, '').trim() || '';
-			if (!rawId) continue;
-			const anchor = doc.createElement('a');
-			anchor.id = rawId;
-			anchor.className = 'block-id-anchor';
-			anchor.setAttribute('data-label', rawId);
-			anchor.setAttribute('aria-hidden', 'true');
-			el.replaceWith(anchor);
-		}
-
-		// scan text nodes for trailing ^id pattern (text ^blockid at end of block)
-		const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-			acceptNode(node) {
-				const parent = node.parentElement;
-				if (!parent) return NodeFilter.FILTER_REJECT;
-				if (['CODE', 'PRE', 'SCRIPT', 'STYLE', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(parent.tagName)) return NodeFilter.FILTER_REJECT;
-				return NodeFilter.FILTER_ACCEPT;
-			},
-		});
-
-		const blockIdPattern = / \^([a-zA-Z0-9_-]+)\s*$/;
-		const nodes: { node: Text; id: string }[] = [];
-		let textNode: Node | null;
-		while ((textNode = walker.nextNode())) {
-			const text = (textNode as Text).nodeValue || '';
-			const match = text.match(blockIdPattern);
-			if (match) nodes.push({ node: textNode as Text, id: match[1] });
-		}
-
-		for (const { node, id } of nodes) {
-			const text = node.nodeValue || '';
-			const cleanText = text.replace(blockIdPattern, '');
-			const anchor = doc.createElement('a');
-			anchor.id = id;
-			anchor.className = 'block-id-anchor';
-			anchor.setAttribute('data-label', id);
-			anchor.setAttribute('aria-hidden', 'true');
-			const parent = node.parentNode;
-			if (parent) {
-				const textBefore = doc.createTextNode(cleanText);
-				parent.replaceChild(anchor, node);
-				parent.insertBefore(textBefore, anchor);
-			}
-		}
-	}
-
-	function processTaskItems(root: Element) {
-		for (const input of Array.from(root.querySelectorAll('li input[type="checkbox"]'))) {
-			input.setAttribute('data-task-checkbox', '');
-			input.removeAttribute('disabled');
-			(input as HTMLInputElement).style.cursor = 'pointer';
-
-			const li = input.closest('li');
-			if (!li) continue;
-
-			// wrap bare text/inline nodes after checkbox in a span for CSS targeting
-			const nodes = Array.from(li.childNodes);
-			const inputIdx = nodes.indexOf(input);
-			const afterInput = nodes.slice(inputIdx + 1);
-
-			// we loop until we hit a block child (like a nested UL)
-			const inlineNodes = [];
-			for (const n of afterInput) {
-				if (n.nodeType === 1 && ['P', 'DIV', 'UL', 'OL'].includes((n as Element).tagName)) break;
-				inlineNodes.push(n);
-			}
-
-			if (inlineNodes.length > 0) {
-				const wrapper = root.ownerDocument!.createElement('span');
-				wrapper.className = 'task-text';
-				for (const n of inlineNodes) wrapper.appendChild(n);
-				
-				// insert the newly wrapped span after the checkbox
-				li.insertBefore(wrapper, afterInput[inlineNodes.length] || null);
-			}
-
-			if ((input as HTMLInputElement).checked) {
-				li.classList.add('task-done');
-			}
-		}
-	}
 
 	type LoadMarkdownOptions = {
 		navigate?: boolean;
@@ -621,7 +434,7 @@ import { t } from './utils/i18n.js';
 			const activeId = tabManager.activeTabId;
 			if (!activeId) return;
 
-			const isMarkdown = hasMarkdownLinkExtension(filePath);
+			const isMarkdown = isMarkdownPath(filePath);
 			const tab = tabManager.tabs.find((t) => t.id === activeId);
 
 			if (isMarkdown) {
@@ -708,139 +521,13 @@ import { t } from './utils/i18n.js';
 	async function renderRichContent() {
 		if (!markdownBody) return;
 
-		if (!hljs || !renderMathInElement) return;
-
 		const hasMermaid = !!markdownBody.querySelector('code.language-mermaid');
 		if (hasMermaid && !mermaid) {
 			const mermaidModule = await import('mermaid');
 			mermaid = mermaidModule.default;
 		}
 
-		// Initialize Mermaid with theme based on system preference or override
-		const isSystemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-		const datasetThemeType = document.documentElement.dataset.themeType;
-		const isDark = datasetThemeType === 'dark' || (theme === 'dark') || (theme === 'system' && isSystemDark);
-		const effectiveTheme = isDark ? 'dark' : 'neutral';
-		if (mermaid) mermaid.initialize({ startOnLoad: false, theme: effectiveTheme });
-
-		// Process code blocks
-		const codeBlocks = Array.from(markdownBody.querySelectorAll('pre code'));
-		for (const block of codeBlocks) {
-			const codeEl = block as HTMLElement;
-			const preEl = codeEl.parentElement as HTMLPreElement;
-
-			// Check for Mermaid blocks
-			if (codeEl.classList.contains('language-mermaid') && mermaid) {
-				try {
-					const mermaidCode = codeEl.textContent || '';
-					const id = `mermaid-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-
-					// Render the diagram
-					const { svg } = await mermaid.render(id, mermaidCode);
-
-					// Create container and replace the <pre> block
-					const container = document.createElement('div');
-					container.className = 'mermaid-diagram';
-					// Allow foreignObject for Mermaid text rendering
-					container.innerHTML = DOMPurify.sanitize(svg, {
-						ADD_TAGS: ['foreignObject'],
-						ADD_ATTR: ['dominant-baseline', 'text-anchor'],
-					});
-					preEl.replaceWith(container);
-				} catch (error) {
-					console.error('Failed to render Mermaid diagram:', error);
-					// Display error in place of diagram
-					const errorDiv = document.createElement('div');
-					errorDiv.className = 'mermaid-error';
-					errorDiv.style.color = 'red';
-					errorDiv.style.padding = '1em';
-					errorDiv.textContent = `Error rendering Mermaid diagram: ${error}`;
-					preEl.replaceWith(errorDiv);
-				}
-				continue; // Skip highlight.js for this block
-			}
-
-			// Existing highlight.js logic
-			// Check if language was explicitly specified BEFORE highlight.js runs
-			const hasExplicitLang = Array.from(codeEl.classList).some((c) => c.startsWith('language-'));
-			
-			// Only highlight if explicit language is specified
-			if (hasExplicitLang) {
-				hljs.highlightElement(codeEl);
-			}
-
-			const langClass = Array.from(codeEl.classList).find((c) => c.startsWith('language-'));
-
-			if (preEl && preEl.tagName === 'PRE') {
-				preEl.querySelectorAll('.lang-label').forEach((l) => l.remove());
-				const codeContent = codeEl.textContent || '';
-				const existingWrapper = preEl.parentElement?.classList.contains('code-block-shell') ? preEl.parentElement as HTMLDivElement : null;
-				existingWrapper?.querySelectorAll(':scope > .lang-label').forEach((l) => l.remove());
-
-				const wrapper = existingWrapper ?? document.createElement('div');
-				if (!existingWrapper) {
-					wrapper.className = 'code-block-shell';
-					preEl.replaceWith(wrapper);
-					wrapper.appendChild(preEl);
-				}
-
-				const copyCode = () => {
-					const codeToCopy = codeContent.replace(/\n$/, '');
-					invoke('clipboard_write_text', { text: codeToCopy }).then(() => {
-						const originalContent = label.innerHTML;
-						label.innerHTML = 'Copied!';
-						label.classList.add('copied');
-						setTimeout(() => {
-							label.innerHTML = originalContent;
-							label.classList.remove('copied');
-						}, 1500);
-					}).catch((err) => {
-						console.error('Failed to copy code:', err);
-					});
-				};
-
-				const label = document.createElement('button');
-				label.className = 'lang-label';
-				label.title = 'Click to copy code';
-				label.onclick = copyCode;
-
-				if (hasExplicitLang && langClass) {
-					label.textContent = langClass.replace('language-', '');
-					wrapper.appendChild(label);
-				} else {
-					label.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
-					wrapper.appendChild(label);
-				}
-			}
-		}
-
-		// KaTeX math rendering
-		if (katex) {
-			const mathElements = markdownBody.querySelectorAll('[data-math]');
-			for (const el of Array.from(mathElements)) {
-				const isDisplay = el.getAttribute('data-math') === 'display';
-				const mathSource = el.getAttribute('data-math-source') || el.textContent || '';
-				try {
-					katex.render(mathSource, el as HTMLElement, {
-						displayMode: isDisplay,
-						throwOnError: false,
-					});
-				} catch (e) {
-					console.error('KaTeX rendering error:', e);
-				}
-			}
-		}
-
-		if (renderMathInElement) {
-			renderMathInElement(markdownBody, {
-				delimiters: [
-					{ left: '$$', right: '$$', display: true },
-					{ left: '\\(', right: '\\)', display: false },
-					{ left: '\\[', right: '\\]', display: true },
-				],
-				throwOnError: false,
-			});
-		}
+		await _renderRichContent(markdownBody, hljs, katex, renderMathInElement, mermaid, theme, invoke);
 	}
 
 	$effect(() => {
@@ -1121,7 +808,7 @@ import { t } from './utils/i18n.js';
 
 	function getRelativeMarkdownTarget(href: string): RelativeMarkdownTarget | null {
 		const pathWithoutHash = href.split('#')[0].split('?')[0];
-		const isMarkdownTarget = hasMarkdownLinkExtension(pathWithoutHash);
+		const isMarkdownTarget = isMarkdownPath(pathWithoutHash);
 		const isWindowsDrivePath = /^[a-z]:/i.test(href);
 		const isProtocolRelativeExternal = href.startsWith('//');
 		const hasScheme = /^[a-z][a-z0-9+.-]*:/i.test(href);
@@ -2168,7 +1855,7 @@ import { t } from './utils/i18n.js';
 	async function toggleSplitView(tabId: string, silentSave = false) {
 		const tab = tabManager.tabs.find((t) => t.id === tabId);
 		if (!tab) return;
-		if (tab.path === '' || hasMarkdownLinkExtension(tab.path)) {
+		if (tab.path === '' || isMarkdownPath(tab.path)) {
 			if (!tab.isSplit) {
 				tab.splitRatio = 0.6;
 				tabManager.setSplitEnabled(tab.id, true);
@@ -2824,7 +2511,7 @@ import { t } from './utils/i18n.js';
 							});
 						} else if (dragTarget === 'preview' || (!isSplit && !isEditing)) {
 							paths.forEach(path => {
-								if (hasMarkdownLinkExtension(path)) {
+								if (isMarkdownPath(path)) {
 									loadMarkdown(path);
 								} else {
 									const filename = path.split(/[\/\\]/).pop() || 'File';

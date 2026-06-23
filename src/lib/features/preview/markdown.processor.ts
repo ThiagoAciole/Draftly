@@ -1,5 +1,6 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import DOMPurify from "dompurify";
+import { getLanguage } from "../files/file-types.js";
 
 export const highlightColorMap: Record<string, string> = {
 	default: "color-mix(in srgb, var(--color-accent-fg) 40%, transparent)",
@@ -62,32 +63,6 @@ function replaceWithYoutubeEmbed(element: Element, videoId: string) {
 	iframe.allowFullscreen = true;
 	container.appendChild(iframe);
 	element.replaceWith(container);
-}
-
-export function getLanguage(path: string): string {
-	if (!path) return "markdown";
-	const ext = path.split(".").pop()?.toLowerCase();
-	switch (ext) {
-		case "js":
-		case "jsx":
-			return "javascript";
-		case "ts":
-		case "tsx":
-			return "typescript";
-		case "html":
-			return "html";
-		case "css":
-			return "css";
-		case "json":
-			return "json";
-		case "md":
-		case "markdown":
-		case "mdown":
-		case "mkd":
-			return "markdown";
-		default:
-			return "plaintext";
-	}
 }
 
 function processInlineMath(root: Element) {
@@ -161,8 +136,6 @@ function extractDisplayMathBlock(element: Element): string | null {
 function convertInlineMathDelimiters(text: string): string {
 	const parts: string[] = [];
 	let index = 0;
-	// Allows adjacent inline spans like `$a$$b$` without treating `$$` display
-	// delimiters as inline math openings.
 	let previousDollarAllowsInlineOpen = false;
 
 	while (index < text.length) {
@@ -232,12 +205,10 @@ function findDisplayMathEnd(text: string, start: number): number {
 function findInlineMathEnd(text: string, start: number): number {
 	for (let index = start; index < text.length; index += 1) {
 		if (text[index] !== "$") continue;
-		// Escaped dollars are math content, not closing delimiters.
 		if (text[index - 1] === "\\") continue;
 
 		const beforeEnd = text[index - 1] || "";
 		const afterEnd = text[index + 1] || "";
-		// A following `$` may open an adjacent inline span; the outer loop handles it.
 		if (/\s/.test(beforeEnd) || /\d/.test(afterEnd)) return -1;
 
 		return index;
@@ -468,6 +439,34 @@ function processTaskItems(root: Element) {
 	}
 }
 
+export function processHighlights(root: Element) {
+	const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+		acceptNode(node) {
+			let curr = node.parentElement;
+			while (curr && curr !== root) {
+				if (["CODE", "PRE", "SCRIPT", "STYLE"].includes(curr.tagName)) return NodeFilter.FILTER_REJECT;
+				curr = curr.parentElement;
+			}
+			return NodeFilter.FILTER_ACCEPT;
+		},
+	});
+
+	const toReplace: { node: Text; replaced: string }[] = [];
+	let node: Node | null;
+	while ((node = walker.nextNode())) {
+		const text = (node as Text).nodeValue || '';
+		if (text.includes('==')) {
+			const replaced = text.replace(/==([^=\n]+)==/g, '<mark>$1</mark>');
+			if (replaced !== text) toReplace.push({ node: node as Text, replaced });
+		}
+	}
+	for (const { node, replaced } of toReplace) {
+		const span = root.ownerDocument!.createElement('span');
+		span.innerHTML = replaced;
+		node.parentNode?.replaceChild(span, node);
+	}
+}
+
 export function processMarkdownHtml(
 	html: string,
 	filePath: string,
@@ -540,7 +539,6 @@ export function processMarkdownHtml(
 	const stripLeadingBreaks = (node: Node) => {
 		const brs = (node as Element).querySelectorAll("br");
 		for (const br of Array.from(brs)) {
-			// If the BR is the first meaningful node in its parent or overall block
 			let prev = br.previousSibling;
 			let isLeading = true;
 			while (prev) {
@@ -558,7 +556,6 @@ export function processMarkdownHtml(
 			}
 		}
 
-		// Also clean up leading empty text nodes and paragraphs
 		while (node.firstChild) {
 			const child = node.firstChild;
 			if (child.nodeType === 3 && child.textContent?.replace(/\xA0|\s|&nbsp;/g, "").trim() === "") {
@@ -571,7 +568,6 @@ export function processMarkdownHtml(
 		}
 	};
 
-	// parse callouts
 	for (const bq of Array.from(doc.querySelectorAll("blockquote"))) {
 		const walker = doc.createTreeWalker(bq, NodeFilter.SHOW_TEXT);
 		let textNode: Text | null = null;
@@ -619,12 +615,10 @@ export function processMarkdownHtml(
 			titleInner.className = "callout-title-inner";
 			for (const tn of titleNodes) titleInner.appendChild(tn);
 			
-			// Restore default title if empty
 			if (titleInner.textContent?.trim() === "") {
 				titleInner.textContent = type.charAt(0).toUpperCase() + type.slice(1);
 			}
 			
-			// Omit rendering any stray <br> tags in the title
 			for (const br of Array.from(titleInner.querySelectorAll("br"))) {
 				br.parentElement?.removeChild(br);
 			}
@@ -680,6 +674,7 @@ export function processMarkdownHtml(
 	processBlockIds(doc.body, doc);
 	processTaskItems(doc.body);
 	processInlineMath(doc.body);
+	processHighlights(doc.body);
 
 	const headings = Array.from(doc.querySelectorAll("h1, h2, h3, h4, h5, h6"));
 	for (const h of headings) {
@@ -720,7 +715,6 @@ export function processMarkdownHtml(
 		}
 	}
 
-	// Clean up empty paragraphs that might be leftovers from blank lines
 	Array.from(doc.querySelectorAll("p")).forEach((p) => {
 		if (p.innerHTML.replace(/&nbsp;|\s/g, "").trim() === "") {
 			p.remove();
