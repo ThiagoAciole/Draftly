@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { invoke } from '@tauri-apps/api/core';
 	import { getCurrentWindow } from '@tauri-apps/api/window';
 	import iconUrl from '../assets/icon.png';
+	import { tauriCommands } from './api/tauri.js';
 	import { t } from './utils/i18n.js';
 
 	let uninstalling = $state(false);
@@ -13,7 +13,7 @@
 		uninstalling = true;
 		error = '';
 		try {
-			await invoke('uninstall_app');
+			await tauriCommands.uninstallApp();
 			// App will exit via Rust logic
 		} catch (e: any) {
 			error = e.toString();
@@ -36,7 +36,7 @@
 	<div class="content">
 		<div class="header">
 			<img src={iconUrl} alt="App Icon" class="app-icon" />
-			<h1>{t('uninstaller.uninstallMarkpad')}</h1>
+			<h1>{t('uninstaller.uninstallDraftly')}</h1>
 			<p class="subtitle">{t('uninstaller.removeApplication')}</p>
 		</div>
 
@@ -54,7 +54,7 @@
 		{:else}
 			<div class="installing-state">
 				<div class="spinner"></div>
-				<p>{t('uninstaller.removingMarkpad')}</p>
+				<p>{t('uninstaller.removingDraftly')}</p>
 			</div>
 		{/if}
 	</div>

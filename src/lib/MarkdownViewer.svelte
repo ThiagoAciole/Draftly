@@ -19,7 +19,14 @@
 	import FindBar from './components/FindBar.svelte';
 	import { exportAsHtml as _exportHtml, exportAsPdf } from './utils/export';
 	import ZoomOverlay from './components/ZoomOverlay.svelte';
-import { processMarkdownHtml } from './utils/markdown';
+	import CommandPalette, { type CommandPaletteItem } from './components/CommandPalette.svelte';
+	import RecoveryDialog from './components/RecoveryDialog.svelte';
+	import ExternalConflictDialog from './components/ExternalConflictDialog.svelte';
+	import { tauriCommands } from './api/tauri.js';
+	import { processMarkdownHtml } from './utils/markdown';
+	import { recoveryStore } from './services/recovery.js';
+	import type { DocumentSnapshot, SaveStatus } from './services/document-session.js';
+	import { DOCUMENT_TEMPLATES, type DocumentTemplate } from './utils/templates.js';
 
 	const appWindow = getCurrentWindow();
 
@@ -41,6 +48,11 @@ import { t } from './utils/i18n.js';
 	let mode = $state<'loading' | 'app' | 'installer' | 'uninstall'>('loading');
 
 	let showSettings = $state(false);
+	let showCommandPalette = $state(false);
+	let showRecovery = $state(false);
+	let recoverySnapshots = $state<DocumentSnapshot[]>([]);
+	let externalConflict = $state<{ path: string; content: string } | null>(null);
+	let saveStatus = $state<SaveStatus>('idle');
 
 	let uiLanguage = $state(settings.language);
 
@@ -49,6 +61,55 @@ import { t } from './utils/i18n.js';
 	});
 
 	let recentFiles = $state<string[]>([]);
+	let commandPaletteItems = $derived.by<CommandPaletteItem[]>(() => [
+		{
+			id: 'new-markdown',
+			label: 'New Markdown document',
+			keywords: 'create note',
+			run: () => handleNewFile('markdown'),
+		},
+		{
+			id: 'new-text',
+			label: 'New text document',
+			keywords: 'create plain text',
+			run: () => handleNewFile('text'),
+		},
+		...DOCUMENT_TEMPLATES.map((template) => ({
+			id: `template:${template.id}`,
+			label: `New from template: ${template.name}`,
+			keywords: 'template writing',
+			run: () => createFromTemplate(template),
+		})),
+		{
+			id: 'open-file',
+			label: t('home.openFile', settings.language),
+			keywords: 'browse select',
+			run: selectFile,
+		},
+		{
+			id: 'save',
+			label: t('settings.save', settings.language),
+			detail: 'Ctrl/Cmd+S',
+			run: () => saveContent(),
+		},
+		{
+			id: 'settings',
+			label: t('settings.title', settings.language),
+			run: () => (showSettings = true),
+		},
+		{
+			id: 'home',
+			label: t('menu.home', settings.language),
+			run: () => (showHome = true),
+		},
+		...recentFiles.slice(0, 10).map((path) => ({
+			id: `recent:${path}`,
+			label: path.split(/[/\\]/).pop() || path,
+			detail: path,
+			keywords: 'recent file',
+			run: () => loadMarkdown(path),
+		})),
+	]);
 	let isFocused = $state(true);
 	
 	let containerEl: HTMLElement;
@@ -647,14 +708,20 @@ import { t } from './utils/i18n.js';
 	async function renderRichContent() {
 		if (!markdownBody) return;
 
-		if (!hljs || !renderMathInElement || !mermaid) return;
+		if (!hljs || !renderMathInElement) return;
+
+		const hasMermaid = !!markdownBody.querySelector('code.language-mermaid');
+		if (hasMermaid && !mermaid) {
+			const mermaidModule = await import('mermaid');
+			mermaid = mermaidModule.default;
+		}
 
 		// Initialize Mermaid with theme based on system preference or override
 		const isSystemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 		const datasetThemeType = document.documentElement.dataset.themeType;
 		const isDark = datasetThemeType === 'dark' || (theme === 'dark') || (theme === 'system' && isSystemDark);
 		const effectiveTheme = isDark ? 'dark' : 'neutral';
-		mermaid.initialize({ startOnLoad: false, theme: effectiveTheme });
+		if (mermaid) mermaid.initialize({ startOnLoad: false, theme: effectiveTheme });
 
 		// Process code blocks
 		const codeBlocks = Array.from(markdownBody.querySelectorAll('pre code'));
@@ -663,7 +730,7 @@ import { t } from './utils/i18n.js';
 			const preEl = codeEl.parentElement as HTMLPreElement;
 
 			// Check for Mermaid blocks
-			if (codeEl.classList.contains('language-mermaid')) {
+			if (codeEl.classList.contains('language-mermaid') && mermaid) {
 				try {
 					const mermaidCode = codeEl.textContent || '';
 					const id = `mermaid-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
@@ -777,7 +844,7 @@ import { t } from './utils/i18n.js';
 	}
 
 	$effect(() => {
-		if (sanitizedHtml && markdownBody && !isEditing && hljs && renderMathInElement && mermaid) renderRichContent();
+		if (sanitizedHtml && markdownBody && !isEditing && hljs && renderMathInElement) renderRichContent();
 	});
 
 	// Re-apply find highlights after the preview HTML is replaced. The
@@ -1286,6 +1353,61 @@ import { t } from './utils/i18n.js';
 		localStorage.setItem('recent-files', JSON.stringify(recentFiles));
 	}
 
+	function refreshRecoverySnapshots() {
+		recoverySnapshots = recoveryStore.list();
+	}
+
+	function persistRecoverySnapshots() {
+		for (const tab of tabManager.tabs) {
+			const shouldKeep =
+				tab.isDirty || (tab.path === '' && tab.rawContent.trim() !== '');
+			if (!shouldKeep) {
+				recoveryStore.remove(tab.id);
+				continue;
+			}
+			recoveryStore.save({
+				id: tab.id,
+				path: tab.path,
+				title: tab.title,
+				content: tab.rawContent,
+				updatedAt: Date.now(),
+			});
+		}
+	}
+
+	function restoreRecoverySnapshot(snapshot: DocumentSnapshot) {
+		tabManager.addRecoveredTab(snapshot);
+		recoveryStore.remove(snapshot.id);
+		refreshRecoverySnapshots();
+		showRecovery = recoverySnapshots.length > 0;
+	}
+
+	function discardRecoverySnapshot(snapshot: DocumentSnapshot) {
+		recoveryStore.remove(snapshot.id);
+		refreshRecoverySnapshots();
+		showRecovery = recoverySnapshots.length > 0;
+	}
+
+	async function reloadExternalVersion() {
+		const conflict = externalConflict;
+		if (!conflict) return;
+		externalConflict = null;
+		await loadMarkdown(conflict.path, {
+			skipTabManagement: true,
+			resetScrollHistory: false,
+		});
+	}
+
+	function keepLocalVersion() {
+		externalConflict = null;
+		saveStatus = 'idle';
+	}
+
+	async function saveLocalConflictCopy() {
+		externalConflict = null;
+		await saveContentAs();
+	}
+
 	function removeRecentFile(path: string, event: MouseEvent) {
 		event.stopPropagation();
 		deleteRecentFile(path);
@@ -1513,6 +1635,7 @@ import { t } from './utils/i18n.js';
 		}
 
 		const snapshot = tab.rawContent;
+		saveStatus = 'saving';
 		selfWriteUntilByPath.set(targetPath, Date.now() + SELF_WRITE_GRACE_MS);
 
 		try {
@@ -1528,10 +1651,13 @@ import { t } from './utils/i18n.js';
 			tab.originalContent = snapshot;
 			// If the user kept typing during the await, the buffer is still dirty.
 			tab.isDirty = tab.rawContent !== snapshot;
+			if (!tab.isDirty) recoveryStore.remove(tab.id);
+			saveStatus = tab.isDirty ? 'idle' : 'saved';
 			return true;
 		} catch (e) {
 			selfWriteUntilByPath.delete(targetPath);
 			console.error('Failed to save file', e);
+			saveStatus = 'error';
 			return false;
 		}
 	}
@@ -1555,6 +1681,7 @@ import { t } from './utils/i18n.js';
 
 		if (selected) {
 			const snapshot = tab.rawContent;
+			saveStatus = 'saving';
 			selfWriteUntilByPath.set(selected, Date.now() + SELF_WRITE_GRACE_MS);
 			try {
 				await invoke('save_file_content', { path: selected, content: snapshot });
@@ -1563,10 +1690,13 @@ import { t } from './utils/i18n.js';
 				saveRecentFile(selected);
 				tab.originalContent = snapshot;
 				tab.isDirty = tab.rawContent !== snapshot;
+				if (!tab.isDirty) recoveryStore.remove(tab.id);
+				saveStatus = tab.isDirty ? 'idle' : 'saved';
 				return true;
 			} catch (e) {
 				selfWriteUntilByPath.delete(selected);
 				console.error('Failed to save file as', e);
+				saveStatus = 'error';
 				return false;
 			}
 		}
@@ -1703,6 +1833,17 @@ import { t } from './utils/i18n.js';
 		showHome = false;
 	}
 
+	function createFromTemplate(template: DocumentTemplate) {
+		tabManager.addNewTab('markdown');
+		const tab = tabManager.activeTab;
+		if (!tab) return;
+		tab.title = `${template.name}.md`;
+		tab.rawContent = template.content;
+		tab.originalContent = '';
+		tab.isDirty = true;
+		showHome = false;
+	}
+
 	async function selectFile() {
 		const selected = await open({
 			multiple: false,
@@ -1733,10 +1874,11 @@ import { t } from './utils/i18n.js';
 	async function closeTabAndWindowIfLast(tabId: string) {
 		if (!(await canCloseTab(tabId))) return;
 
+		recoveryStore.remove(tabId);
 		tabManager.closeTab(tabId);
 		if (tabManager.tabs.length > 0) return;
 
-		if (liveMode) invoke('unwatch_file').catch(console.error);
+		if (liveMode) tauriCommands.unwatchFile().catch(console.error);
 		await destroyWindowAfterTabsClosed();
 	}
 
@@ -1749,16 +1891,16 @@ import { t } from './utils/i18n.js';
 	}
 
 	async function openFileLocation() {
-		if (currentFile) await invoke('open_file_folder', { path: currentFile });
+		if (currentFile) await tauriCommands.revealFile(currentFile);
 	}
 
 	async function toggleLiveMode() {
 		liveMode = !liveMode;
 		if (liveMode && currentFile) {
-			await invoke('watch_file', { path: currentFile });
+			await tauriCommands.watchFile(currentFile);
 			if (tabManager.activeTabId) await loadMarkdown(currentFile);
 		} else {
-			await invoke('unwatch_file');
+			await tauriCommands.unwatchFile();
 		}
 	}
 
@@ -2103,6 +2245,12 @@ import { t } from './utils/i18n.js';
 		const key = e.key.toLowerCase();
 		const code = e.code;
 
+		if (cmdOrCtrl && e.shiftKey && key === 'p') {
+			e.preventDefault();
+			showCommandPalette = !showCommandPalette;
+			return;
+		}
+
 		// On macOS the native menu accelerators (⌘T, ⌘W, ⌘S, ⌘Q) take priority
 		// via NSMenu; the JS keydown handler should not also fire for them, or
 		// we'd double-handle (e.g. open two new tabs on ⌘T). The !e.shiftKey
@@ -2319,13 +2467,50 @@ import { t } from './utils/i18n.js';
 
 	onMount(() => {
 		loadRecentFiles();
+		refreshRecoverySnapshots();
+		showRecovery = recoverySnapshots.length > 0;
+		const recoveryInterval = window.setInterval(persistRecoverySnapshots, 1500);
 
-		// @ts-ignore
-		Promise.all([import('highlight.js'), import('highlightjs-svelte'), import('katex'), import('mermaid')]).then(async ([hljsModule, svelteModule, katexMainModule, mermaidModule]) => {
+		Promise.all([
+			import('highlight.js/lib/core'),
+			import('highlight.js/lib/languages/javascript'),
+			import('highlight.js/lib/languages/typescript'),
+			import('highlight.js/lib/languages/json'),
+			import('highlight.js/lib/languages/xml'),
+			import('highlight.js/lib/languages/css'),
+			import('highlight.js/lib/languages/markdown'),
+			import('highlight.js/lib/languages/bash'),
+			import('highlight.js/lib/languages/python'),
+			import('highlight.js/lib/languages/rust'),
+			import('highlight.js/lib/languages/sql'),
+			import('katex'),
+		]).then(async ([
+			hljsModule,
+			javascript,
+			typescript,
+			json,
+			xml,
+			css,
+			markdown,
+			bash,
+			python,
+			rust,
+			sql,
+			katexMainModule,
+		]) => {
 			hljs = hljsModule.default;
-			try {
-				svelteModule.default(hljs);
-			} catch(e) { console.error('svelte hljs error', e); }
+			hljs.registerLanguage('javascript', javascript.default);
+			hljs.registerLanguage('typescript', typescript.default);
+			hljs.registerLanguage('json', json.default);
+			hljs.registerLanguage('html', xml.default);
+			hljs.registerLanguage('xml', xml.default);
+			hljs.registerLanguage('css', css.default);
+			hljs.registerLanguage('markdown', markdown.default);
+			hljs.registerLanguage('bash', bash.default);
+			hljs.registerLanguage('shell', bash.default);
+			hljs.registerLanguage('python', python.default);
+			hljs.registerLanguage('rust', rust.default);
+			hljs.registerLanguage('sql', sql.default);
 			
 			katex = katexMainModule.default;
 			// some extensions bind to window.katex
@@ -2339,7 +2524,6 @@ import { t } from './utils/i18n.js';
 			]);
 			
 			renderMathInElement = autoRenderModule.default;
-			mermaid = mermaidModule.default;
 		});
 
 		let unlisteners: (() => void)[] = [];
@@ -2382,7 +2566,7 @@ import { t } from './utils/i18n.js';
 				}),
 			);
 			unlisteners.push(
-				await listen('file-changed', () => {
+				await listen('file-changed', async () => {
 					if (!liveMode || !currentFile) return;
 					// Skip events caused by our own auto-save / save invocations,
 					// otherwise the reload would clobber any keystrokes that landed
@@ -2392,7 +2576,24 @@ import { t } from './utils/i18n.js';
 						if (Date.now() < until) return;
 						selfWriteUntilByPath.delete(currentFile);
 					}
-					loadMarkdown(currentFile);
+					const tab = tabManager.activeTab;
+					if (tab?.isDirty) {
+						try {
+							const externalContent = await tauriCommands.readFile(currentFile);
+							if (externalContent !== tab.originalContent) {
+								externalConflict = {
+									path: currentFile,
+									content: externalContent,
+								};
+								saveStatus = 'conflict';
+								return;
+							}
+						} catch (error) {
+							console.error('Failed to inspect external file change', error);
+							return;
+						}
+					}
+					await loadMarkdown(currentFile);
 				}),
 			);
 
@@ -2657,6 +2858,8 @@ import { t } from './utils/i18n.js';
 		init();
 
 		return () => {
+			window.clearInterval(recoveryInterval);
+			persistRecoverySnapshots();
 			unlisteners.forEach((u) => u());
 		};
 	});
@@ -2687,7 +2890,7 @@ import { t } from './utils/i18n.js';
 		onexportPdf={exportAsPdf}
 		onexit={appExit}
 		ontoggleHome={toggleHome}
-		ononpenFileLocation={openFileLocation}
+		onopenFileLocation={openFileLocation}
 		ontoggleLiveMode={toggleLiveMode}
 		{isEditing}
 		ondetach={handleDetach}
@@ -2723,7 +2926,7 @@ import { t } from './utils/i18n.js';
 		onexportPdf={exportAsPdf}
 		onexit={appExit}
 		ontoggleHome={toggleHome}
-		ononpenFileLocation={openFileLocation}
+		onopenFileLocation={openFileLocation}
 		ontoggleLiveMode={toggleLiveMode}
 		{isEditing}
 		ondetach={handleDetach}
@@ -2737,6 +2940,25 @@ import { t } from './utils/i18n.js';
 		oncloseTab={closeTabAndWindowIfLast} />
 
 	<Settings show={showSettings} {theme} onSetTheme={(t) => (theme = t)} onclose={() => (showSettings = false)} />
+
+	<CommandPalette
+		show={showCommandPalette}
+		items={commandPaletteItems}
+		onclose={() => (showCommandPalette = false)} />
+
+	<RecoveryDialog
+		show={showRecovery}
+		snapshots={recoverySnapshots}
+		onrestore={restoreRecoverySnapshot}
+		ondiscard={discardRecoverySnapshot}
+		onclose={() => (showRecovery = false)} />
+
+	<ExternalConflictDialog
+		show={externalConflict !== null}
+		fileName={externalConflict?.path.split(/[/\\]/).pop() || ''}
+		onreload={reloadExternalVersion}
+		onkeep={keepLocalVersion}
+		onsavecopy={saveLocalConflictCopy} />
 
 	<FindBar
 		bind:this={findBar}
@@ -2969,6 +3191,18 @@ import { t } from './utils/i18n.js';
 		{/each}
 	</div>
 
+	{#if saveStatus !== 'idle'}
+		<div class="save-status {saveStatus}" role="status">
+			{saveStatus === 'saving'
+				? 'Saving…'
+				: saveStatus === 'saved'
+					? 'Saved'
+					: saveStatus === 'conflict'
+						? 'External conflict'
+						: 'Save failed'}
+		</div>
+	{/if}
+
 	{#if zoomData}
 		<ZoomOverlay 
 			src={zoomData.src} 
@@ -3028,6 +3262,25 @@ import { t } from './utils/i18n.js';
 		max-width: 880px;
 		text-align: left;
 		overflow-wrap: anywhere;
+	}
+
+	.save-status {
+		position: fixed;
+		right: 16px;
+		bottom: 14px;
+		z-index: 1200;
+		padding: 5px 9px;
+		border: 1px solid var(--color-border-muted);
+		border-radius: 999px;
+		background: var(--color-canvas-overlay);
+		color: var(--color-fg-muted);
+		font: 12px var(--win-font);
+		box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+	}
+
+	.save-status.error,
+	.save-status.conflict {
+		color: var(--color-danger-fg);
 	}
 
 	.loading-chip {

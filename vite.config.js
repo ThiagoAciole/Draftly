@@ -7,6 +7,11 @@ const host = process.env.TAURI_DEV_HOST;
 // https://vite.dev/config/
 export default defineConfig(async () => ({
   plugins: [sveltekit()],
+  test: {
+    environment: "jsdom",
+    include: ["src/**/*.test.ts"],
+    clearMocks: true,
+  },
   build: {
     chunkSizeWarningLimit: 10000,
   },

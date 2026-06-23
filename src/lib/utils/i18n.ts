@@ -258,7 +258,7 @@ export const translations: Record<LanguageCode, Translation> = {
             retry: 'Retry'
         },
         home: {
-            welcomeToMarkpad: 'Welcome to Draftly',
+            welcomeToDraftly: 'Welcome to Draftly',
             recentFiles: 'Recent Files',
             noRecentFiles: 'No recent files',
             newFile: 'New File',
@@ -343,15 +343,15 @@ export const translations: Record<LanguageCode, Translation> = {
             requiresAdmin: 'Requires Administrator privileges',
             updating: 'Updating',
             installing: 'Installing',
-            markpad: 'Draftly...',
+            draftly: 'Draftly...',
             accessDenied: 'Access denied. Please run as Administrator.'
         },
         uninstaller: {
-            uninstallMarkpad: 'Uninstall Draftly?',
+            uninstallDraftly: 'Uninstall Draftly?',
             removeApplication: 'This will remove the application and all its shortcuts.',
             cancel: 'Cancel',
             uninstall: 'Uninstall',
-            removingMarkpad: 'Removing Draftly...'
+            removingDraftly: 'Removing Draftly...'
         },
         tabs: {
             untitled: 'Untitled',
@@ -521,7 +521,7 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedFiles: '您有 {{count}} 个未保存的文件。是否保存更改？'
         },
         home: {
-            welcomeToMarkpad: '欢迎使用Draftly',
+            welcomeToDraftly: '欢迎使用Draftly',
             recentFiles: '最近文件',
             noRecentFiles: '没有最近文件',
             newFile: '新建文件',
@@ -605,15 +605,15 @@ export const translations: Record<LanguageCode, Translation> = {
             requiresAdmin: '需要管理员权限',
             updating: '正在更新',
             installing: '正在安装',
-            markpad: 'Draftly...',
+            draftly: 'Draftly...',
             accessDenied: '访问被拒绝。请以管理员身份运行。'
         },
         uninstaller: {
-            uninstallMarkpad: '卸载 Draftly？',
+            uninstallDraftly: '卸载 Draftly？',
             removeApplication: '这将移除应用程序及其所有快捷方式。',
             cancel: '取消',
             uninstall: '卸载',
-            removingMarkpad: '正在移除 Draftly...'
+            removingDraftly: '正在移除 Draftly...'
         },
         tabs: {
             untitled: '无标题',
@@ -782,7 +782,7 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedFiles: '{{count}} つの保存されていないファイルがあります。変更を保存しますか？'
         },
         home: {
-            welcomeToMarkpad: 'Draftlyへようこそ',
+            welcomeToDraftly: 'Draftlyへようこそ',
             recentFiles: '最近のファイル',
             noRecentFiles: '最近のファイルはありません',
             newFile: '新しいファイル',
@@ -866,15 +866,15 @@ export const translations: Record<LanguageCode, Translation> = {
             requiresAdmin: '管理者権限が必要',
             updating: '更新中',
             installing: 'インストール中',
-            markpad: 'Draftly...',
+            draftly: 'Draftly...',
             accessDenied: 'アクセスが拒否されました。管理者として実行してください。'
         },
         uninstaller: {
-            uninstallMarkpad: 'Draftly をアンインストールしますか？',
+            uninstallDraftly: 'Draftly をアンインストールしますか？',
             removeApplication: 'これにより、アプリケーションとそのすべてのショートカットが削除されます。',
             cancel: 'キャンセル',
             uninstall: 'アンインストール',
-            removingMarkpad: 'Draftly を削除中...'
+            removingDraftly: 'Draftly を削除中...'
         },
         tabs: {
             untitled: '名前なし',
@@ -1043,7 +1043,7 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedFiles: '您有 {{count}} 個未保存的文件。您想保存您的更改嗎？'
         },
         home: {
-            welcomeToMarkpad: '歡迎使用 Draftly',
+            welcomeToDraftly: '歡迎使用 Draftly',
             recentFiles: '最近的文件',
             noRecentFiles: '沒有最近的文件',
             newFile: '新建文件',
@@ -1099,11 +1099,11 @@ export const translations: Record<LanguageCode, Translation> = {
             close: '關閉'
         },
         uninstaller: {
-            uninstallMarkpad: '您想要卸載 Draftly 嗎？',
+            uninstallDraftly: '您想要卸載 Draftly 嗎？',
             removeApplication: '這將刪除應用程序及其所有快捷方式。',
             cancel: '取消',
             uninstall: '卸載',
-            removingMarkpad: '正在刪除 Draftly...'
+            removingDraftly: '正在刪除 Draftly...'
         },
         tabs: {
             untitled: '無標題',
@@ -1275,7 +1275,7 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedFiles: '저장되지 않은 {{count}}개 파일이 있습니다. 변경 사항을 저장하시겠습니까?'
         },
         home: {
-            welcomeToMarkpad: 'Draftly에 오신 것을 환영합니다',
+            welcomeToDraftly: 'Draftly에 오신 것을 환영합니다',
             recentFiles: '최근 파일',
             noRecentFiles: '최근 파일 없음',
             newFile: '새 파일',
@@ -1316,11 +1316,11 @@ export const translations: Record<LanguageCode, Translation> = {
             zoomOut: '축소'
         },
         uninstaller: {
-            uninstallMarkpad: 'Draftly를 제거하시겠습니까?',
+            uninstallDraftly: 'Draftly를 제거하시겠습니까?',
             removeApplication: '응용 프로그램과 모든 바로 가기가 삭제됩니다.',
             cancel: '취소',
             uninstall: '제거',
-            removingMarkpad: 'Draftly 제거 중...'
+            removingDraftly: 'Draftly 제거 중...'
         },
         tabs: {
             untitled: '제목 없음',
@@ -1489,7 +1489,7 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedFiles: 'У вас есть {{count}} несохранённых файлов. Вы хотите сохранить изменения?'
         },
         home: {
-            welcomeToMarkpad: 'Добро пожаловать в Draftly',
+            welcomeToDraftly: 'Добро пожаловать в Draftly',
             recentFiles: 'Недавние файлы',
             noRecentFiles: 'Нет недавних файлов',
             newFile: 'Новый файл',
@@ -1530,11 +1530,11 @@ export const translations: Record<LanguageCode, Translation> = {
             zoomOut: 'Уменьшить'
         },
         uninstaller: {
-            uninstallMarkpad: 'Вы хотите удалить Draftly?',
+            uninstallDraftly: 'Вы хотите удалить Draftly?',
             removeApplication: 'Приложение и все его ярлыки будут удалены.',
             cancel: 'Отмена',
             uninstall: 'Удалить',
-            removingMarkpad: 'Удаление Draftly...'
+            removingDraftly: 'Удаление Draftly...'
         },
         tabs: {
             untitled: 'Без названия',
@@ -1703,7 +1703,7 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedFiles: 'Tiene {{count}} archivo(s) sin guardar. ¿Desea guardar los cambios?'
         },
         home: {
-            welcomeToMarkpad: 'Bienvenido a Draftly',
+            welcomeToDraftly: 'Bienvenido a Draftly',
             recentFiles: 'Archivos recientes',
             noRecentFiles: 'No hay archivos recientes',
             newFile: 'Nuevo archivo',
@@ -1744,11 +1744,11 @@ export const translations: Record<LanguageCode, Translation> = {
             zoomOut: 'Alejar'
         },
         uninstaller: {
-            uninstallMarkpad: '¿Desea desinstalar Draftly?',
+            uninstallDraftly: '¿Desea desinstalar Draftly?',
             removeApplication: 'Se eliminará la aplicación y todos sus accesos directos.',
             cancel: 'Cancelar',
             uninstall: 'Desinstalar',
-            removingMarkpad: 'Eliminando Draftly...'
+            removingDraftly: 'Eliminando Draftly...'
         },
         tabs: {
             untitled: 'Sin título',
@@ -1917,7 +1917,7 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedFiles: 'Vous avez {{count}} fichier(s) non enregistré(s). Voulez-vous enregistrer vos modifications ?'
         },
         home: {
-            welcomeToMarkpad: 'Bienvenue dans Draftly',
+            welcomeToDraftly: 'Bienvenue dans Draftly',
             recentFiles: 'Fichiers récents',
             noRecentFiles: 'Aucun fichier récent',
             newFile: 'Nouveau fichier',
@@ -1958,11 +1958,11 @@ export const translations: Record<LanguageCode, Translation> = {
             zoomOut: 'Zoom arrière'
         },
         uninstaller: {
-            uninstallMarkpad: 'Voulez-vous désinstaller Draftly ?',
+            uninstallDraftly: 'Voulez-vous désinstaller Draftly ?',
             removeApplication: 'L\'application et tous ses raccourcis seront supprimés.',
             cancel: 'Annuler',
             uninstall: 'Désinstaller',
-            removingMarkpad: 'Suppression de Draftly...'
+            removingDraftly: 'Suppression de Draftly...'
         },
         tabs: {
             untitled: 'Sans titre',
@@ -2131,7 +2131,7 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedFiles: 'Sie haben {{count}} ungespeicherte Datei(en). Möchten Sie Ihre Änderungen speichern?'
         },
         home: {
-            welcomeToMarkpad: 'Willkommen bei Draftly',
+            welcomeToDraftly: 'Willkommen bei Draftly',
             recentFiles: 'Zuletzt verwendete Dateien',
             noRecentFiles: 'Keine zuletzt verwendeten Dateien',
             newFile: 'Neue Datei',
@@ -2172,11 +2172,11 @@ export const translations: Record<LanguageCode, Translation> = {
             zoomOut: 'Verkleinern'
         },
         uninstaller: {
-            uninstallMarkpad: 'Möchten Sie Draftly deinstallieren?',
+            uninstallDraftly: 'Möchten Sie Draftly deinstallieren?',
             removeApplication: 'Die Anwendung und alle ihre Verknüpfungen werden entfernt.',
             cancel: 'Abbrechen',
             uninstall: 'Deinstallieren',
-            removingMarkpad: 'Draftly wird entfernt...'
+            removingDraftly: 'Draftly wird entfernt...'
         },
         tabs: {
             untitled: 'Unbenannt',
@@ -2345,7 +2345,7 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedFiles: 'Você tem {{count}} arquivo(s) não salvo(s). Deseja salvar suas alterações?'
         },
         home: {
-            welcomeToMarkpad: 'Bem-vindo ao Draftly',
+            welcomeToDraftly: 'Bem-vindo ao Draftly',
             recentFiles: 'Arquivos recentes',
             noRecentFiles: 'Nenhum arquivo recente',
             newFile: 'Novo arquivo',
@@ -2386,11 +2386,11 @@ export const translations: Record<LanguageCode, Translation> = {
             zoomOut: 'Diminuir zoom'
         },
         uninstaller: {
-            uninstallMarkpad: 'Deseja desinstalar o Draftly?',
+            uninstallDraftly: 'Deseja desinstalar o Draftly?',
             removeApplication: 'O aplicativo e todos os seus atalhos serão removidos.',
             cancel: 'Cancelar',
             uninstall: 'Desinstalar',
-            removingMarkpad: 'Removendo Draftly...'
+            removingDraftly: 'Removendo Draftly...'
         },
         tabs: {
             untitled: 'Sem título',
@@ -2559,7 +2559,7 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedFiles: 'Hai {{count}} file non salvati. Vuoi salvare le modifiche?'
         },
         home: {
-            welcomeToMarkpad: 'Benvenuto in Draftly',
+            welcomeToDraftly: 'Benvenuto in Draftly',
             recentFiles: 'File recenti',
             noRecentFiles: 'Nessun file recente',
             newFile: 'Nuovo file',
@@ -2600,11 +2600,11 @@ export const translations: Record<LanguageCode, Translation> = {
             zoomOut: 'Zoom indietro'
         },
         uninstaller: {
-            uninstallMarkpad: 'Vuoi disinstallare Draftly?',
+            uninstallDraftly: 'Vuoi disinstallare Draftly?',
             removeApplication: 'L\'applicazione e tutti i suoi collegamenti verranno rimossi.',
             cancel: 'Annulla',
             uninstall: 'Disinstalla',
-            removingMarkpad: 'Rimozione Draftly...'
+            removingDraftly: 'Rimozione Draftly...'
         },
         tabs: {
             untitled: 'Senza titolo',
@@ -2773,7 +2773,7 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedFiles: 'Masz {{count}} niezapisanych plików. Czy chcesz zapisać zmiany?'
         },
         home: {
-            welcomeToMarkpad: 'Witaj w Draftly',
+            welcomeToDraftly: 'Witaj w Draftly',
             recentFiles: 'Ostatnie pliki',
             noRecentFiles: 'Brak ostatnich plików',
             newFile: 'Nowy plik',
@@ -2814,11 +2814,11 @@ export const translations: Record<LanguageCode, Translation> = {
             zoomOut: 'Pomniejsz'
         },
         uninstaller: {
-            uninstallMarkpad: 'Czy chcesz odinstalować Draftly?',
+            uninstallDraftly: 'Czy chcesz odinstalować Draftly?',
             removeApplication: 'Spowoduje to usunięcie aplikacji i wszystkich jej skrótów.',
             cancel: 'Anuluj',
             uninstall: 'Odinstaluj',
-            removingMarkpad: 'Usuwanie Draftly...'
+            removingDraftly: 'Usuwanie Draftly...'
         },
         tabs: {
             untitled: 'Bez tytułu',
@@ -2987,7 +2987,7 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedFiles: 'Je hebt {{count}} niet-opgeslagen bestand(en). Wil je je wijzigingen opslaan?'
         },
         home: {
-            welcomeToMarkpad: 'Welkom bij Draftly',
+            welcomeToDraftly: 'Welkom bij Draftly',
             recentFiles: 'Recente bestanden',
             noRecentFiles: 'Geen recente bestanden',
             newFile: 'Nieuw bestand',
@@ -3028,11 +3028,11 @@ export const translations: Record<LanguageCode, Translation> = {
             zoomOut: 'Uitzoomen'
         },
         uninstaller: {
-            uninstallMarkpad: 'Wil je Draftly verwijderen?',
+            uninstallDraftly: 'Wil je Draftly verwijderen?',
             removeApplication: 'Hiermee wordt de applicatie en alle snelkoppelingen verwijderd.',
             cancel: 'Annuleren',
             uninstall: 'Verwijderen',
-            removingMarkpad: 'Draftly verwijderen...'
+            removingDraftly: 'Draftly verwijderen...'
         },
         tabs: {
             untitled: 'Naamloos',
@@ -3201,7 +3201,7 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedFiles: 'Du har {{count}} osparade filer. Vill du spara dina ändringar?'
         },
         home: {
-            welcomeToMarkpad: 'Välkommen till Draftly',
+            welcomeToDraftly: 'Välkommen till Draftly',
             recentFiles: 'Senaste filer',
             noRecentFiles: 'Inga senaste filer',
             newFile: 'Ny fil',
@@ -3242,11 +3242,11 @@ export const translations: Record<LanguageCode, Translation> = {
             zoomOut: 'Zooma ut'
         },
         uninstaller: {
-            uninstallMarkpad: 'Vill du avinstallera Draftly?',
+            uninstallDraftly: 'Vill du avinstallera Draftly?',
             removeApplication: 'Detta tar bort programmet och alla dess genvägar.',
             cancel: 'Avbryt',
             uninstall: 'Avinstallera',
-            removingMarkpad: 'Tar bort Draftly...'
+            removingDraftly: 'Tar bort Draftly...'
         },
         tabs: {
             untitled: 'Namnlös',
@@ -3415,7 +3415,7 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedFiles: 'Bạn có {{count}} tệp chưa lưu. Bạn có muốn lưu thay đổi không?'
         },
         home: {
-            welcomeToMarkpad: 'Chào mừng đến với Draftly',
+            welcomeToDraftly: 'Chào mừng đến với Draftly',
             recentFiles: 'Tệp gần đây',
             noRecentFiles: 'Không có tệp gần đây',
             newFile: 'Tệp mới',
@@ -3456,11 +3456,11 @@ export const translations: Record<LanguageCode, Translation> = {
             zoomOut: 'Thu nhỏ'
         },
         uninstaller: {
-            uninstallMarkpad: 'Bạn có muốn gỡ cài đặt Draftly không?',
+            uninstallDraftly: 'Bạn có muốn gỡ cài đặt Draftly không?',
             removeApplication: 'Thao tác này sẽ xóa ứng dụng và tất cả lối tắt của nó.',
             cancel: 'Hủy',
             uninstall: 'Gỡ cài đặt',
-            removingMarkpad: 'Đang gỡ cài đặt Draftly...'
+            removingDraftly: 'Đang gỡ cài đặt Draftly...'
         },
         tabs: {
             untitled: 'Chưa đặt tên',
@@ -3629,7 +3629,7 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedFiles: 'Tem {{count}} ficheiro(s) não guardado(s). Pretende guardar as suas alterações?'
         },
         home: {
-            welcomeToMarkpad: 'Bem-vindo ao Draftly',
+            welcomeToDraftly: 'Bem-vindo ao Draftly',
             recentFiles: 'Ficheiros recentes',
             noRecentFiles: 'Sem ficheiros recentes',
             newFile: 'Novo ficheiro',
@@ -3670,11 +3670,11 @@ export const translations: Record<LanguageCode, Translation> = {
             zoomOut: 'Diminuir zoom'
         },
         uninstaller: {
-            uninstallMarkpad: 'Pretende desinstalar o Draftly?',
+            uninstallDraftly: 'Pretende desinstalar o Draftly?',
             removeApplication: 'Isto irá remover a aplicação e todos os seus atalhos.',
             cancel: 'Cancelar',
             uninstall: 'Desinstalar',
-            removingMarkpad: 'A remover Draftly...'
+            removingDraftly: 'A remover Draftly...'
         },
         tabs: {
             untitled: 'Sem título',
@@ -3843,7 +3843,7 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedFiles: 'Aveți {{count}} fișier(e) nesalvate. Doriți să salvați modificările?'
         },
         home: {
-            welcomeToMarkpad: 'Bine ați venit la Draftly',
+            welcomeToDraftly: 'Bine ați venit la Draftly',
             recentFiles: 'Fișiere recente',
             noRecentFiles: 'Nu există fișiere recente',
             newFile: 'Fișier nou',
@@ -3884,11 +3884,11 @@ export const translations: Record<LanguageCode, Translation> = {
             zoomOut: 'Micșorare'
         },
         uninstaller: {
-            uninstallMarkpad: 'Doriți să dezinstalați Draftly?',
+            uninstallDraftly: 'Doriți să dezinstalați Draftly?',
             removeApplication: 'Aceasta va elimina aplicația și toate comenzile rapide ale acesteia.',
             cancel: 'Anulare',
             uninstall: 'Dezinstalare',
-            removingMarkpad: 'Se elimină Draftly...'
+            removingDraftly: 'Se elimină Draftly...'
         },
         tabs: {
             untitled: 'Fără titlu',
@@ -4057,7 +4057,7 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedFiles: '{{count}} nem mentett fájlja van. Menteni szeretné a módosításokat?'
         },
         home: {
-            welcomeToMarkpad: 'Üdvözli a Draftly',
+            welcomeToDraftly: 'Üdvözli a Draftly',
             recentFiles: 'Legutóbbi fájlok',
             noRecentFiles: 'Nincsenek legutóbbi fájlok',
             newFile: 'Új fájl',
@@ -4098,11 +4098,11 @@ export const translations: Record<LanguageCode, Translation> = {
             zoomOut: 'Kicsinyítés'
         },
         uninstaller: {
-            uninstallMarkpad: 'Eltávolítja a Draftly-et?',
+            uninstallDraftly: 'Eltávolítja a Draftly-et?',
             removeApplication: 'Ez eltávolítja az alkalmazást és minden parancsikonját.',
             cancel: 'Mégse',
             uninstall: 'Eltávolítás',
-            removingMarkpad: 'Draftly eltávolítása...'
+            removingDraftly: 'Draftly eltávolítása...'
         },
         tabs: {
             untitled: 'Névtelen',
@@ -4271,7 +4271,7 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedFiles: 'Máte {{count}} neuložených souborů. Chcete uložit změny?'
         },
         home: {
-            welcomeToMarkpad: 'Vítejte v Draftly',
+            welcomeToDraftly: 'Vítejte v Draftly',
             recentFiles: 'Nedávné soubory',
             noRecentFiles: 'Žádné nedávné soubory',
             newFile: 'Nový soubor',
@@ -4315,11 +4315,11 @@ export const translations: Record<LanguageCode, Translation> = {
             switchSide: 'Switch side',
         },
         uninstaller: {
-            uninstallMarkpad: 'Chcete odinstalovat Draftly?',
+            uninstallDraftly: 'Chcete odinstalovat Draftly?',
             removeApplication: 'Tím se odstraní aplikace a všechny její zástupce.',
             cancel: 'Zrušit',
             uninstall: 'Odinstalovat',
-            removingMarkpad: 'Odstraňování Draftly...'
+            removingDraftly: 'Odstraňování Draftly...'
         },
         tabs: {
             untitled: 'Bez názvu',
@@ -4491,7 +4491,7 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedFiles: 'Máte {{count}} neuložených súborov. Chcete uložiť zmeny?'
         },
         home: {
-            welcomeToMarkpad: 'Vitajte v Draftly',
+            welcomeToDraftly: 'Vitajte v Draftly',
             recentFiles: 'Nedávne súbory',
             noRecentFiles: 'Žiadne nedávne súbory',
             newFile: 'Nový súbor',
@@ -4532,11 +4532,11 @@ export const translations: Record<LanguageCode, Translation> = {
             zoomOut: 'Oddialiť'
         },
         uninstaller: {
-            uninstallMarkpad: 'Chcete odinštalovať Draftly?',
+            uninstallDraftly: 'Chcete odinštalovať Draftly?',
             removeApplication: 'Tým sa odstráni aplikácia a všetky jej odkazy.',
             cancel: 'Zrušiť',
             uninstall: 'Odinštalovať',
-            removingMarkpad: 'Odstraňovanie Draftly...'
+            removingDraftly: 'Odstraňovanie Draftly...'
         },
         tabs: {
             untitled: 'Bez názvu',
@@ -4705,7 +4705,7 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedFiles: 'Έχετε {{count}} μη αποθηκευμένα αρχεία. Θέλετε να αποθηκεύσετε τις αλλαγές σας;'
         },
         home: {
-            welcomeToMarkpad: 'Καλώς ήρθατε στο Draftly',
+            welcomeToDraftly: 'Καλώς ήρθατε στο Draftly',
             recentFiles: 'Πρόσφατα αρχεία',
             noRecentFiles: 'Δεν υπάρχουν πρόσφατα αρχεία',
             newFile: 'Νέο αρχείο',
@@ -4746,11 +4746,11 @@ export const translations: Record<LanguageCode, Translation> = {
             zoomOut: 'Σμίκρυνση'
         },
         uninstaller: {
-            uninstallMarkpad: 'Θέλετε να απεγκαταστήσετε το Draftly;',
+            uninstallDraftly: 'Θέλετε να απεγκαταστήσετε το Draftly;',
             removeApplication: 'Αυτό θα καταργήσει την εφαρμογή και όλες τις συντομεύσεις της.',
             cancel: 'Ακύρωση',
             uninstall: 'Απεγκατάσταση',
-            removingMarkpad: 'Κατάργηση Draftly...'
+            removingDraftly: 'Κατάργηση Draftly...'
         },
         tabs: {
             untitled: 'Χωρίς τίτλο',
@@ -4919,7 +4919,7 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedFiles: 'Sinulla on {{count}} tallentamatonta tiedostoa. Haluatko tallentaa muutokset?'
         },
         home: {
-            welcomeToMarkpad: 'Tervetuloa Draftlyyn',
+            welcomeToDraftly: 'Tervetuloa Draftlyyn',
             recentFiles: 'Viimeisimmät tiedostot',
             noRecentFiles: 'Ei viimeisimpiä tiedostoja',
             newFile: 'Uusi tiedosto',
@@ -4960,11 +4960,11 @@ export const translations: Record<LanguageCode, Translation> = {
             zoomOut: 'Loitonna'
         },
         uninstaller: {
-            uninstallMarkpad: 'Haluatko poistaa Draftlyn asennuksen?',
+            uninstallDraftly: 'Haluatko poistaa Draftlyn asennuksen?',
             removeApplication: 'Tämä poistaa sovelluksen ja kaikki sen pikakuvakkeet.',
             cancel: 'Peruuta',
             uninstall: 'Poista asennus',
-            removingMarkpad: 'Poistetaan Draftlya...'
+            removingDraftly: 'Poistetaan Draftlya...'
         },
         tabs: {
             untitled: 'Nimetön',
@@ -5133,7 +5133,7 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedFiles: 'Du har {{count}} ikke-gemte filer. Vil du gemme dine ændringer?'
         },
         home: {
-            welcomeToMarkpad: 'Velkommen til Draftly',
+            welcomeToDraftly: 'Velkommen til Draftly',
             recentFiles: 'Seneste filer',
             noRecentFiles: 'Ingen seneste filer',
             newFile: 'Ny fil',
@@ -5174,11 +5174,11 @@ export const translations: Record<LanguageCode, Translation> = {
             zoomOut: 'Zoom ud'
         },
         uninstaller: {
-            uninstallMarkpad: 'Vil du afinstallere Draftly?',
+            uninstallDraftly: 'Vil du afinstallere Draftly?',
             removeApplication: 'Dette fjerner applikationen og alle dens genveje.',
             cancel: 'Annuller',
             uninstall: 'Afinstaller',
-            removingMarkpad: 'Fjerner Draftly...'
+            removingDraftly: 'Fjerner Draftly...'
         },
         tabs: {
             untitled: 'Unavngivet',
@@ -5347,7 +5347,7 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedFiles: 'Du har {{count}} ulagrede filer. Vil du lagre endringene dine?'
         },
         home: {
-            welcomeToMarkpad: 'Velkommen til Draftly',
+            welcomeToDraftly: 'Velkommen til Draftly',
             recentFiles: 'Nylige filer',
             noRecentFiles: 'Ingen nylige filer',
             newFile: 'Ny fil',
@@ -5388,11 +5388,11 @@ export const translations: Record<LanguageCode, Translation> = {
             zoomOut: 'Zoom ut'
         },
         uninstaller: {
-            uninstallMarkpad: 'Vil du avinstallere Draftly?',
+            uninstallDraftly: 'Vil du avinstallere Draftly?',
             removeApplication: 'Dette fjerner applikasjonen og alle snarveiene dens.',
             cancel: 'Avbryt',
             uninstall: 'Avinstaller',
-            removingMarkpad: 'Fjerner Draftly...'
+            removingDraftly: 'Fjerner Draftly...'
         },
         tabs: {
             untitled: 'Uten tittel',
@@ -5561,7 +5561,7 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedFiles: 'Anda memiliki {{count}} berkas yang belum disimpan. Apakah Anda ingin menyimpan perubahan Anda?'
         },
         home: {
-            welcomeToMarkpad: 'Selamat Datang di Draftly',
+            welcomeToDraftly: 'Selamat Datang di Draftly',
             recentFiles: 'Berkas Terbaru',
             noRecentFiles: 'Tidak Ada Berkas Terbaru',
             newFile: 'Berkas Baru',
@@ -5602,11 +5602,11 @@ export const translations: Record<LanguageCode, Translation> = {
             zoomOut: 'Perkecil'
         },
         uninstaller: {
-            uninstallMarkpad: 'Apakah Anda ingin mencopot pemasangan Draftly?',
+            uninstallDraftly: 'Apakah Anda ingin mencopot pemasangan Draftly?',
             removeApplication: 'Tindakan ini akan menghapus aplikasi dan semua pintasannya.',
             cancel: 'Batal',
             uninstall: 'Copot Pemasangan',
-            removingMarkpad: 'Mencopot Draftly...'
+            removingDraftly: 'Mencopot Draftly...'
         },
         tabs: {
             untitled: 'Tidak Berjudul',
@@ -5775,7 +5775,7 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedFiles: '{{count}} kaydedilmemiş dosyanız var. Değişikliklerinizi kaydetmek istiyor musunuz?'
         },
         home: {
-            welcomeToMarkpad: 'Draftly\'e Hoş Geldiniz',
+            welcomeToDraftly: 'Draftly\'e Hoş Geldiniz',
             recentFiles: 'Son Dosyalar',
             noRecentFiles: 'Son Dosya Yok',
             newFile: 'Yeni Dosya',
@@ -5816,11 +5816,11 @@ export const translations: Record<LanguageCode, Translation> = {
             zoomOut: 'Uzaklaştır'
         },
         uninstaller: {
-            uninstallMarkpad: 'Draftly\'i kaldırmak istiyor musunuz?',
+            uninstallDraftly: 'Draftly\'i kaldırmak istiyor musunuz?',
             removeApplication: 'Bu, uygulamayı ve tüm kısayollarını kaldıracak.',
             cancel: 'İptal',
             uninstall: 'Kaldır',
-            removingMarkpad: 'Draftly kaldırılıyor...'
+            removingDraftly: 'Draftly kaldırılıyor...'
         },
         tabs: {
             untitled: 'Başlıksız',

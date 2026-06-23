@@ -30,7 +30,7 @@
 </script>
 
 <div class="message">
-	<p>{t('home.welcomeToMarkpad', settings.language)}</p>
+	<p>{t('home.welcomeToDraftly', settings.language)}</p>
 	<div class="actions-row">
 		<button class="fluent-btn primary" onclick={onselectFile}>
 			<svg

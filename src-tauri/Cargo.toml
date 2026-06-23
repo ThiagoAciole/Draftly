@@ -1,8 +1,8 @@
 [package]
 name = "draftly"
-version = "2.6.11"
-description = "Simple Markdown viewer and text editor"
-authors = ["you"]
+version = "1.0.0"
+description = "A polished, cross-platform Markdown editor and previewer"
+authors = ["Thiago Aciole"]
 edition = "2021"
 
 [[bin]]
@@ -31,7 +31,6 @@ serde = { version = "1", features = ["derive"] }
 comrak = "0.18"
 serde_json = "1"
 tauri-plugin-prevent-default = "2.0.0-rc.1"
-tauri-plugin-process = "2"
 notify = "6"
 regex = "1"
 

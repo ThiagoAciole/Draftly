@@ -6,14 +6,24 @@
 	import { t } from '../utils/i18n.js';
 	import type { MarkdownToolbarAction } from '../utils/markdown-toolbar.js';
 
-	import * as monaco from "monaco-editor";
+	import * as monaco from "monaco-editor/esm/vs/editor/editor.api.js";
 	import editorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
-	import jsonWorker from "monaco-editor/esm/vs/language/json/json.worker?worker";
-	import cssWorker from "monaco-editor/esm/vs/language/css/css.worker?worker";
-	import htmlWorker from "monaco-editor/esm/vs/language/html/html.worker?worker";
-	import tsWorker from "monaco-editor/esm/vs/language/typescript/ts.worker?worker";
+	import "monaco-editor/esm/vs/basic-languages/markdown/markdown.contribution";
+	import "monaco-editor/esm/vs/basic-languages/javascript/javascript.contribution";
+	import "monaco-editor/esm/vs/basic-languages/typescript/typescript.contribution";
+	import "monaco-editor/esm/vs/basic-languages/html/html.contribution";
+	import "monaco-editor/esm/vs/basic-languages/css/css.contribution";
+	import "monaco-editor/esm/vs/basic-languages/python/python.contribution";
+	import "monaco-editor/esm/vs/basic-languages/rust/rust.contribution";
+	import "monaco-editor/esm/vs/basic-languages/shell/shell.contribution";
+	import "monaco-editor/esm/vs/basic-languages/sql/sql.contribution";
+	import "monaco-editor/esm/vs/basic-languages/java/java.contribution";
+	import "monaco-editor/esm/vs/basic-languages/cpp/cpp.contribution";
+	import "monaco-editor/esm/vs/basic-languages/csharp/csharp.contribution";
+	import "monaco-editor/esm/vs/basic-languages/xml/xml.contribution";
+	import "monaco-editor/esm/vs/basic-languages/yaml/yaml.contribution";
 	import { openUrl } from "@tauri-apps/plugin-opener";
-	import { invoke } from "@tauri-apps/api/core";
+	import { tauriCommands } from "../api/tauri.js";
 
 	let {
 		value = $bindable(),
@@ -270,19 +280,7 @@
 	});
 
 	self.MonacoEnvironment = {
-		getWorker: function (_moduleId: any, label: string) {
-			if (label === "json") {
-				return new jsonWorker();
-			}
-			if (label === "css" || label === "scss" || label === "less") {
-				return new cssWorker();
-			}
-			if (label === "html" || label === "handlebars" || label === "razor") {
-				return new htmlWorker();
-			}
-			if (label === "typescript" || label === "javascript") {
-				return new tsWorker();
-			}
+		getWorker: function () {
 			return new editorWorker();
 		},
 	};
@@ -796,9 +794,9 @@
 					managedImages.pop();
 						const imgDirName = settings.imageDirectory || "img";
 						const imgPath = `${last.parentDir}/${imgDirName}/${last.filename}`;
-						invoke("delete_file", { path: imgPath })
+						tauriCommands.deleteFile(imgPath)
 							.then(() => {
-								invoke("cleanup_empty_img_dir", { parentDir: last.parentDir, imageDirectory: imgDirName });
+								tauriCommands.cleanupEmptyImageDirectory(last.parentDir, imgDirName);
 							})
 							.catch(console.error);
 				}
@@ -830,11 +828,9 @@
 
 					try {
 						const [currentEntries, imgEntries] = await Promise.all([
-							invoke("list_directory_contents", { path: parentDir })
-								.then((r) => r as string[])
+							tauriCommands.listDirectory(parentDir)
 								.catch(() => []),
-							invoke("list_directory_contents", { path: `${parentDir}/${imgDirName}` })
-								.then((r) => r as string[])
+							tauriCommands.listDirectory(`${parentDir}/${imgDirName}`)
 								.catch(() => []),
 						]);
 
@@ -886,7 +882,7 @@
 				if (!model) return;
 				const text = model.getValueInRange(selection);
 				if (text) {
-					await invoke("clipboard_write_text", { text }).catch(console.error);
+					await tauriCommands.writeClipboardText(text).catch(console.error);
 				}
 			},
 		});
@@ -894,7 +890,7 @@
 		editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV, async () => {
 			try {
 				// check for image in clipboard via Rust
-				const base64Image = await invoke("clipboard_read_image", { macosImageScaling: settings.macosImageScaling }).catch(() => null) as string | null;
+				const base64Image = await tauriCommands.readClipboardImage(settings.macosImageScaling).catch(() => null);
 				if (base64Image && tabManager.activeTab?.path) {
 					const ext = "png"; // output of Rust command is always PNG
 					const filename = `paste_${Date.now()}.${ext}`;
@@ -904,12 +900,12 @@
 					if (dirMatch) {
 						const parentDir = dirMatch[1];
 						const imgDirName = settings.imageDirectory || "img";
-						const relPath = (await invoke("save_image", {
+						const relPath = await tauriCommands.saveImage(
 							parentDir,
 							filename,
-							base64Data: base64Image,
-							imageDirectory: imgDirName,
-						})) as string;
+							base64Image,
+							imgDirName,
+						);
 						// Remove leading slash if imageDirectory was empty, to ensure relative path
 						const escapedPath = relPath.replace(/ /g, "%20").replace(/^\//, "");
 						const embed = `![alt](${escapedPath})`;
@@ -942,7 +938,7 @@
 				}
 
 				// fall through to text paste via Rust
-				const rawText = await invoke("clipboard_read_text").catch(() => "") as string;
+				const rawText = await tauriCommands.readClipboardText().catch(() => "");
 				if (!rawText) return;
 				
 				const text = rawText.trim();
@@ -1222,11 +1218,11 @@
 
 		try {
 			const imgDirName = settings.imageDirectory || "img";
-			const relPath = (await invoke("copy_file_to_img", {
-				srcPath: path,
+			const relPath = await tauriCommands.copyFileToImageDirectory(
+				path,
 				parentDir,
-				imageDirectory: imgDirName,
-			})) as string;
+				imgDirName,
+			);
 			// Remove leading slash if imageDirectory was empty
 			const escapedPath = relPath.replace(/ /g, "%20").replace(/^\//, "");
 			const embed = `![alt](${escapedPath})`;

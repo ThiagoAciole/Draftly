@@ -1,188 +1,136 @@
-# AGENTS.md - Coding Guidelines for Markpad
-
-This file contains guidelines for AI agents working on the Markpad codebase.
+# AGENTS.md
 
 ## Project Overview
 
-Markpad is a Tauri v2 application with:
-- **Frontend**: Svelte 5 + TypeScript + Vite
-- **Backend**: Rust (Tauri commands)
-- **Purpose**: Markdown viewer and text editor
+Draftly é um aplicativo desktop para abrir, editar, visualizar e exportar arquivos Markdown e texto. Possui abas, preview em tempo real, Monaco Editor, autosave, temas, internacionalização, suporte a Markdown enriquecido e instalador próprio no Windows.
 
-## Build Commands
+O frontend chama comandos Rust via `invoke()` para acessar arquivos, renderizar Markdown e integrar recursos do sistema operacional.
 
-### Frontend (TypeScript/Svelte)
+## Stack
+
+- Svelte 5 com runes
+- TypeScript estrito
+- SvelteKit em modo SPA
+- Vite
+- Tauri v2
+- Rust
+- Monaco Editor
+- Comrak, DOMPurify, Highlight.js, KaTeX e Mermaid
+
+## Commands
+
 ```bash
-# Development
-npm run dev              # Start Vite dev server
-npm run dev:installer    # Run in installer mode
-
-# Building
-npm run build            # Build frontend for production
-npm run preview          # Preview production build
-
-# Type Checking
-npm run check            # Run svelte-check (type checking)
-npm run check:watch      # Watch mode type checking
+npm install
+npm run dev
+npm run dev:installer
+npm run build
+npm run preview
+npm run check
+npm run check:watch
+npm test
+npm run test:watch
+npm run tauri dev
+npm run tauri build
+cd src-tauri && cargo check
+cd src-tauri && cargo test
+cd src-tauri && cargo clippy
+cd src-tauri && cargo fmt
 ```
 
-### Backend (Rust)
-```bash
-cd src-tauri
-
-cargo build              # Build Rust code
-cargo build --release    # Release build
-
-# Testing
-cargo test               # Run all Rust tests
-cargo test <test_name>   # Run specific test
-
-# Linting/Formatting
-cargo check              # Check for errors
-cargo clippy             # Run clippy linter
-cargo fmt                # Format code
-```
-
-### Tauri Commands
-```bash
-npm run tauri dev        # Run Tauri in dev mode
-npm run tauri build      # Build Tauri application
-```
-
-## Code Style Guidelines
-
-### TypeScript/Svelte
-
-- **Indentation**: Use tabs (not spaces)
-- **Quotes**: Single quotes for strings
-- **Semicolons**: Optional but be consistent
-- **Strict Mode**: Enabled - always define types explicitly
-
-#### Imports
-- Group imports: external libs first, then internal modules
-- Use `.js` extension for relative imports (SvelteKit convention)
-- Example:
-```typescript
-import { onMount } from 'svelte';
-import { tabManager } from '../stores/tabs.svelte.js';
-```
-
-#### Svelte 5 Runes
-Always use Svelte 5 runes for reactivity:
-- `$state()` for reactive state
-- `$derived()` for computed values
-- `$effect()` for side effects
-- `$props()` for component props with explicit types
-- `$bindable()` for two-way binding
-
-#### Naming Conventions
-- Components: PascalCase (e.g., `Editor.svelte`)
-- Stores: camelCase with `.svelte.ts` extension (e.g., `tabs.svelte.ts`)
-- Functions/Variables: camelCase
-- Types/Interfaces: PascalCase
-- Event handlers: Prefix with `on` (e.g., `onsave`, `onnew`)
-
-#### Props Pattern
-Always type props explicitly using `$props()`:
-```typescript
-let {
-    value = $bindable(),
-    onsave,
-    theme = 'system',
-} = $props<{
-    value: string;
-    onsave?: () => void;
-    theme?: 'system' | 'light' | 'dark';
-}>();
-```
-
-### Rust
-
-- **Indentation**: 4 spaces
-- **Error Handling**: Use `Result<T, String>` for Tauri commands, propagate with `?`
-- **Naming**: snake_case for functions/variables, PascalCase for types
-
-#### Tauri Commands
-Always mark with `#[tauri::command]` and return `Result<T, String>`:
-```rust
-#[tauri::command]
-fn read_file_content(path: String) -> Result<String, String> {
-    fs::read_to_string(path).map_err(|e| e.to_string())
-}
-```
-
-#### Platform-Specific Code
-Use conditional compilation for platform-specific features:
-```rust
-#[cfg(target_os = "windows")]
-// Windows-specific code
-
-#[cfg(not(target_os = "windows"))]
-// Fallback for other platforms
-```
+Os testes frontend usam Vitest com ambiente JSDOM.
 
 ## Project Structure
 
-```
+```text
 src/
-  lib/
-    components/          # Svelte components
-    stores/              # Svelte 5 stores (.svelte.ts)
-  routes/                # SvelteKit routes
+  routes/             -> entrada SPA
+  lib/components/     -> componentes de interface
+  lib/stores/         -> estado global com runes
+  lib/services/       -> sessão, recuperação e regras de documentos
+  lib/api/            -> wrappers tipados dos comandos Tauri
+  lib/utils/          -> Markdown, temas, exportação e helpers
+  assets/             -> ícones usados pelo frontend
 src-tauri/
-  src/
-    main.rs             # Entry point
-    lib.rs              # Main library with Tauri commands
-    setup.rs            # Installation/setup logic
+  src/lib.rs          -> comandos Tauri e inicialização
+  src/setup.rs        -> instalação e associações no Windows
+  capabilities/       -> permissões Tauri
+  icons/              -> ícones do app e tipos de arquivo
+docs/                 -> imagens do README
+samples/              -> arquivos de exemplo
+static/               -> assets públicos
 ```
 
-## Key Patterns
+## Important Files
 
-### State Management
-- Use Svelte 5 runes-based stores in `src/lib/stores/`
-- Export singleton instances (e.g., `export const tabManager = new TabManager()`)
+| File | Purpose | Change when |
+|---|---|---|
+| `src/lib/MarkdownViewer.svelte` | Orquestra janela, abas, arquivos, preview, atalhos e modais | Alterar fluxos principais do app |
+| `src/lib/components/Editor.svelte` | Monaco Editor, edição e interação com arquivos/imagens | Alterar comportamento do editor |
+| `src/lib/stores/tabs.svelte.ts` | Estado, histórico e persistência das abas | Alterar navegação ou ciclo de abas |
+| `src/lib/stores/settings.svelte.ts` | Preferências persistidas em `localStorage` | Criar ou alterar configurações |
+| `src/lib/utils/markdown.ts` | Pós-processamento de callouts, matemática, Mermaid e blocos | Alterar renderização rica |
+| `src/lib/utils/theme.ts` | Converte temas VS Code em CSS e tema Monaco | Alterar sistema de temas |
+| `src/lib/api/tauri.ts` | Contrato tipado entre frontend e Rust | Criar ou alterar comandos Tauri |
+| `src-tauri/src/lib.rs` | Arquivos, Markdown, watcher, temas e menus nativos | Criar integração nativa ou comando Tauri |
+| `src-tauri/src/setup.rs` | Instalador, desinstalador, atalhos e registro Windows | Alterar instalação no Windows |
+| `src-tauri/tauri.conf.json` | Bundle, CSP, associações e janela | Alterar empacotamento ou segurança |
 
-### Tauri Invoke
-Use `invoke()` from `@tauri-apps/api` for Rust commands:
-```typescript
-import { invoke } from '@tauri-apps/api';
-const result = await invoke<string>('command_name', { arg: value });
-```
+## Coding Guidelines
 
-### File Operations
-All file operations go through Rust commands - never use Node.js fs APIs.
+- Use tabs em Svelte/TypeScript e quatro espaços em Rust.
+- Use Svelte 5 (`$state`, `$derived`, `$effect`, `$props`); não introduza padrões legados.
+- Nomeie componentes em PascalCase, funções em camelCase e stores como `*.svelte.ts`.
+- Mantenha operações de filesystem no Rust; não use APIs Node no frontend.
+- Ao criar comando Tauri, retorne `Result<T, String>` e registre-o em `generate_handler!`.
+- Preserve sanitização com DOMPurify ao produzir HTML.
+- Siga os padrões existentes antes de criar abstrações ou novos módulos.
 
-## Testing
+## Where To Change Things
 
-- **Rust**: `cargo test` in `src-tauri/` directory
-- **Frontend**: No test framework currently configured
-- **CI**: Runs `npm run check` and `cargo test` on PRs
+| Task | Main files/folders |
+|---|---|
+| Alterar layout ou fluxo principal | `MarkdownViewer.svelte`, `src/styles.css` |
+| Criar componente visual | `src/lib/components/` |
+| Alterar editor ou toolbar | `Editor.svelte`, `MarkdownToolbar.svelte`, `utils/markdown-toolbar.ts` |
+| Alterar abas ou restauração de sessão | `stores/tabs.svelte.ts`, `MarkdownViewer.svelte` |
+| Criar configuração | `stores/settings.svelte.ts`, `components/Settings.svelte` |
+| Alterar Markdown/preview | `utils/markdown.ts`, `src-tauri/src/lib.rs` |
+| Alterar tema ou fontes | `utils/theme.ts`, `Settings.svelte`, `styles.css` |
+| Alterar exportação | `utils/export.ts` |
+| Alterar arquivos ou integração nativa | `src-tauri/src/lib.rs` |
+| Alterar build/instalador | `package.json`, `Cargo.toml`, `tauri.conf.json`, `setup.rs` |
 
-## Notes
+## Safe Change Rules
 
-- No ESLint or Prettier configured - rely on TypeScript strict mode
-- The app runs as SPA (ssr: false in +layout.ts)
-- Uses Monaco Editor for text editing
-- Supports Windows, macOS, and Linux
+- Modifique o menor conjunto possível de arquivos.
+- Não refatore áreas não relacionadas à tarefa.
+- Não adicione dependências ou mova arquivos sem necessidade clara.
+- Preserve comportamento multiplataforma; isole código específico com `#[cfg(...)]`.
+- Rode `npm run check` e `npm run build`; para Rust, rode `cargo check` e testes relevantes.
+- Ao mudar versão, sincronize `package.json` e `src-tauri/Cargo.toml`.
+- Não edite arquivos gerados em `build/`, `.svelte-kit/`, `node_modules/`, `src-tauri/target/` ou `src-tauri/gen/`.
 
-## Versioning
+## Token Saving Rules
 
-When bumping the app version, update both files in the same commit:
+- Use este mapa para abrir somente arquivos relacionados à tarefa.
+- Pesquise símbolos e chamadas antes de ler componentes grandes por completo.
+- Prefira diffs pequenos e não repita contexto já registrado aqui.
+- Em ajustes simples, responda de forma curta e sem documentação extra.
+- Resuma apenas arquivos alterados, motivo, validação e riscos reais.
 
-- `package.json` `version`
-- `src-tauri/Cargo.toml` `version`
+## Response Format For Future Tasks
 
-Tauri runtime reads `app.package_info().version` from `Cargo.toml`, while the
-Tauri config and the frontend rely on `package.json`. Keeping them in sync is
-mandatory for `tauri-plugin-updater` to compare versions correctly.
+1. Arquivos alterados
+2. Motivo da alteração
+3. Código ou diff aplicado
+4. Impacto esperado
+5. Validação e pontos de atenção
 
-## Releasing
+## Do Not
 
-See [RELEASING.md](RELEASING.md) for the maintainer-facing release runbook
-(keypair generation, GitHub Secrets setup, per-release workflow, troubleshooting).
-
-For agents: never modify `plugins.updater.pubkey` in `src-tauri/tauri.conf.json`.
-That value is set once by the maintainer and shipping a different one breaks
-auto-update for all existing users — they have to manually re-install Markpad.
-The placeholder string in PR-2 is replaced exactly once, by the maintainer,
-right before the first auto-update-capable release.
+- Não reescreva a arquitetura sem pedido explícito.
+- Não crie abstrações antecipadas.
+- Não altere dependências, configurações ou padrões visuais sem justificar.
+- Não modifique arquivos fora do escopo.
+- Não remova sanitização, escrita atômica ou tratamento de alterações externas.
+- Não gere documentação extensa para mudanças pequenas.

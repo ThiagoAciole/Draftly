@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { invoke } from '@tauri-apps/api/core';
 	import { getVersion } from '@tauri-apps/api/app';
 	import { getCurrentWindow } from '@tauri-apps/api/window';
 	import { onMount } from 'svelte';
 	import iconUrl from '../assets/icon.png';
+	import { tauriCommands, type InstallStatus } from './api/tauri.js';
 	import { t } from './utils/i18n.js';
 
 	let installing = $state(false);
@@ -24,15 +24,9 @@
 
 	const appWindow = getCurrentWindow();
 
-	interface InstallStatus {
-		is_installed: boolean;
-		all_users: boolean;
-		version: string;
-	}
-
 	async function checkStatus() {
 		try {
-			const status = (await invoke('check_install_status')) as InstallStatus;
+			const status: InstallStatus = await tauriCommands.checkInstallStatus();
 			isInstalled = status.is_installed;
 			if (isInstalled) {
 				installedAllUsers = status.all_users;
@@ -54,7 +48,7 @@
 			// If updating, force the correct scope
 			const targetAllUsers = isInstalled ? installedAllUsers : allUsers;
 
-			await invoke('install_app', {
+			await tauriCommands.installApp({
 				allUsers: targetAllUsers,
 				registerMd,
 				desktopShortcut,
@@ -75,7 +69,7 @@
 		installing = true; // Use same loading state
 		error = '';
 		try {
-			await invoke('uninstall_app', { targetAllUsers: installedAllUsers });
+			await tauriCommands.uninstallApp(installedAllUsers);
 		} catch (e: any) {
 			error = e.toString();
 			installing = false;
@@ -200,7 +194,7 @@
 		{:else}
 			<div class="installing-state">
 				<div class="spinner"></div>
-				<p>{t(isInstalled ? 'installer.updating' : 'installer.installing')} {t('installer.markpad')}</p>
+				<p>{t(isInstalled ? 'installer.updating' : 'installer.installing')} {t('installer.draftly')}</p>
 			</div>
 		{/if}
 	</div>

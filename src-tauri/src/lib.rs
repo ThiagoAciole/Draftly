@@ -4,8 +4,8 @@ use regex::{Captures, Regex};
 use std::borrow::Cow;
 use std::fs;
 use std::io::Write;
-use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::path::{Component, Path, PathBuf};
+use std::sync::{LazyLock, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter, Manager, State};
 
@@ -117,7 +117,47 @@ struct WatcherState {
     watcher: Mutex<Option<RecommendedWatcher>>,
 }
 
+fn validate_file_name(value: &str) -> Result<(), String> {
+    if value.is_empty()
+        || value.contains(['/', '\\'])
+        || value == "."
+        || value == ".."
+    {
+        return Err("Invalid file name".to_string());
+    }
+    Ok(())
+}
+
+fn validate_relative_directory(value: &str) -> Result<(), String> {
+    if Path::new(value).components().any(|component| {
+        matches!(
+            component,
+            Component::ParentDir | Component::RootDir | Component::Prefix(_)
+        )
+    }) {
+        return Err("Image directory must be relative".to_string());
+    }
+    Ok(())
+}
+
 mod setup;
+
+static INTERNAL_EMBEDS_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?s)```.*?```|`.*?`|!\[\[(.*?)\]\]").expect("valid embed regex"));
+static WIKILINK_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?s)```.*?```|`.*?`|\[\[#([^\|\]]+)(?:\|([^\]]+))?\]\]")
+        .expect("valid wikilink regex")
+});
+static BLOCK_ID_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?s)```.*?```|`.*?`|(?m)\s+\^([a-zA-Z0-9_-]+)$")
+        .expect("valid block id regex")
+});
+static HIGHLIGHT_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?s)```.*?```|`.*?`|==([^=\n]+)==").expect("valid highlight regex")
+});
+static INLINE_FOOTNOTE_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?s)```.*?```|`.*?`|\^\[([^\]]+)\]").expect("valid inline footnote regex")
+});
 
 #[tauri::command]
 async fn show_window(window: tauri::Window) {
@@ -125,9 +165,7 @@ async fn show_window(window: tauri::Window) {
 }
 
 fn process_internal_embeds(content: &str) -> Cow<'_, str> {
-    let re = Regex::new(r"(?s)```.*?```|`.*?`|!\[\[(.*?)\]\]").unwrap();
-
-    re.replace_all(content, |caps: &Captures| {
+    INTERNAL_EMBEDS_RE.replace_all(content, |caps: &Captures| {
         let full_match = caps.get(0).unwrap().as_str();
         if full_match.starts_with('`') {
             return full_match.to_string();
@@ -165,9 +203,8 @@ fn process_wikilinks<'a>(content: &'a str) -> Cow<'a, str> {
     let mut processed = Cow::Borrowed(content);
 
     // 1. Process [[#target]] or [[#target|alias]]
-    let re_links = Regex::new(r"(?s)```.*?```|`.*?`|\[\[#([^\|\]]+)(?:\|([^\]]+))?\]\]").unwrap();
-    if re_links.is_match(&processed) {
-        let replaced = re_links.replace_all(&processed, |caps: &Captures| {
+    if WIKILINK_RE.is_match(&processed) {
+        let replaced = WIKILINK_RE.replace_all(&processed, |caps: &Captures| {
             let full_match = caps.get(0).unwrap().as_str();
             if full_match.starts_with('`') {
                 return full_match.to_string();
@@ -182,9 +219,8 @@ fn process_wikilinks<'a>(content: &'a str) -> Cow<'a, str> {
 
     // 2. Process ^block-id at the end of lines
     // For block IDs, they are trailing. We skip code blocks but also need to be careful with inline code at EOL.
-    let re_ids = Regex::new(r"(?s)```.*?```|`.*?`|(?m)\s+\^([a-zA-Z0-9_-]+)$").unwrap();
-    if re_ids.is_match(&processed) {
-        let replaced = re_ids.replace_all(&processed, |caps: &Captures| {
+    if BLOCK_ID_RE.is_match(&processed) {
+        let replaced = BLOCK_ID_RE.replace_all(&processed, |caps: &Captures| {
             let full_match = caps.get(0).unwrap().as_str();
             if full_match.starts_with('`') {
                 return full_match.to_string();
@@ -199,9 +235,8 @@ fn process_wikilinks<'a>(content: &'a str) -> Cow<'a, str> {
     }
 
     // 3. Convert ==highlight== to <mark>highlight</mark>
-    let re_highlight = Regex::new(r"(?s)```.*?```|`.*?`|==([^=\n]+)==").unwrap();
-    if re_highlight.is_match(&processed) {
-        let replaced = re_highlight.replace_all(&processed, |caps: &Captures| {
+    if HIGHLIGHT_RE.is_match(&processed) {
+        let replaced = HIGHLIGHT_RE.replace_all(&processed, |caps: &Captures| {
             let full_match = caps.get(0).unwrap().as_str();
             if full_match.starts_with('`') {
                 return full_match.to_string();
@@ -212,11 +247,10 @@ fn process_wikilinks<'a>(content: &'a str) -> Cow<'a, str> {
     }
 
     // 4. Convert ^[inline footnote] to a footnote reference
-    let re_inline_fn = Regex::new(r"(?s)```.*?```|`.*?`|\^\[([^\]]+)\]").unwrap();
-    if re_inline_fn.is_match(&processed) {
+    if INLINE_FOOTNOTE_RE.is_match(&processed) {
         let mut footnote_defs = String::new();
         let mut fn_count = 0usize;
-        let replaced = re_inline_fn.replace_all(&processed, |caps: &Captures| {
+        let replaced = INLINE_FOOTNOTE_RE.replace_all(&processed, |caps: &Captures| {
             let full_match = caps.get(0).unwrap().as_str();
             if full_match.starts_with('`') {
                 return full_match.to_string();
@@ -349,7 +383,7 @@ fn watch_file(
 
     let mut watcher = RecommendedWatcher::new(
         move |res: Result<notify::Event, notify::Error>| {
-            if let Ok(_) = res {
+            if res.is_ok() {
                 let _ = app_handle.emit("file-changed", ());
             }
         },
@@ -398,7 +432,7 @@ fn save_theme(app: AppHandle, theme: String) -> Result<(), String> {
     let config_dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
     fs::create_dir_all(&config_dir).map_err(|e| e.to_string())?;
     let theme_path = config_dir.join("theme.txt");
-    fs::write(theme_path, theme).map_err(|e| e.to_string())
+    atomic_write(&theme_path, theme.as_bytes()).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -525,7 +559,7 @@ async fn fetch_vscode_theme(app: AppHandle, url: String) -> Result<String, Strin
             matched_name_str.clone()
         };
         let theme_file_path = themes_dir.join(format!("{}.json", dest_name));
-        fs::write(&theme_file_path, &theme_json).map_err(|e| e.to_string())?;
+        atomic_write(&theme_file_path, theme_json.as_bytes()).map_err(|e| e.to_string())?;
 
         return Ok(dest_name);
     }
@@ -554,6 +588,7 @@ fn get_saved_vscode_themes(app: AppHandle) -> Result<Vec<String>, String> {
 
 #[tauri::command]
 fn read_vscode_theme(app: AppHandle, name: String) -> Result<String, String> {
+    validate_file_name(&name)?;
     let config_dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
     let theme_file_path = config_dir.join("themes").join(format!("{}.json", name));
     fs::read_to_string(theme_file_path).map_err(|e| e.to_string())
@@ -561,6 +596,7 @@ fn read_vscode_theme(app: AppHandle, name: String) -> Result<String, String> {
 
 #[tauri::command]
 fn delete_vscode_theme(app: AppHandle, name: String) -> Result<(), String> {
+    validate_file_name(&name)?;
     let config_dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
     let theme_file_path = config_dir.join("themes").join(format!("{}.json", name));
     fs::remove_file(theme_file_path).map_err(|e| e.to_string())
@@ -715,6 +751,8 @@ fn clipboard_read_text() -> Result<String, String> {
 
 #[tauri::command]
 fn save_image(parent_dir: String, filename: String, base64_data: String, image_directory: String) -> Result<String, String> {
+    validate_file_name(&filename)?;
+    validate_relative_directory(&image_directory)?;
     let img_dir = Path::new(&parent_dir).join(&image_directory);
     if !img_dir.exists() {
         fs::create_dir_all(&img_dir).map_err(|e| e.to_string())?;
@@ -734,7 +772,7 @@ fn save_image(parent_dir: String, filename: String, base64_data: String, image_d
         .decode(b64)
         .map_err(|e: base64::DecodeError| e.to_string())?;
 
-    fs::write(&file_path, bytes).map_err(|e| e.to_string())?;
+    atomic_write(&file_path, &bytes).map_err(|e| e.to_string())?;
 
     let rel_path = if image_directory.is_empty() {
         filename
@@ -747,6 +785,7 @@ fn save_image(parent_dir: String, filename: String, base64_data: String, image_d
 
 #[tauri::command]
 fn copy_file_to_img(src_path: String, parent_dir: String, image_directory: String) -> Result<String, String> {
+    validate_relative_directory(&image_directory)?;
     let img_dir = Path::new(&parent_dir).join(&image_directory);
     if !img_dir.exists() {
         fs::create_dir_all(&img_dir).map_err(|e| e.to_string())?;
@@ -772,7 +811,8 @@ fn copy_file_to_img(src_path: String, parent_dir: String, image_directory: Strin
     }
 
     let final_dest = img_dir.join(&dest_name);
-    fs::copy(src, &final_dest).map_err(|e| e.to_string())?;
+    let bytes = fs::read(src).map_err(|e| e.to_string())?;
+    atomic_write(&final_dest, &bytes).map_err(|e| e.to_string())?;
 
     let rel_path = if image_directory.is_empty() {
         dest_name
@@ -799,15 +839,16 @@ fn copy_file(src: String, dest: String) -> Result<(), String> {
 
 #[tauri::command]
 fn cleanup_empty_img_dir(parent_dir: String, image_directory: String) -> Result<(), String> {
+    validate_relative_directory(&image_directory)?;
     let img_dir = Path::new(&parent_dir).join(&image_directory);
-    if img_dir.exists() && img_dir.is_dir() {
-        if fs::read_dir(&img_dir)
+    if img_dir.exists()
+        && img_dir.is_dir()
+        && fs::read_dir(&img_dir)
             .map_err(|e| e.to_string())?
             .next()
             .is_none()
-        {
-            fs::remove_dir(img_dir).map_err(|e| e.to_string())?;
-        }
+    {
+        fs::remove_dir(img_dir).map_err(|e| e.to_string())?;
     }
     Ok(())
 }
@@ -888,7 +929,6 @@ pub fn run() {
                 .set_focus();
         }))
         .plugin(tauri_plugin_prevent_default::init())
-        .plugin(tauri_plugin_process::init())
         .plugin(
             tauri_plugin_window_state::Builder::default()
                 .with_state_flags(
@@ -1131,9 +1171,7 @@ pub fn run() {
                 .or_else(|| app.get_webview_window("main"));
             let Some(window) = target else { return };
 
-            if id == "check-updates" {
-                let _ = window.emit("menu-check-updates", ());
-            } else if id == "menu-app-quit"
+            if id == "menu-app-quit"
                 || id.starts_with("menu-file-")
                 || id.starts_with("menu-edit-")
             {
@@ -1160,4 +1198,59 @@ pub fn run() {
                 }
             }
         });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_path(name: &str) -> PathBuf {
+        std::env::temp_dir().join(format!(
+            "draftly-test-{}-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("system clock")
+                .as_nanos(),
+            name
+        ))
+    }
+
+    #[test]
+    fn atomic_write_creates_and_replaces_content() {
+        let path = test_path("atomic-write.md");
+
+        atomic_write(&path, b"first").expect("create file");
+        atomic_write(&path, b"second").expect("replace file");
+
+        assert_eq!(fs::read_to_string(&path).expect("read file"), "second");
+        fs::remove_file(path).expect("remove test file");
+    }
+
+    #[test]
+    fn markdown_supports_wikilinks_highlights_and_inline_footnotes() {
+        let html = convert_markdown(
+            "# Target\n\n[[#Target|Jump]]\n\n==important==\n\nText ^[inline note]",
+        );
+
+        assert!(html.contains("href=\"#target\""));
+        assert!(html.contains("<mark>important</mark>"));
+        assert!(html.contains("inline note"));
+    }
+
+    #[test]
+    fn embeds_are_not_processed_inside_code() {
+        let processed = process_internal_embeds("`![[inside.png]]`\n\n![[outside.png|120]]");
+
+        assert!(processed.contains("`![[inside.png]]`"));
+        assert!(processed.contains("<img src=\"outside.png\" width=\"120\""));
+    }
+
+    #[test]
+    fn rejects_unsafe_theme_and_image_paths() {
+        assert!(validate_file_name("../theme").is_err());
+        assert!(validate_file_name("theme/name").is_err());
+        assert!(validate_relative_directory("../images").is_err());
+        assert!(validate_relative_directory("images/nested").is_ok());
+    }
 }

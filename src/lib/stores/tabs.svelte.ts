@@ -1,5 +1,6 @@
 import { t } from '../utils/i18n.js';
 import { settings } from './settings.svelte.js';
+import type { DocumentSnapshot } from '../services/document-session.js';
 
 const markdownExtensions = ['.md', '.markdown', '.mdown', '.mkd'];
 
@@ -157,6 +158,32 @@ class TabManager {
 			newFileType: type,
 		});
 
+		this.activeTabId = id;
+	}
+
+	addRecoveredTab(snapshot: DocumentSnapshot) {
+		const id = crypto.randomUUID();
+		const isMarkdown = isMarkdownPath(snapshot.path);
+		this.tabs.push({
+			id,
+			path: '',
+			title: `Recovered - ${snapshot.title}`,
+			content: '',
+			rawContent: snapshot.content,
+			originalContent: '',
+			scrollTop: 0,
+			isDirty: true,
+			isEditing: true,
+			history: [snapshot.content],
+			historyIndex: 0,
+			editorViewState: null,
+			scrollPercentage: 0,
+			anchorLine: 0,
+			isSplit: isMarkdown,
+			splitRatio: isMarkdown ? 0.6 : 0.5,
+			isScrollSynced: false,
+			newFileType: isMarkdown ? 'markdown' : 'text',
+		});
 		this.activeTabId = id;
 	}
 

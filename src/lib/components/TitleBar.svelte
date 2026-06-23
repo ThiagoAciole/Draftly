@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getCurrentWindow } from '@tauri-apps/api/window';
-	import { invoke } from '@tauri-apps/api/core';
+	import { tauriCommands } from '../api/tauri.js';
 	import { fly, slide } from 'svelte/transition';
 	import { flip } from 'svelte/animate';
 	import TabList from './TabList.svelte';
@@ -30,7 +30,7 @@
 		onexportPdf,
 		onexit,
 		ontoggleHome,
-		ononpenFileLocation,
+		onopenFileLocation,
 		ontoggleLiveMode,
 
 		isEditing,
@@ -60,7 +60,7 @@
 		onexportPdf?: () => void;
 		onexit?: () => void;
 		ontoggleHome: () => void;
-		ononpenFileLocation: () => void;
+		onopenFileLocation: () => void;
 		ontoggleLiveMode: () => void;
 
 		isEditing: boolean;
@@ -92,7 +92,7 @@
 	let isWin11 = $state(false);
 
 	$effect(() => {
-		invoke('is_win11')
+		tauriCommands.isWindows11()
 			.then((res) => {
 				isWin11 = res as boolean;
 			})
@@ -205,7 +205,7 @@
 	
 	$effect(() => {
 		if (themeMenuOpen) {
-			invoke('get_saved_vscode_themes')
+			tauriCommands.getSavedVscodeThemes()
 				.then((themes) => {
 					savedVscodeThemes = themes as string[];
 				})
@@ -478,7 +478,7 @@
 				{:else if id === 'open_loc'}
 					<button
 						class="title-action-btn"
-						onclick={ononpenFileLocation}
+						onclick={onopenFileLocation}
 						aria-label={t('tooltip.openFileLocation', currentLanguage)}
 											onmouseenter={(e) => showTooltip(e, t('tooltip.openFileLocation', currentLanguage))}
 						onmousedown={(e) => e.preventDefault()}

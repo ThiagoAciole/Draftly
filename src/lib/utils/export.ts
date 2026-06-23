@@ -1,5 +1,5 @@
 import { save } from '@tauri-apps/plugin-dialog';
-import { invoke } from '@tauri-apps/api/core';
+import { tauriCommands } from '../api/tauri.js';
 
 interface ExportContext {
 	htmlContent: string;
@@ -71,7 +71,7 @@ ${ctx.markdownBody?.innerHTML || ctx.htmlContent}
 </html>`;
 
 	try {
-		await invoke('save_file_content', { path: selected, content: fullHtml });
+		await tauriCommands.writeFile(selected, fullHtml);
 	} catch (e) {
 		console.error('Failed to export HTML', e);
 	}

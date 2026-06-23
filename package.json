@@ -1,7 +1,7 @@
 {
   "name": "draftly",
   "version": "1.0.0",
-  "description": "",
+  "description": "A polished, cross-platform Markdown editor and previewer",
   "type": "module",
   "scripts": {
     "dev": "vite dev",
@@ -10,23 +10,22 @@
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "tauri": "tauri"
   },
+  "author": "Thiago Aciole",
   "license": "MIT",
   "dependencies": {
-    "@tauri-apps/plugin-clipboard-manager": "^2.3.2",
     "@tauri-apps/plugin-dialog": "^2.5.0",
     "@tauri-apps/plugin-opener": "^2",
-    "@tauri-apps/plugin-process": "^2.3.1",
     "@types/dompurify": "^3.0.5",
     "dompurify": "^3.3.1",
     "highlight.js": "^11.11.1",
-    "highlightjs-svelte": "^1.0.6",
     "katex": "^0.16.27",
     "mermaid": "^11.12.2",
     "monaco-editor": "^0.55.1",
-    "monaco-vim": "^0.4.4",
-    "node-stream-zip": "^1.15.0"
+    "monaco-vim": "^0.4.4"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.6",
@@ -34,9 +33,11 @@
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
     "@tauri-apps/api": "^2.11.1",
     "@tauri-apps/cli": "^2.11.3",
+    "jsdom": "^29.1.1",
     "svelte": "^5.0.0",
     "svelte-check": "^4.0.0",
     "typescript": "~5.6.2",
-    "vite": "^6.0.3"
+    "vite": "^6.0.3",
+    "vitest": "^4.1.9"
   }
 }

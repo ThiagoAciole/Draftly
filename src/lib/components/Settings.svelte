@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { invoke } from '@tauri-apps/api/core';
 	import { openUrl } from '@tauri-apps/plugin-opener';
+	import { tauriCommands } from '../api/tauri.js';
 	import { settings, DEFAULT_FONTS, type OSType } from '../stores/settings.svelte.js';
 	import { fade, scale, fly } from 'svelte/transition';
 	import { t, getSupportedLanguages } from '../utils/i18n.js';
@@ -38,7 +38,7 @@
 
 	async function loadVscodeThemes() {
 		try {
-			savedVscodeThemes = await invoke('get_saved_vscode_themes');
+			savedVscodeThemes = await tauriCommands.getSavedVscodeThemes();
 		} catch (e) {
 			console.error('Failed to load vscode themes:', e);
 		}
@@ -48,8 +48,8 @@
 		if (loaded) return;
 		try {
 			const [fonts, os] = await Promise.all([
-				invoke('get_system_fonts') as Promise<string[]>,
-				invoke('get_os_type') as Promise<string>
+				tauriCommands.getSystemFonts(),
+				tauriCommands.getOsType(),
 			]);
 			systemFonts = fonts;
 			osType = os as OSType;
@@ -58,7 +58,7 @@
 			console.error('Failed to load system fonts:', e);
 			systemFonts = ['Consolas', 'Courier New', 'Monaco', 'Menlo', 'Segoe UI'];
 			try {
-				osType = await invoke('get_os_type') as OSType;
+				osType = await tauriCommands.getOsType();
 			} catch (e2) {
 				console.error('Failed to get OS type:', e2);
 				osType = 'unknown';
@@ -132,7 +132,7 @@
 		if (!themeImportUrl) return;
 		importingTheme = true;
 		try {
-			const name = await invoke('fetch_vscode_theme', { url: themeImportUrl });
+			const name = await tauriCommands.fetchVscodeTheme(themeImportUrl);
 			themeImportUrl = '';
 			await loadVscodeThemes();
 			onSetTheme?.(`vscode:${name}` as any);
@@ -146,7 +146,7 @@
 
 	async function deleteTheme(name: string) {
 		try {
-			await invoke('delete_vscode_theme', { name });
+			await tauriCommands.deleteVscodeTheme(name);
 			if (theme === `vscode:${name}`) onSetTheme?.('system');
 			await loadVscodeThemes();
 		} catch (e) {
@@ -939,6 +939,7 @@
 		font-family: inherit;
 		font-size: 13px;
 		text-align: right;
+		appearance: textfield;
 		-moz-appearance: textfield;
 		outline: none;
 	}

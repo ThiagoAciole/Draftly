@@ -20,7 +20,6 @@
     "core:window:allow-unmaximize",
     "core:window:allow-show",
     "core:window:allow-hide",
-    "core:window:allow-destroy",
-    "process:default"
+    "core:window:allow-destroy"
   ]
 }
