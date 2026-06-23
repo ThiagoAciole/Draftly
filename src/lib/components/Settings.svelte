@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { openUrl } from '@tauri-apps/plugin-opener';
 	import { tauriCommands } from '../api/tauri.js';
 	import { settings, DEFAULT_FONTS, type OSType } from '../stores/settings.svelte.js';
 	import { fade, scale, fly } from 'svelte/transition';
@@ -13,7 +12,7 @@
 		onclose,
 	} = $props<{ show?: boolean; theme?: string; onSetTheme?: (t: string) => void; onclose: () => void }>();
 
-	let activeCategory = $state<'editor' | 'preview' | 'appearance' | 'files'>('editor');
+	let activeCategory = $state<'general' | 'editor' | 'appearance' | 'preview' | 'files'>('general');
 	let highlightMenuOpen = $state(false);
 	const highlightColors = [
 		{ value: 'default', color: 'var(--color-accent-fg)' },
@@ -32,17 +31,7 @@
 	let previousActiveElement = $state<HTMLElement | null>(null);
 	let osType = $state<OSType>('unknown');
 	let defaultFonts = $derived(DEFAULT_FONTS[osType] || DEFAULT_FONTS.unknown);
-	let savedVscodeThemes = $state<string[]>([]);
-	let themeImportUrl = $state('');
-	let importingTheme = $state(false);
 
-	async function loadVscodeThemes() {
-		try {
-			savedVscodeThemes = await tauriCommands.getSavedVscodeThemes();
-		} catch (e) {
-			console.error('Failed to load vscode themes:', e);
-		}
-	}
 
 	async function loadFonts() {
 		if (loaded) return;
@@ -69,7 +58,6 @@
 	$effect(() => {
 		if (show) {
 			loadFonts();
-			loadVscodeThemes();
 			previousActiveElement = document.activeElement as HTMLElement;
 			setTimeout(() => {
 				const firstFocusable = settingsModal?.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])') as HTMLElement | null;
@@ -128,31 +116,7 @@
 		}
 	}
 
-	async function importVscodeTheme() {
-		if (!themeImportUrl) return;
-		importingTheme = true;
-		try {
-			const name = await tauriCommands.fetchVscodeTheme(themeImportUrl);
-			themeImportUrl = '';
-			await loadVscodeThemes();
-			onSetTheme?.(`vscode:${name}` as any);
-		} catch (e) {
-			console.error('Failed to import theme:', e);
-			alert(`Failed to import theme: ${e}`);
-		} finally {
-			importingTheme = false;
-		}
-	}
 
-	async function deleteTheme(name: string) {
-		try {
-			await tauriCommands.deleteVscodeTheme(name);
-			if (theme === `vscode:${name}`) onSetTheme?.('system');
-			await loadVscodeThemes();
-		} catch (e) {
-			console.error('Failed to delete theme:', e);
-		}
-	}
 </script>
 
 {#if show}
@@ -187,6 +151,22 @@
 
 			<div class="settings-content">
 				<nav class="settings-nav">
+					<button class="nav-item" class:active={activeCategory === 'general'} onclick={() => (activeCategory = 'general')}>
+						<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="16"
+								height="16"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round">
+								<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+								<polyline points="9 22 9 12 15 12 15 22"></polyline>
+							</svg>
+							{t('settings.general', settings.language)}
+					</button>
 					<button class="nav-item" class:active={activeCategory === 'editor'} onclick={() => (activeCategory = 'editor')}>
 						<svg
 								xmlns="http://www.w3.org/2000/svg"
@@ -202,22 +182,6 @@
 								<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
 							</svg>
 							{t('settings.editor', settings.language)}
-					</button>
-					<button class="nav-item" class:active={activeCategory === 'preview'} onclick={() => (activeCategory = 'preview')}>
-						<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="16"
-								height="16"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round">
-								<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-								<circle cx="12" cy="12" r="3"></circle>
-							</svg>
-							{t('settings.preview', settings.language)}
 					</button>
 					<button class="nav-item" class:active={activeCategory === 'appearance'} onclick={() => (activeCategory = 'appearance')}>
 						<svg
@@ -236,6 +200,22 @@
 								></path>
 							</svg>
 							{t('settings.appearance', settings.language)}
+					</button>
+					<button class="nav-item" class:active={activeCategory === 'preview'} onclick={() => (activeCategory = 'preview')}>
+						<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="16"
+								height="16"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round">
+								<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+								<circle cx="12" cy="12" r="3"></circle>
+							</svg>
+							{t('settings.preview', settings.language)}
 					</button>
 					<button class="nav-item" class:active={activeCategory === 'files'} onclick={() => (activeCategory = 'files')}>
 						<svg
@@ -261,24 +241,18 @@
 				</nav>
 
 					<div class="settings-panel" onpointerdown={(e) => { if (e.target === e.currentTarget) highlightMenuOpen = false; }}>
-						{#if activeCategory === 'editor'}
+						{#if activeCategory === 'general'}
 						<div class="settings-group">
 							<div class="settings-group-header">
-								<h2>{t('settings.editorSettings', settings.language)}</h2>
-								<button
-									class="reset-text-btn"
-									class:disabled={settings.editorFont === defaultFonts.editorFont && settings.editorFontSize === 14 && settings.editorMaxWidth === 80}
-									onclick={() => { settings.resetEditorFont(); settings.resetEditorMaxWidth(); }}>
-									{t('settings.resetEditorSettings', settings.language)}
-								</button>
+								<h2>{t('settings.generalSettings', settings.language)}</h2>
 							</div>
 
 							<div class="setting-item">
-								<label for="editor-font">{t('settings.font', settings.language)}</label>
+								<label for="general-language">{t('settings.language', settings.language)}</label>
 								<div class="select-wrapper">
-									<select id="editor-font" bind:value={settings.editorFont}>
-										{#each systemFonts as font}
-											<option value={font}>{font === defaultFonts.editorFont ? font + ' (' + t('settings.default', settings.language) + ')' : font}</option>
+									<select id="general-language" value={settings.language} onchange={(e) => settings.setLanguage(e.currentTarget.value as LanguageCode)}>
+										{#each getSupportedLanguages() as lang}
+											<option value={lang.code}>{lang.nativeName}</option>
 										{/each}
 									</select>
 									<svg
@@ -295,22 +269,35 @@
 							</div>
 
 							<div class="setting-item">
-								<label for="editor-font-size">{t('settings.fontSize', settings.language)}</label>
-								<div class="slider-container">
-									<div class="number-input-wrapper horizontal">
-										<button class="spin-btn minus" onclick={() => (settings.editorFontSize = Math.max(10, settings.editorFontSize - 1))} aria-label="Decrease">
-											<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-												><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-										</button>
-										<input type="number" id="editor-font-size" min="10" max="48" bind:value={settings.editorFontSize} class="number-input" />
-										<button class="spin-btn plus" onclick={() => (settings.editorFontSize = Math.min(48, settings.editorFontSize + 1))} aria-label="Increase">
-											<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-												><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-										</button>
-									</div>
-									<span class="slider-value">px</span>
-								</div>
+								<label for="general-start-editor">{t('settings.startInEditor', settings.language)}</label>
+								<label class="toggle">
+									<input id="general-start-editor" type="checkbox" checked={settings.startInEditor} onchange={() => settings.toggleStartInEditor()} />
+									<span class="toggle-slider"></span>
+								</label>
 							</div>
+
+							<div class="setting-item">
+								<label for="general-restore-state">{t('settings.restoreStateOnReopen', settings.language)}</label>
+								<label class="toggle">
+									<input id="general-restore-state" type="checkbox" checked={settings.restoreStateOnReopen} onchange={() => settings.toggleRestoreStateOnReopen()} />
+									<span class="toggle-slider"></span>
+								</label>
+							</div>
+
+							<div class="setting-item">
+								<label for="general-recent-files">{t('settings.showRecentFiles', settings.language)}</label>
+								<label class="toggle">
+									<input id="general-recent-files" type="checkbox" checked={settings.showRecentFiles} onchange={() => settings.toggleShowRecentFiles()} />
+									<span class="toggle-slider"></span>
+								</label>
+							</div>
+						</div>
+						{:else if activeCategory === 'editor'}
+						<div class="settings-group">
+							<div class="settings-group-header">
+								<h2>{t('settings.editorSettings', settings.language)}</h2>
+							</div>
+
 
 							<div class="setting-item">
 								<label for="editor-max-width">{t('settings.wrapColumn', settings.language)}</label>
@@ -421,21 +408,135 @@
 								<span class="slider-value" style="margin-left: 8px;">{t('settings.reduceSizeBy50', settings.language)}</span>
 							</div>
 						{/if}
+
+						<div style="margin-top: 16px; width: 100%;">
+							<button
+								class="reset-settings-btn"
+								class:disabled={settings.editorMaxWidth === 80}
+								onclick={() => { settings.resetEditorMaxWidth(); }}>
+								{t('settings.resetEditorSettings', settings.language)}
+							</button>
+						</div>
 					</div>
+					{:else if activeCategory === 'appearance'}
+						<div class="settings-group">
+							<div class="settings-group-header">
+								<h2>{t('settings.appearanceSettings', settings.language)}</h2>
+							</div>
+
+							<div class="setting-item">
+								<label for="appearance-theme">{t('settings.theme', settings.language)}</label>
+								<div class="select-wrapper">
+									<select id="appearance-theme" value={theme} onchange={(e) => onSetTheme?.(e.currentTarget.value as any)}>
+										<option value="light">{t('settings.themeDefaultLight', settings.language)}</option>
+										<option value="dark">{t('settings.themeDefaultDark', settings.language)}</option>
+									</select>
+									<svg
+										class="select-arrow"
+										width="12"
+										height="12"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+										stroke-linecap="round"
+										stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+								</div>
+							</div>
+
+							<div class="setting-item">
+								<label for="appearance-tabs">{t('settings.showTabs', settings.language)}</label>
+								<label class="toggle">
+									<input id="appearance-tabs" type="checkbox" checked={settings.showTabs} onchange={() => settings.toggleTabs()} />
+									<span class="toggle-slider"></span>
+								</label>
+							</div>
+
+							<div class="setting-item">
+								<label for="appearance-highlight-color">{t('settings.highlightColor', settings.language)}</label>
+								<div class="custom-dropdown-wrapper">
+									<button 
+										class="custom-dropdown-btn" 
+										onclick={(e) => { e.stopPropagation(); highlightMenuOpen = !highlightMenuOpen; }}>
+											<div style="display: flex; align-items: center; gap: 8px;">
+											<div class="color-circle" style="background-color: {highlightColors.find(c => c.value === settings.highlightColor)?.color || 'var(--color-accent-fg)'}"></div>
+											<span>{t(`colors.${settings.highlightColor || 'default'}`, settings.language)}</span>
+										</div>
+											<svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+									</button>
+									{#if highlightMenuOpen}
+										<div class="custom-dropdown-menu" transition:fly={{ y: 5, duration: 150 }} onpointerdown={(e) => e.stopPropagation()}>
+											{#each highlightColors as color, index}
+												{#if index === 1}
+													<div class="theme-menu-divider" style="height: 1px; background-color: var(--color-border-muted); margin: 4px 0; transform: scaleY(0.5);"></div>
+												{/if}
+												<button 
+														class="custom-dropdown-option {settings.highlightColor === color.value ? 'selected' : ''}" 
+														onclick={() => {
+															settings.highlightColor = color.value;
+															highlightMenuOpen = false;
+														}}
+													>
+														<div class="color-circle" style="background-color: {color.color}"></div>
+														<span>{t(`colors.${color.value}`, settings.language)}</span>
+													</button>
+											{/each}
+										</div>
+									{/if}
+								</div>
+							</div>
+						</div>
 					{:else if activeCategory === 'preview'}
 						<div class="settings-group">
 							<div class="settings-group-header">
 								<h2>{t('settings.previewSettings', settings.language)}</h2>
-								<button
-									class="reset-text-btn"
-									class:disabled={settings.previewFont === defaultFonts.previewFont && settings.previewFontSize === 16 && settings.codeFont === defaultFonts.codeFont && settings.codeFontSize === 14}
-									onclick={() => settings.resetPreviewFont()}>
-									{t('settings.resetFontSettings', settings.language)}
-								</button>
+							</div>
+
+							<p class="settings-subsection-label">Editor</p>
+
+							<div class="setting-item">
+								<label for="editor-font">{t('settings.font', settings.language)}</label>
+								<div class="select-wrapper">
+									<select id="editor-font" bind:value={settings.editorFont}>
+										{#each systemFonts as font}
+											<option value={font}>{font === defaultFonts.editorFont ? font + ' (' + t('settings.default', settings.language) + ')' : font}</option>
+										{/each}
+									</select>
+									<svg
+										class="select-arrow"
+										width="12"
+										height="12"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+										stroke-linecap="round"
+										stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+								</div>
 							</div>
 
 							<div class="setting-item">
-								<label for="preview-font">{t('settings.font', settings.language)}</label>
+								<label for="editor-font-size">{t('settings.fontSize', settings.language)}</label>
+								<div class="slider-container">
+									<div class="number-input-wrapper horizontal">
+										<button class="spin-btn minus" onclick={() => (settings.editorFontSize = Math.max(10, settings.editorFontSize - 1))} aria-label="Decrease">
+											<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+												><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+										</button>
+										<input type="number" id="editor-font-size" min="10" max="48" bind:value={settings.editorFontSize} class="number-input" />
+										<button class="spin-btn plus" onclick={() => (settings.editorFontSize = Math.min(48, settings.editorFontSize + 1))} aria-label="Increase">
+											<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+												><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+										</button>
+									</div>
+									<span class="slider-value">px</span>
+								</div>
+							</div>
+
+							<p class="settings-subsection-label" style="margin-top: 20px;">Preview</p>
+
+							<div class="setting-item">
+								<label for="preview-font">{t('settings.previewFont', settings.language)}</label>
 								<div class="select-wrapper">
 									<select id="preview-font" bind:value={settings.previewFont}>
 										{#each systemFonts as font}
@@ -473,8 +574,10 @@
 								</div>
 							</div>
 
+							<p class="settings-subsection-label" style="margin-top: 20px;">Bloco de Código</p>
+
 							<div class="setting-item">
-								<label for="code-font">{t('settings.font', settings.language)}</label>
+								<label for="code-font">{t('settings.codeFont', settings.language)}</label>
 								<div class="select-wrapper">
 									<select id="code-font" bind:value={settings.codeFont}>
 										{#each systemFonts as font}
@@ -511,166 +614,24 @@
 									<span class="slider-value">px</span>
 								</div>
 							</div>
-						</div>
-					{:else if activeCategory === 'appearance'}
-						<div class="settings-group">
-						<h2>{t('settings.appearanceSettings', settings.language)}</h2>
-
-						<div class="setting-item">
-							<label for="appearance-language">{t('settings.language', settings.language)}</label>
-							<div class="select-wrapper">
-								<select id="appearance-language" value={settings.language} onchange={(e) => settings.setLanguage(e.currentTarget.value as LanguageCode)}>
-									{#each getSupportedLanguages() as lang}
-										<option value={lang.code}>{lang.nativeName}</option>
-									{/each}
-								</select>
-								<svg
-									class="select-arrow"
-									width="12"
-									height="12"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
-									stroke-linecap="round"
-									stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-							</div>
-						</div>
-
-						<div class="setting-item" style="align-items: flex-start; padding-top: 16px;">
-							<label for="appearance-theme" style="margin-top: 6px;">{t('settings.theme', settings.language)}</label>
-								<div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
-									<div class="select-wrapper">
-										<select id="appearance-theme" value={theme} onchange={(e) => onSetTheme?.(e.currentTarget.value as any)}>
-											<option value="system">{t('settings.themeFollowSystem', settings.language)}</option>
-											<option value="light">{t('settings.themeDefaultLight', settings.language)}</option>
-											<option value="dark">{t('settings.themeDefaultDark', settings.language)}</option>
-											{#if savedVscodeThemes.length > 0}
-												<optgroup label={t('settings.vsCodeThemes', settings.language)}>
-													{#each savedVscodeThemes as themeOption}
-														<option value={`vscode:${themeOption}`}>{themeOption}</option>
-													{/each}
-												</optgroup>
-											{/if}
-										</select>
-										<svg
-											class="select-arrow"
-											width="12"
-											height="12"
-											viewBox="0 0 24 24"
-											fill="none"
-											stroke="currentColor"
-											stroke-width="2"
-											stroke-linecap="round"
-											stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-									</div>
-									{#if theme.startsWith('vscode:')}
-										<button class="reset-text-btn" style="color: var(--color-danger-fg); font-size: 12px; padding: 0;" onclick={() => deleteTheme(theme.replace('vscode:', ''))}>
-										{t('settings.deleteSelectedTheme', settings.language)}
-									</button>
-									{/if}
-								</div>
-							</div>
-
-							<div class="setting-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
-								<div style="display: flex; justify-content: space-between; width: 100%;">
-									<label for="theme-import">{t('settings.importVSCodeTheme', settings.language)}</label>
-									<button
-										class="reset-text-btn"
-										onclick={() => openUrl('https://vscodethemes.com/').catch(() => window.open('https://vscodethemes.com/', '_blank'))}
-									>
-										{t('settings.browseThemes', settings.language)}
-									</button>
-								</div>
-								<div style="display: flex; gap: 8px; width: 100%;">
-									<input 
-										type="text" 
-										id="theme-import" 
-										class="text-input" 
-										style="flex: 1;" 
-										placeholder="https://vscodethemes.com/e/..." 
-										bind:value={themeImportUrl} 
-										onkeydown={e => e.key === 'Enter' && importVscodeTheme()}
-									/>
-									<button class="import-btn" onclick={importVscodeTheme} disabled={importingTheme || !themeImportUrl}>
-										{importingTheme ? t('settings.importing', settings.language) : t('settings.import', settings.language)}
-									</button>
-								</div>
-							</div>
 
 							<div class="setting-item">
-								<label for="appearance-tabs">{t('settings.showTabs', settings.language)}</label>
+								<label for="preview-toc">{t('settings.showTableOfContents', settings.language)}</label>
 								<label class="toggle">
-									<input id="appearance-tabs" type="checkbox" checked={settings.showTabs} onchange={() => settings.toggleTabs()} />
+									<input id="preview-toc" type="checkbox" checked={settings.showToc} onchange={() => settings.toggleToc()} />
 									<span class="toggle-slider"></span>
 								</label>
 							</div>
 
-							<div class="setting-item">
-								<label for="appearance-restore-state">{t('settings.restoreStateOnReopen', settings.language)}</label>
-								<label class="toggle">
-									<input id="appearance-restore-state" type="checkbox" checked={settings.restoreStateOnReopen} onchange={() => settings.toggleRestoreStateOnReopen()} />
-									<span class="toggle-slider"></span>
-								</label>
-							</div>
-
-							<div class="setting-item">
-								<label for="appearance-start-editor">{t('settings.startInEditor', settings.language)}</label>
-								<label class="toggle">
-									<input id="appearance-start-editor" type="checkbox" checked={settings.startInEditor} onchange={() => settings.toggleStartInEditor()} />
-									<span class="toggle-slider"></span>
-								</label>
-							</div>
-							<div class="setting-item">
-								<label for="appearance-recent-files">{t('settings.showRecentFiles', settings.language)}</label>
-								<label class="toggle">
-									<input id="appearance-recent-files" type="checkbox" checked={settings.showRecentFiles} onchange={() => settings.toggleShowRecentFiles()} />
-									<span class="toggle-slider"></span>
-								</label>
-							</div>
-							<div class="setting-item">
-							<label for="appearance-toc">{t('settings.showTableOfContents', settings.language)}</label>
-							<label class="toggle">
-								<input id="appearance-toc" type="checkbox" checked={settings.showToc} onchange={() => settings.toggleToc()} />
-								<span class="toggle-slider"></span>
-							</label>
-						</div>
-
-						<div class="setting-item">
-							<label for="appearance-highlight-color">{t('settings.highlightColor', settings.language)}</label>
-							<div class="custom-dropdown-wrapper">
-								<button 
-									class="custom-dropdown-btn" 
-									onclick={(e) => { e.stopPropagation(); highlightMenuOpen = !highlightMenuOpen; }}>
-										<div style="display: flex; align-items: center; gap: 8px;">
-										<div class="color-circle" style="background-color: {highlightColors.find(c => c.value === settings.highlightColor)?.color || 'var(--color-accent-fg)'}"></div>
-										<span>{t(`colors.${settings.highlightColor || 'default'}`, settings.language)}</span>
-									</div>
-										<svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+							<div style="margin-top: 16px; width: 100%;">
+								<button
+									class="reset-settings-btn"
+									class:disabled={settings.editorFont === defaultFonts.editorFont && settings.editorFontSize === 14 && settings.previewFont === defaultFonts.previewFont && settings.previewFontSize === 16 && settings.codeFont === defaultFonts.codeFont && settings.codeFontSize === 14}
+									onclick={() => { settings.resetEditorFont(); settings.resetPreviewFont(); }}>
+									{t('settings.resetFontSettings', settings.language)}
 								</button>
-								{#if highlightMenuOpen}
-									<div class="custom-dropdown-menu" transition:fly={{ y: 5, duration: 150 }} onpointerdown={(e) => e.stopPropagation()}>
-										{#each highlightColors as color, index}
-											{#if index === 1}
-												<div class="theme-menu-divider" style="height: 1px; background-color: var(--color-border-muted); margin: 4px 0; transform: scaleY(0.5);"></div>
-											{/if}
-											<button 
-													class="custom-dropdown-option {settings.highlightColor === color.value ? 'selected' : ''}" 
-													onclick={() => {
-														settings.highlightColor = color.value;
-														highlightMenuOpen = false;
-													}}
-												>
-													<div class="color-circle" style="background-color: {color.color}"></div>
-													<span>{t(`colors.${color.value}`, settings.language)}</span>
-												</button>
-										{/each}
-									</div>
-								{/if}
 							</div>
-					</div>
-
-					</div>
+						</div>
 					{:else if activeCategory === 'files'}
 					<div class="settings-group">
 						<div class="settings-group-header">
@@ -837,23 +798,41 @@
 		color: var(--color-fg-default);
 	}
 
-	.reset-text-btn {
-		background: transparent;
-		border: none;
+	.settings-subsection-label {
+		font-size: 11px;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
 		color: var(--color-fg-muted);
+		margin: 0 0 10px 0;
+		padding-bottom: 6px;
+		border-bottom: 1px solid var(--color-border-muted);
+	}
+
+
+	.reset-settings-btn {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 8px 16px;
+		background-color: var(--color-neutral-muted);
+		border: 1px solid var(--color-border-default);
+		border-radius: 6px;
+		color: var(--color-fg-default);
 		font-size: 13px;
+		font-family: inherit;
 		cursor: pointer;
-		padding: 0;
-		transition: all 0.1s;
-		text-decoration: none;
+		outline: none;
+		transition: all 0.15s ease;
 	}
 
-	.reset-text-btn:hover:not(.disabled) {
-		color: var(--color-accent-fg);
+	.reset-settings-btn:hover:not(.disabled) {
+		background-color: var(--color-border-default);
 	}
 
-	.reset-text-btn.disabled {
-		opacity: 0.5;
+	.reset-settings-btn.disabled {
+		opacity: 0.4;
 		cursor: default;
 	}
 
@@ -1000,26 +979,6 @@
 		border-color: var(--color-accent-fg);
 	}
 
-	.import-btn {
-		background: var(--color-canvas-subtle);
-		border: 1px solid var(--color-border-default);
-		border-radius: 6px;
-		color: var(--color-fg-default);
-		padding: 6px 12px;
-		font-size: 13px;
-		cursor: pointer;
-		outline: none;
-		transition: all 0.1s;
-	}
-
-	.import-btn:hover:not(:disabled) {
-		background: var(--color-border-default);
-	}
-
-	.import-btn:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-	}
 
 	.spin-btn.minus {
 		border-right: 1px solid var(--color-border-default);

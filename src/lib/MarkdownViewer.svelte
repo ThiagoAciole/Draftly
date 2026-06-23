@@ -265,11 +265,15 @@ import { t } from './utils/i18n.js';
 	import { parseAndApplyVscodeTheme, clearVscodeTheme } from './utils/theme';
 
 	// Theme State
-	let theme = $state<string>('system');
+	let theme = $state<string>('dark');
 
 	onMount(() => {
 		const storedTheme = localStorage.getItem('theme');
-		if (storedTheme) theme = storedTheme;
+		if (storedTheme === 'light' || storedTheme === 'dark') {
+			theme = storedTheme;
+		} else {
+			theme = 'dark';
+		}
 		// Clear the forced background color from app.html
 		document.documentElement.style.removeProperty('background-color');
 	});
@@ -278,29 +282,14 @@ import { t } from './utils/i18n.js';
 		localStorage.setItem('theme', theme);
 		invoke('save_theme', { theme }).catch(console.error);
 
-		if (theme === 'system' || theme === 'light' || theme === 'dark') {
-			if (theme === 'system') {
-				delete document.documentElement.dataset.theme;
-				delete document.documentElement.dataset.themeType;
-			} else {
-				document.documentElement.dataset.theme = theme;
-				document.documentElement.dataset.themeType = theme;
-			}
+		if (theme === 'light' || theme === 'dark') {
+			document.documentElement.dataset.theme = theme;
+			document.documentElement.dataset.themeType = theme;
 			clearVscodeTheme();
 			const monaco = (window as any).monaco;
 			if (monaco && monaco.editor) {
-				const isSystemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-				const effectiveTheme = theme === 'system' ? (isSystemDark ? 'dark' : 'light') : theme;
-				monaco.editor.setTheme(effectiveTheme === 'dark' ? 'vs-dark' : 'vs');
+				monaco.editor.setTheme(theme === 'dark' ? 'vs-dark' : 'vs');
 			}
-		} else if (theme.startsWith('vscode:')) {
-			const name = theme.replace('vscode:', '');
-			invoke('read_vscode_theme', { name }).then((json: any) => {
-				parseAndApplyVscodeTheme(json, name);
-			}).catch(e => {
-				console.error("Failed to load vscode theme", e);
-				theme = 'system';
-			});
 		}
 
 		// Re-initialize mermaid or trigger update if needed

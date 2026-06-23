@@ -201,17 +201,6 @@
 	let themeMenuOpen = $state(false);
 	let kebabMenuOpen = $state(false);
 	let homeMenuOpen = $state(false);
-	let savedVscodeThemes = $state<string[]>([]);
-	
-	$effect(() => {
-		if (themeMenuOpen) {
-			tauriCommands.getSavedVscodeThemes()
-				.then((themes) => {
-					savedVscodeThemes = themes as string[];
-				})
-				.catch(console.error);
-		}
-	});
 
 	function handleSetTheme(t: string) {
 		if (onSetTheme) onSetTheme(t);
@@ -560,17 +549,8 @@
 						</button>
 						{#if themeMenuOpen}
 							<div class="theme-menu" transition:fly={{ y: 5, duration: 150 }} onpointerdown={(e) => e.stopPropagation()}>
-								<button class="theme-option {theme === 'system' ? 'selected' : ''}" onclick={() => handleSetTheme('system')}> {t('theme.followSystem', currentLanguage)} </button>
 								<button class="theme-option {theme === 'light' ? 'selected' : ''}" onclick={() => handleSetTheme('light')}> {t('theme.defaultLight', currentLanguage)} </button>
 								<button class="theme-option {theme === 'dark' ? 'selected' : ''}" onclick={() => handleSetTheme('dark')}> {t('theme.defaultDark', currentLanguage)} </button>
-								{#if savedVscodeThemes.length > 0}
-									<div class="theme-menu-divider"></div>
-									{#each savedVscodeThemes as t}
-										<button class="theme-option {theme === `vscode:${t}` ? 'selected' : ''}" onclick={() => handleSetTheme(`vscode:${t}`)}>
-											{t}
-										</button>
-									{/each}
-								{/if}
 							</div>
 						{/if}
 					</div>

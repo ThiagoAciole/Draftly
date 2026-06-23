@@ -339,12 +339,6 @@
 		defineThemes();
 
 		const getTheme = () => {
-			if (theme && theme.startsWith("vscode:")) return "vscode-custom";
-			if (theme === "system") {
-				return window.matchMedia("(prefers-color-scheme: dark)").matches
-					? "app-theme-dark"
-					: "app-theme-light";
-			}
 			return theme === "dark" ? "app-theme-dark" : "app-theme-light";
 		};
 
@@ -1165,16 +1159,7 @@
 
 	$effect(() => {
 		if (editor && theme) {
-			if (theme.startsWith("vscode:")) return;
-			const targetTheme =
-				theme === "system"
-					? window.matchMedia("(prefers-color-scheme: dark)").matches
-						? "app-theme-dark"
-						: "app-theme-light"
-					: theme === "dark"
-						? "app-theme-dark"
-						: "app-theme-light";
-			monaco.editor.setTheme(targetTheme);
+			monaco.editor.setTheme(theme === "dark" ? "app-theme-dark" : "app-theme-light");
 		}
 	});
 
