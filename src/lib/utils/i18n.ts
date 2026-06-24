@@ -236,6 +236,13 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedChangesBeforeClosingSplitView: 'You have unsaved changes. Do you want to save them before closing split view?',
             youHaveUnsavedFiles: 'You have {{count}} unsaved file(s). Do you want to save your changes?'
         },
+        recovery: {
+            title: 'Recover documents',
+            description: 'Draftly found edits that may not have been saved to disk.',
+            unsavedDocument: 'Unsaved document',
+            discard: 'Discard',
+            recover: 'Recover'
+        },
         update: {
             checkingHeader: 'Checking for updates…',
             checkingBody: 'Looking for the latest version of Draftly…',
@@ -2340,6 +2347,13 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedChangesBeforeClosingSplitView: 'Você tem alterações não salvas. Deseja salvá-las antes de fechar a visualização dividida?',
             youHaveUnsavedFiles: 'Você tem {{count}} arquivo(s) não salvo(s). Deseja salvar suas alterações?'
         },
+        recovery: {
+            title: 'Recuperar documentos',
+            description: 'O Draftly encontrou edições que talvez não tenham sido salvas no disco.',
+            unsavedDocument: 'Documento não salvo',
+            discard: 'Descartar',
+            recover: 'Recuperar'
+        },
         home: {
             welcomeToDraftly: 'Bem-vindo ao Draftly',
             recentFiles: 'Arquivos recentes',
@@ -3615,6 +3629,13 @@ export const translations: Record<LanguageCode, Translation> = {
             youHaveUnsavedChangesBeforeReturning: 'Tem alterações não guardadas. Pretende guardá-las antes de voltar ao modo de pré-visualização?',
             youHaveUnsavedChangesBeforeClosingSplitView: 'Tem alterações não guardadas. Pretende guardá-las antes de fechar a vista dividida?',
             youHaveUnsavedFiles: 'Tem {{count}} ficheiro(s) não guardado(s). Pretende guardar as suas alterações?'
+        },
+        recovery: {
+            title: 'Recuperar documentos',
+            description: 'O Draftly encontrou edições que poderão não ter sido guardadas no disco.',
+            unsavedDocument: 'Documento não guardado',
+            discard: 'Descartar',
+            recover: 'Recuperar'
         },
         home: {
             welcomeToDraftly: 'Bem-vindo ao Draftly',

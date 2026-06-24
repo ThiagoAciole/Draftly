@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { fade, scale } from 'svelte/transition';
 	import type { DocumentSnapshot } from '../services/document-session.js';
+	import { t, type LanguageCode } from '../utils/i18n.js';
 
-	let { show, snapshots, onrestore, ondiscard, onclose } = $props<{
+	let { show, snapshots, language, onrestore, ondiscard, onclose } = $props<{
 		show: boolean;
 		snapshots: DocumentSnapshot[];
+		language: LanguageCode;
 		onrestore: (snapshot: DocumentSnapshot) => void;
 		ondiscard: (snapshot: DocumentSnapshot) => void;
 		onclose: () => void;
@@ -16,22 +18,22 @@
 		<div class="dialog" transition:scale={{ duration: 160, start: 0.96 }} role="dialog" aria-modal="true">
 			<header>
 				<div>
-					<h2>Recover documents</h2>
-					<p>Draftly found edits that may not have been saved to disk.</p>
+					<h2>{t('recovery.title', language)}</h2>
+					<p>{t('recovery.description', language)}</p>
 				</div>
-				<button class="close" onclick={onclose} aria-label="Close">×</button>
+				<button class="close" onclick={onclose} aria-label={t('common.close', language)}>×</button>
 			</header>
 			<div class="documents">
 				{#each snapshots as snapshot (snapshot.id)}
 					<div class="document">
 						<div>
 							<strong>{snapshot.title}</strong>
-							<span>{snapshot.path || 'Unsaved document'}</span>
+							<span>{snapshot.path || t('recovery.unsavedDocument', language)}</span>
 							<small>{new Date(snapshot.updatedAt).toLocaleString()}</small>
 						</div>
 						<div class="actions">
-							<button onclick={() => ondiscard(snapshot)}>Discard</button>
-							<button class="primary" onclick={() => onrestore(snapshot)}>Recover</button>
+							<button onclick={() => ondiscard(snapshot)}>{t('recovery.discard', language)}</button>
+							<button class="primary" onclick={() => onrestore(snapshot)}>{t('recovery.recover', language)}</button>
 						</div>
 					</div>
 				{/each}
@@ -52,8 +54,8 @@
 	}
 
 	.dialog {
-		width: min(680px, 100%);
-		max-height: min(620px, 90vh);
+		width: min(520px, 100%);
+		max-height: min(460px, 86vh);
 		overflow: hidden;
 		border: 1px solid var(--color-border-default);
 		border-radius: 12px;
@@ -72,8 +74,18 @@
 
 	header {
 		justify-content: space-between;
-		padding: 20px;
+		padding: 14px 16px;
 		border-bottom: 1px solid var(--color-border-muted);
+	}
+
+	h2 {
+		font-size: 16px;
+		line-height: 1.3;
+	}
+
+	p {
+		font-size: 13px;
+		line-height: 1.4;
 	}
 
 	h2,
@@ -90,16 +102,16 @@
 	}
 
 	.documents {
-		max-height: 480px;
+		max-height: 340px;
 		overflow: auto;
-		padding: 8px;
+		padding: 6px;
 	}
 
 	.document {
 		justify-content: space-between;
-		gap: 20px;
-		padding: 14px 12px;
-		border-radius: 8px;
+		gap: 14px;
+		padding: 10px;
+		border-radius: 6px;
 	}
 
 	.document:hover {
@@ -111,7 +123,7 @@
 	}
 
 	button {
-		padding: 7px 12px;
+		padding: 6px 10px;
 		border: 1px solid var(--color-border-default);
 		border-radius: 6px;
 		background: var(--color-canvas-subtle);
@@ -127,6 +139,6 @@
 	button.close {
 		border: 0;
 		background: transparent;
-		font-size: 22px;
+		font-size: 20px;
 	}
 </style>

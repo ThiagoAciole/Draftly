@@ -2716,6 +2716,7 @@ import { t } from './utils/i18n.js';
 	<RecoveryDialog
 		show={showRecovery}
 		snapshots={recoverySnapshots}
+		language={settings.language}
 		onrestore={restoreRecoverySnapshot}
 		ondiscard={discardRecoverySnapshot}
 		onclose={() => (showRecovery = false)} />
