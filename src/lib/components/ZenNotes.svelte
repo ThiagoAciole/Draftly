@@ -11,6 +11,14 @@
 		contentHtml: string;
 	};
 
+	type SlashCommandId = 'heading' | 'checklist' | 'quote' | 'code';
+
+	type SlashCommand = {
+		id: SlashCommandId;
+		label: string;
+		description: string;
+	};
+
 	const CONTENT_KEY = 'zenNotes.sections.v1';
 	const LEGACY_CONTENT_KEY = 'zenNotes.markdown';
 	const LAST_DATE_KEY = 'zenNotes.lastWriteDate';
@@ -47,13 +55,29 @@
 		'td',
 	];
 
-	const EDITOR_ALLOWED_ATTR = ['href', 'target', 'rel'];
+	const EDITOR_ALLOWED_ATTR = ['href', 'target', 'rel', 'data-placeholder', 'data-list-type', 'class'];
+	const BLOCK_SELECTOR = 'p, h1, h2, h3, h4, h5, h6, blockquote, li, pre';
+	const slashCommands: SlashCommand[] = [
+		{ id: 'heading', label: 'Heading', description: 'Insere um titulo grande' },
+		{ id: 'checklist', label: 'Checklist', description: 'Insere uma lista de tarefas' },
+		{ id: 'quote', label: 'Quote', description: 'Insere um bloco de citacao' },
+		{ id: 'code', label: 'Code', description: 'Insere um bloco de codigo' },
+	];
 
 	let sections = $state<ZenSection[]>([]);
 	let activeSectionKey = $state('');
 	let collapsedSections = $state<Record<string, boolean>>({});
+	let slashMenu = $state({
+		open: false,
+		sectionKey: '',
+		x: 0,
+		y: 0,
+		selectedIndex: 0,
+	});
 	let persistTimer: ReturnType<typeof setTimeout> | null = null;
 	const editorRefs = new Map<string, HTMLDivElement>();
+	let slashMenuRange: Range | null = null;
+	let slashMenuBlock: HTMLElement | null = null;
 
 	const todayKey = $derived(getLocalDateKey());
 
@@ -180,6 +204,7 @@
 			if (document.activeElement === node) return;
 			if (node.innerHTML === value) return;
 			node.innerHTML = value;
+			refreshBlockPlaceholders(node);
 		};
 
 		apply(html);
@@ -194,6 +219,262 @@
 	function focusSection(key: string) {
 		activeSectionKey = key;
 		editorRefs.get(key)?.focus();
+	}
+
+	function closeSlashMenu() {
+		slashMenu = {
+			open: false,
+			sectionKey: '',
+			x: 0,
+			y: 0,
+			selectedIndex: 0,
+		};
+		slashMenuRange = null;
+		slashMenuBlock = null;
+	}
+
+	function normalizeBlockText(block: HTMLElement | null) {
+		return (block?.textContent || '').replace(/\u00a0/g, ' ').trim();
+	}
+
+	function isBlockEmpty(block: HTMLElement | null) {
+		return normalizeBlockText(block).length === 0;
+	}
+
+	function refreshBlockPlaceholders(editor: HTMLDivElement) {
+		const blocks = editor.querySelectorAll<HTMLElement>('[data-placeholder]');
+		for (const block of blocks) {
+			block.classList.toggle('is-empty', isBlockEmpty(block));
+		}
+	}
+
+	function findBlockElement(node: Node | null, editor: HTMLDivElement) {
+		let current = node instanceof HTMLElement ? node : node?.parentElement ?? null;
+		while (current && current !== editor) {
+			if (current.matches(BLOCK_SELECTOR)) return current;
+			current = current.parentElement;
+		}
+		return null;
+	}
+
+	function getCurrentBlock(sectionKey: string) {
+		const editor = editorRefs.get(sectionKey);
+		if (!editor) return null;
+		const selection = window.getSelection();
+		if (!selection?.anchorNode || !editor.contains(selection.anchorNode)) return null;
+		return findBlockElement(selection.anchorNode, editor);
+	}
+
+	function restoreSlashSelection() {
+		if (!slashMenuRange) return;
+		const selection = window.getSelection();
+		selection?.removeAllRanges();
+		selection?.addRange(slashMenuRange);
+	}
+
+	function placeCaret(target: Node, atEnd = false) {
+		const range = document.createRange();
+		range.selectNodeContents(target);
+		range.collapse(!atEnd ? true : false);
+		const selection = window.getSelection();
+		selection?.removeAllRanges();
+		selection?.addRange(range);
+	}
+
+	function createParagraphBlock(placeholder = 'Escreva aqui...') {
+		const paragraph = document.createElement('p');
+		paragraph.dataset.placeholder = placeholder;
+		paragraph.innerHTML = '<br>';
+		return paragraph;
+	}
+
+	function createHeadingBlock() {
+		const heading = document.createElement('h1');
+		heading.dataset.placeholder = 'Titulo';
+		heading.innerHTML = '<br>';
+		return heading;
+	}
+
+	function createQuoteBlock() {
+		const quote = document.createElement('blockquote');
+		quote.dataset.placeholder = 'Citação';
+		quote.innerHTML = '<br>';
+		return quote;
+	}
+
+	function createCodeBlock() {
+		const pre = document.createElement('pre');
+		const code = document.createElement('code');
+		code.dataset.placeholder = 'Escreva codigo';
+		code.innerHTML = '<br>';
+		pre.appendChild(code);
+		return { block: pre, caretTarget: code };
+	}
+
+	function createListBlock(ordered: boolean, checklist = false) {
+		const list = document.createElement(ordered ? 'ol' : 'ul');
+		if (checklist) {
+			list.dataset.listType = 'checklist';
+		}
+		const item = document.createElement('li');
+		item.dataset.placeholder = checklist ? 'Tarefa' : ordered ? 'Item numerado' : 'Item';
+		item.innerHTML = '<br>';
+		list.appendChild(item);
+		return { block: list, caretTarget: item };
+	}
+
+	function replaceBlock(oldBlock: HTMLElement, nextBlock: HTMLElement, caretTarget?: Node) {
+		oldBlock.replaceWith(nextBlock);
+		placeCaret(caretTarget || nextBlock);
+	}
+
+	function syncSectionFromDom(sectionKey: string) {
+		const editor = editorRefs.get(sectionKey);
+		const section = sections.find((item) => item.key === sectionKey);
+		if (!editor || !section) return;
+		refreshBlockPlaceholders(editor);
+		section.contentHtml = sanitizeEditorHtml(editor.innerHTML);
+		schedulePersist();
+	}
+
+	function openSlashMenu(sectionKey: string, block: HTMLElement) {
+		const selection = window.getSelection();
+		if (!selection?.rangeCount) return;
+		const rect = block.getBoundingClientRect();
+		const menuWidth = 220;
+		const menuHeight = 180;
+		const horizontalPadding = 12;
+		const verticalPadding = 12;
+		const clampedX = Math.min(
+			Math.max(horizontalPadding, rect.left + 8),
+			window.innerWidth - menuWidth - horizontalPadding,
+		);
+		const clampedY = Math.min(
+			Math.max(verticalPadding, rect.bottom + 8),
+			window.innerHeight - menuHeight - verticalPadding,
+		);
+		slashMenuRange = selection.getRangeAt(0).cloneRange();
+		slashMenuBlock = block;
+		slashMenu = {
+			open: true,
+			sectionKey,
+			x: clampedX,
+			y: clampedY,
+			selectedIndex: 0,
+		};
+	}
+
+	function getVisibleSlashCommands() {
+		return slashCommands;
+	}
+
+	function applySlashCommand(sectionKey: string, commandId: SlashCommandId) {
+		const editor = editorRefs.get(sectionKey);
+		const block = slashMenuBlock;
+		if (!editor || !block) {
+			closeSlashMenu();
+			return;
+		}
+
+		restoreSlashSelection();
+		let nextBlock: HTMLElement | null = null;
+		let caretTarget: Node | undefined;
+
+		switch (commandId) {
+			case 'heading':
+				nextBlock = createHeadingBlock();
+				break;
+			case 'quote':
+				nextBlock = createQuoteBlock();
+				break;
+			case 'code': {
+				const code = createCodeBlock();
+				nextBlock = code.block;
+				caretTarget = code.caretTarget;
+				break;
+			}
+			case 'checklist': {
+				const list = createListBlock(false, true);
+				nextBlock = list.block;
+				caretTarget = list.caretTarget;
+				break;
+			}
+		}
+
+		if (nextBlock) {
+			replaceBlock(block, nextBlock, caretTarget);
+			refreshBlockPlaceholders(editor);
+			syncSectionFromDom(sectionKey);
+		}
+
+		closeSlashMenu();
+	}
+
+	function convertMarkdownShortcut(sectionKey: string, block: HTMLElement) {
+		const editor = editorRefs.get(sectionKey);
+		if (!editor) return false;
+		const rawText = (block.textContent || '').replace(/\u00a0/g, ' ');
+
+		if (block.tagName !== 'P') return false;
+
+		if (rawText === '# ') {
+			replaceBlock(block, createHeadingBlock());
+		} else if (rawText === '> ') {
+			replaceBlock(block, createQuoteBlock());
+		} else if (rawText === '- ') {
+			const list = createListBlock(false);
+			replaceBlock(block, list.block, list.caretTarget);
+		} else if (rawText === '1. ') {
+			const list = createListBlock(true);
+			replaceBlock(block, list.block, list.caretTarget);
+		} else {
+			return false;
+		}
+
+		refreshBlockPlaceholders(editor);
+		syncSectionFromDom(sectionKey);
+		return true;
+	}
+
+	function isCaretAtStart(block: HTMLElement) {
+		const selection = window.getSelection();
+		if (!selection?.rangeCount || !selection.isCollapsed) return false;
+		const range = selection.getRangeAt(0).cloneRange();
+		const preRange = range.cloneRange();
+		preRange.selectNodeContents(block);
+		preRange.setEnd(range.startContainer, range.startOffset);
+		return preRange.toString().length === 0;
+	}
+
+	function insertParagraphAfter(block: HTMLElement) {
+		const paragraph = createParagraphBlock();
+		block.after(paragraph);
+		placeCaret(paragraph);
+		return paragraph;
+	}
+
+	function liftBlockToParagraph(sectionKey: string, block: HTMLElement) {
+		const editor = editorRefs.get(sectionKey);
+		if (!editor) return;
+
+		if (block.tagName === 'LI') {
+			const list = block.parentElement;
+			const paragraph = createParagraphBlock();
+			if (list && list.children.length === 1) {
+				list.replaceWith(paragraph);
+			} else if (list) {
+				block.remove();
+				list.after(paragraph);
+			}
+			placeCaret(paragraph);
+		} else {
+			const paragraph = createParagraphBlock();
+			block.replaceWith(paragraph);
+			placeCaret(paragraph);
+		}
+
+		refreshBlockPlaceholders(editor);
+		syncSectionFromDom(sectionKey);
 	}
 
 	function isSectionCollapsed(key: string) {
@@ -243,6 +524,8 @@
 		if (!section) return;
 
 		focusSection(section.key);
+		const editor = editorRefs.get(section.key);
+		if (!editor) return;
 
 		switch (action) {
 			case 'heading':
@@ -282,7 +565,7 @@
 				break;
 		}
 
-		schedulePersist();
+		syncSectionFromDom(section.key);
 	}
 
 	function deleteDateSection(key: string) {
@@ -304,6 +587,12 @@
 
 	function handleEditorInput(sectionKey: string, event: Event) {
 		const element = event.currentTarget as HTMLDivElement;
+		refreshBlockPlaceholders(element);
+		const currentBlock = getCurrentBlock(sectionKey);
+		if (currentBlock && convertMarkdownShortcut(sectionKey, currentBlock)) {
+			closeSlashMenu();
+			return;
+		}
 		const nextHtml = sanitizeEditorHtml(element.innerHTML);
 		const section = sections.find((item) => item.key === sectionKey);
 		if (!section) return;
@@ -313,19 +602,83 @@
 	}
 
 	function handleEditorKeydown(sectionKey: string, event: KeyboardEvent) {
-		if (event.key !== 'Enter' || event.shiftKey) return;
+		const editor = event.currentTarget as HTMLDivElement;
+		const block = getCurrentBlock(sectionKey);
+
+		const visibleSlashCommands = getVisibleSlashCommands();
+
+		if (slashMenu.open && slashMenu.sectionKey === sectionKey) {
+			if (event.key === 'ArrowDown') {
+				event.preventDefault();
+				slashMenu.selectedIndex = (slashMenu.selectedIndex + 1) % visibleSlashCommands.length;
+				return;
+			}
+			if (event.key === 'ArrowUp') {
+				event.preventDefault();
+				slashMenu.selectedIndex = (slashMenu.selectedIndex - 1 + visibleSlashCommands.length) % visibleSlashCommands.length;
+				return;
+			}
+			if (event.key === 'Enter') {
+				event.preventDefault();
+				const command = visibleSlashCommands[slashMenu.selectedIndex];
+				if (command) applySlashCommand(sectionKey, command.id);
+				return;
+			}
+			if (event.key === 'Escape') {
+				event.preventDefault();
+				closeSlashMenu();
+				return;
+			}
+			if (event.key.length === 1 && event.key !== '/') {
+				closeSlashMenu();
+			}
+		}
+
+		if (event.key === '/' && !event.shiftKey && block && isBlockEmpty(block)) {
+			event.preventDefault();
+			openSlashMenu(sectionKey, block);
+			return;
+		}
+
+		if (event.key === 'Backspace' && block && isBlockEmpty(block) && isCaretAtStart(block)) {
+			const tagName = block.tagName;
+			const list = block.parentElement;
+			const isChecklistItem = tagName === 'LI' && list?.dataset.listType === 'checklist';
+			if (tagName === 'LI' || isChecklistItem || /^H[1-6]$/.test(tagName) || tagName === 'BLOCKQUOTE' || tagName === 'PRE') {
+				event.preventDefault();
+				liftBlockToParagraph(sectionKey, block);
+				return;
+			}
+		}
+
+		if (event.key !== 'Enter' || event.shiftKey || !block) return;
+
+		const tagName = block.tagName;
+		if (isBlockEmpty(block) && (tagName === 'LI' || /^H[1-6]$/.test(tagName) || tagName === 'BLOCKQUOTE' || tagName === 'PRE')) {
+			event.preventDefault();
+			liftBlockToParagraph(sectionKey, block);
+			return;
+		}
+
+		if (!isBlockEmpty(block) && (/^H[1-6]$/.test(tagName) || tagName === 'BLOCKQUOTE')) {
+			event.preventDefault();
+			const paragraph = insertParagraphAfter(block);
+			refreshBlockPlaceholders(editor);
+			syncSectionFromDom(sectionKey);
+			placeCaret(paragraph);
+			return;
+		}
+
 		if (sectionKey !== todayKey) return;
-
-		const active = event.currentTarget as HTMLDivElement;
-		const isEmpty = !active.textContent?.trim();
-		if (!isEmpty) return;
-
+		const isEditorEmpty = !editor.textContent?.trim();
+		if (!isEditorEmpty) return;
 		event.preventDefault();
 		document.execCommand('insertParagraph');
 	}
 
 	function handleEditorFocus(sectionKey: string) {
 		activeSectionKey = sectionKey;
+		closeSlashMenu();
 	}
 
 	function handleEditorBlur(sectionKey: string, event: FocusEvent) {
@@ -333,6 +686,7 @@
 		if (!element.textContent?.trim()) {
 			element.innerHTML = '<p><br></p>';
 		}
+		refreshBlockPlaceholders(element);
 		const section = sections.find((item) => item.key === sectionKey);
 		if (section) {
 			section.contentHtml = sanitizeEditorHtml(element.innerHTML);
@@ -341,6 +695,14 @@
 	}
 
 	onMount(() => {
+		const handlePointerDown = (event: PointerEvent) => {
+			const target = event.target as HTMLElement | null;
+			if (target?.closest('.zen-slash-menu')) return;
+			closeSlashMenu();
+		};
+
+		window.addEventListener('pointerdown', handlePointerDown);
+
 		const stored = localStorage.getItem(CONTENT_KEY);
 		if (stored) {
 			try {
@@ -364,6 +726,10 @@
 
 		ensureTodaySection();
 		activeSectionKey = todayKey;
+
+		return () => {
+			window.removeEventListener('pointerdown', handlePointerDown);
+		};
 	});
 
 	onDestroy(() => {
@@ -430,6 +796,22 @@
 			</section>
 		{/each}
 	</div>
+
+	{#if slashMenu.open}
+		<div class="zen-slash-menu" style="left: {slashMenu.x}px; top: {slashMenu.y}px;">
+			{#each getVisibleSlashCommands() as command, index}
+				<button
+					type="button"
+					class="zen-slash-item"
+					class:is-selected={index === slashMenu.selectedIndex}
+					onmousedown={(event) => event.preventDefault()}
+					onclick={() => applySlashCommand(slashMenu.sectionKey, command.id)}>
+					<span class="zen-slash-label">/{command.label.toLowerCase()}</span>
+					<span class="zen-slash-description">{command.description}</span>
+				</button>
+			{/each}
+		</div>
+	{/if}
 
 	<MarkdownToolbar onaction={applyToolbarAction} />
 </div>
@@ -547,6 +929,34 @@
 		pointer-events: none;
 	}
 
+	:global(.zen-editor [data-placeholder].is-empty::before) {
+		content: attr(data-placeholder);
+		color: var(--color-fg-muted);
+		pointer-events: none;
+	}
+
+	:global(.zen-editor ul[data-list-type='checklist']) {
+		list-style: none;
+		padding-left: 0;
+	}
+
+	:global(.zen-editor ul[data-list-type='checklist'] li) {
+		position: relative;
+		padding-left: 1.5rem;
+	}
+
+	:global(.zen-editor ul[data-list-type='checklist'] li::before) {
+		content: '';
+		position: absolute;
+		left: 0;
+		top: 0.38rem;
+		width: 0.85rem;
+		height: 0.85rem;
+		border: 1px solid var(--color-border-muted);
+		border-radius: 0.25rem;
+		background: transparent;
+	}
+
 	.zen-date-heading {
 		display: flex;
 		align-items: center;
@@ -589,5 +999,47 @@
 		color: var(--color-danger-fg, #f85149);
 		border-color: color-mix(in srgb, var(--color-danger-fg, #f85149) 48%, transparent);
 		background: color-mix(in srgb, var(--color-danger-fg, #f85149) 12%, transparent);
+	}
+
+	.zen-slash-menu {
+		position: fixed;
+		z-index: 40;
+		display: flex;
+		flex-direction: column;
+		min-width: 220px;
+		padding: 6px;
+		border: 1px solid var(--color-border-default);
+		border-radius: 10px;
+		background: var(--color-canvas-overlay, var(--color-canvas-default));
+		box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+	}
+
+	.zen-slash-item {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 2px;
+		padding: 8px 10px;
+		border: 0;
+		border-radius: 8px;
+		background: transparent;
+		color: var(--color-fg-default);
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.zen-slash-item:hover,
+	.zen-slash-item.is-selected {
+		background: var(--color-canvas-subtle);
+	}
+
+	.zen-slash-label {
+		font-size: 0.92rem;
+		font-weight: 600;
+	}
+
+	.zen-slash-description {
+		font-size: 0.78rem;
+		color: var(--color-fg-muted);
 	}
 </style>
