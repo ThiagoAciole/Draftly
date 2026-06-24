@@ -1,5 +1,4 @@
-declare module 'katex/dist/contrib/auto-render.js';
-declare module 'katex/dist/contrib/mhchem.js';
-declare module 'katex/dist/contrib/copy-tex.js';
-declare module 'monaco-editor/esm/vs/basic-languages/*';
-
+declare module "katex/dist/contrib/auto-render.js";
+declare module "katex/dist/contrib/mhchem.js";
+declare module "katex/dist/contrib/copy-tex.js";
+declare module "monaco-editor/esm/vs/basic-languages/*";

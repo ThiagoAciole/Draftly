@@ -1,329 +1,357 @@
 <script lang="ts">
-	import { t } from '../utils/i18n.js';
-	import { getFileIcon } from '../utils/file-icons.js';
-	import { settings } from '../stores/settings.svelte.js';
-	import ContextMenu from './ContextMenu.svelte';
-	import type { NewFileType } from '../stores/tabs.svelte.js';
+  import { t } from "../utils/i18n.js";
+  import { getFileIcon } from "../utils/file-icons.js";
+  import { settings } from "../stores/settings.svelte.js";
+  import ContextMenu from "./ContextMenu.svelte";
+  import type { NewFileType } from "../stores/tabs.svelte.js";
 
-	let { recentFiles, onselectFile, onloadFile, onremoveRecentFile, onnewFile } = $props<{
-		recentFiles: string[];
-		onselectFile: () => void;
-		onloadFile: (file: string) => void;
-		onremoveRecentFile: (file: string, e: MouseEvent) => void;
-		onnewFile: (type: NewFileType) => void;
-	}>();
+  let { recentFiles, onselectFile, onloadFile, onremoveRecentFile, onnewFile } =
+    $props<{
+      recentFiles: string[];
+      onselectFile: () => void;
+      onloadFile: (file: string) => void;
+      onremoveRecentFile: (file: string, e: MouseEvent) => void;
+      onnewFile: (type: NewFileType) => void;
+    }>();
 
-	let newFileMenu = $state({ show: false, x: 0, y: 0 });
+  let newFileMenu = $state({ show: false, x: 0, y: 0 });
 
-	function getFileName(path: string) {
-		return path.split(/[/\\]/).pop() || path;
-	}
+  function getFileName(path: string) {
+    return path.split(/[/\\]/).pop() || path;
+  }
 
-	function openNewFileMenu(e: MouseEvent) {
-		const rect = (e.currentTarget as HTMLButtonElement).getBoundingClientRect();
-		newFileMenu = {
-			show: true,
-			x: rect.left,
-			y: rect.bottom + 6,
-		};
-	}
+  function openNewFileMenu(e: MouseEvent) {
+    const rect = (e.currentTarget as HTMLButtonElement).getBoundingClientRect();
+    newFileMenu = {
+      show: true,
+      x: rect.left,
+      y: rect.bottom + 6,
+    };
+  }
 </script>
 
 <div class="message">
-	<p>{t('home.welcomeToDraftly', settings.language)}</p>
-	<div class="actions-row">
-		<button class="fluent-btn primary" onclick={onselectFile}>
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				width="16"
-				height="16"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>
-			{t('home.openFile', settings.language)}
-		</button>
-		<button class="fluent-btn secondary" onclick={openNewFileMenu}>
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				width="16"
-				height="16"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-			{t('home.newFile', settings.language)}
-		</button>
-	</div>
+  <p>{t("home.welcomeToDraftly", settings.language)}</p>
+  <div class="actions-row">
+    <button class="fluent-btn primary" onclick={onselectFile}>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        ><path
+          d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+        /></svg
+      >
+      {t("home.openFile", settings.language)}
+    </button>
+    <button class="fluent-btn secondary" onclick={openNewFileMenu}>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        ><line x1="12" y1="5" x2="12" y2="19"></line><line
+          x1="5"
+          y1="12"
+          x2="19"
+          y2="12"
+        ></line></svg
+      >
+      {t("home.newFile", settings.language)}
+    </button>
+  </div>
 
-	{#if settings.showRecentFiles}
-	<div class="recent-section">
-		<h3>{t('home.recentFiles', settings.language)}</h3>
-		{#if recentFiles.length > 0}
-			<div class="recent-grid">
-				{#each recentFiles as file}
-					{@const fileIcon = getFileIcon(file)}
-					<div
-						class="recent-card"
-						onclick={() => onloadFile(file)}
-						role="button"
-						tabindex="0"
-						onkeydown={(e) => {
-							if (e.key === 'Enter' || e.key === ' ') {
-								onloadFile(file);
-							}
-						}}>
-						<div class="file-icon">
-							{#if fileIcon}
-								<img src={fileIcon} alt="" aria-hidden="true" />
-							{:else}
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									width="24"
-									height="24"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
-									stroke-linecap="round"
-									stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /></svg>
-							{/if}
-						</div>
-						<div class="file-info">
-							<span class="file-name">{getFileName(file)}</span>
-							<span class="file-path" title={file}>{file}</span>
-						</div>
-						<button class="clear-btn" onclick={(e) => onremoveRecentFile(file, e as MouseEvent)} title="Remove from history">
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="14"
-								height="14"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-						</button>
-					</div>
-				{/each}
-			</div>
-		{:else}
-			<p class="empty-recent">{t('home.noRecentFiles', settings.language)}</p>
-		{/if}
-	</div>
-	{/if}
+  {#if settings.showRecentFiles}
+    <div class="recent-section">
+      <h3>{t("home.recentFiles", settings.language)}</h3>
+      {#if recentFiles.length > 0}
+        <div class="recent-grid">
+          {#each recentFiles as file}
+            {@const fileIcon = getFileIcon(file)}
+            <div
+              class="recent-card"
+              onclick={() => onloadFile(file)}
+              role="button"
+              tabindex="0"
+              onkeydown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  onloadFile(file);
+                }
+              }}
+            >
+              <div class="file-icon">
+                {#if fileIcon}
+                  <img src={fileIcon} alt="" aria-hidden="true" />
+                {:else}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    ><path
+                      d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
+                    /><polyline points="14 2 14 8 20 8" /></svg
+                  >
+                {/if}
+              </div>
+              <div class="file-info">
+                <span class="file-name">{getFileName(file)}</span>
+                <span class="file-path" title={file}>{file}</span>
+              </div>
+              <button
+                class="clear-btn"
+                onclick={(e) => onremoveRecentFile(file, e as MouseEvent)}
+                title="Remove from history"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  ><line x1="18" y1="6" x2="6" y2="18"></line><line
+                    x1="6"
+                    y1="6"
+                    x2="18"
+                    y2="18"
+                  ></line></svg
+                >
+              </button>
+            </div>
+          {/each}
+        </div>
+      {:else}
+        <p class="empty-recent">{t("home.noRecentFiles", settings.language)}</p>
+      {/if}
+    </div>
+  {/if}
 </div>
 
 <ContextMenu
-	show={newFileMenu.show}
-	x={newFileMenu.x}
-	y={newFileMenu.y}
-	items={[
-		{ label: 'Markdown', onClick: () => onnewFile('markdown') },
-		{ label: 'JSON', onClick: () => onnewFile('json') },
-		{ label: 'Texto', onClick: () => onnewFile('text') },
-	]}
-	onhide={() => (newFileMenu.show = false)} />
+  show={newFileMenu.show}
+  x={newFileMenu.x}
+  y={newFileMenu.y}
+  items={[
+    { label: "Markdown", onClick: () => onnewFile("markdown") },
+    { label: "JSON", onClick: () => onnewFile("json") },
+    { label: "Texto", onClick: () => onnewFile("text") },
+  ]}
+  onhide={() => (newFileMenu.show = false)}
+/>
 
 <style>
-	.message {
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		align-items: center;
-		user-select: none;
-		font-family: var(--win-font);
-		height: 100vh;
-		width: 100%;
-		box-sizing: border-box;
-		color: var(--color-fg-default);
-		opacity: 0.8;
-	}
+  .message {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    user-select: none;
+    font-family: var(--win-font);
+    height: 100vh;
+    width: 100%;
+    box-sizing: border-box;
+    color: var(--color-fg-default);
+    opacity: 0.8;
+  }
 
-	.fluent-btn {
-		background: var(--color-canvas-subtle);
-		color: var(--color-fg-default);
-		border: 1px solid var(--color-border-default);
-		padding: 8px 20px;
-		border-radius: 6px;
-		cursor: pointer;
-		font-weight: 500;
-		font-family: var(--win-font);
-		font-size: 14px;
-		transition: all 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
-		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		gap: 8px;
-	}
+  .fluent-btn {
+    background: var(--color-canvas-subtle);
+    color: var(--color-fg-default);
+    border: 1px solid var(--color-border-default);
+    padding: 8px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    font-family: var(--win-font);
+    font-size: 14px;
+    transition: all 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
 
-	.fluent-btn.primary {
-		background: var(--color-accent-fg);
-		color: var(--color-btn-fg);
-		border: 1px solid rgba(0, 0, 0, 0.1);
-	}
+  .fluent-btn.primary {
+    background: var(--color-accent-fg);
+    color: var(--color-btn-fg);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
 
-	.fluent-btn.secondary {
-		background: var(--color-canvas-subtle);
-		color: var(--color-fg-default);
-		border: 1px solid var(--color-border-default);
-	}
+  .fluent-btn.secondary {
+    background: var(--color-canvas-subtle);
+    color: var(--color-fg-default);
+    border: 1px solid var(--color-border-default);
+  }
 
-	.actions-row {
-		display: flex;
-		gap: 12px;
-		margin-top: 20px;
-	}
+  .actions-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+  }
 
-	.recent-section {
-		margin-top: 60px;
-		width: 100%;
-		max-width: 800px;
-		padding: 0;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		animation: slideUp 0.6s var(--animation);
-		box-sizing: border-box;
-		overflow-x: hidden;
-	}
+  .recent-section {
+    margin-top: 60px;
+    width: 100%;
+    max-width: 800px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: slideUp 0.6s var(--animation);
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
 
-	@keyframes slideUp {
-		from {
-			opacity: 0;
-			transform: translateY(20px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
-	}
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 
-	.empty-recent {
-		font-size: 14px;
-		margin-bottom: 20px;
-		opacity: 0.5;
-		text-align: center;
-	}
+  .empty-recent {
+    font-size: 14px;
+    margin-bottom: 20px;
+    opacity: 0.5;
+    text-align: center;
+  }
 
-	.recent-section h3 {
-		font-size: 14px;
-		font-weight: 600;
-		margin-bottom: 20px;
-		opacity: 0.8;
-		text-align: center;
-	}
+  .recent-section h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    opacity: 0.8;
+    text-align: center;
+  }
 
-	.recent-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(220px, 220px));
-		justify-content: center;
-		gap: 12px;
-		width: 100%;
-		box-sizing: border-box;
-	}
+  .recent-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 220px));
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    box-sizing: border-box;
+  }
 
-	.recent-card {
-		position: relative;
-		background: var(--color-canvas-subtle);
-		border: 1px solid var(--color-border-default);
-		border-radius: 8px;
-		padding: 12px 16px;
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		cursor: pointer;
-		transition: all 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
-		text-align: left;
-		color: var(--color-fg-default);
-		outline: none;
-		width: 220px;
-		box-sizing: border-box;
-	}
+  .recent-card {
+    position: relative;
+    background: var(--color-canvas-subtle);
+    border: 1px solid var(--color-border-default);
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
+    text-align: left;
+    color: var(--color-fg-default);
+    outline: none;
+    width: 220px;
+    box-sizing: border-box;
+  }
 
-	.recent-card:hover {
-		background: var(--color-neutral-muted);
-		border-color: var(--color-accent-fg);
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-	}
+  .recent-card:hover {
+    background: var(--color-neutral-muted);
+    border-color: var(--color-accent-fg);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
 
-	.recent-card:active {
-		transform: scale(0.98);
-	}
+  .recent-card:active {
+    transform: scale(0.98);
+  }
 
-	.file-icon {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 30px;
-		flex: 0 0 30px;
-	}
+  .file-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    flex: 0 0 30px;
+  }
 
-	.file-icon img {
-		width: 28px;
-		height: 36px;
-		object-fit: contain;
-	}
+  .file-icon img {
+    width: 28px;
+    height: 36px;
+    object-fit: contain;
+  }
 
-	.file-icon svg {
-		opacity: 0.6;
-	}
+  .file-icon svg {
+    opacity: 0.6;
+  }
 
-	.file-info {
-		display: flex;
-		flex-direction: column;
-		overflow: hidden;
-	}
+  .file-info {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
 
-	.file-name {
-		font-size: 13px;
-		font-weight: 500;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
+  .file-name {
+    font-size: 13px;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-	.file-path {
-		font-size: 11px;
-		opacity: 0.5;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		margin-top: 2px;
-		direction: rtl;
-		text-align: left;
-	}
+  .file-path {
+    font-size: 11px;
+    opacity: 0.5;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-top: 2px;
+    direction: rtl;
+    text-align: left;
+  }
 
-	.clear-btn {
-		position: absolute;
-		top: 4px;
-		right: 4px;
-		background: none;
-		border: none;
-		padding: 4px;
-		cursor: pointer;
-		opacity: 0;
-		transition: opacity 0.2s;
-		color: inherit;
-		border-radius: 4px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
+  .clear-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
+    color: inherit;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-	.recent-card:hover .clear-btn {
-		opacity: 0.4;
-	}
+  .recent-card:hover .clear-btn {
+    opacity: 0.4;
+  }
 
-	.clear-btn:hover {
-		opacity: 1 !important;
-		background: rgba(255, 0, 0, 0.1);
-	}
-
+  .clear-btn:hover {
+    opacity: 1 !important;
+    background: rgba(255, 0, 0, 0.1);
+  }
 </style>

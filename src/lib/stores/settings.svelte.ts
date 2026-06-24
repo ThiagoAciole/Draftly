@@ -1,444 +1,559 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from "@tauri-apps/api/core";
 
-export type OSType = 'macos' | 'windows' | 'linux' | 'unknown';
+export type OSType = "macos" | "windows" | "linux" | "unknown";
 export type LanguageCode =
-	| 'en' // English
-	| 'ja' // Japanese
-	| 'zh-CN' // Chinese (Simplified)
-	| 'zh-TW' // Chinese (Traditional)
-	| 'ko' // Korean
-	| 'ru' // Russian
-	| 'es' // Spanish
-	| 'fr' // French
-	| 'de' // German
-	| 'pt-BR' // Portuguese (Brazil)
-	| 'it' // Italian
-	| 'pl' // Polish
-	| 'nl' // Dutch
-	| 'sv' // Swedish
-	| 'vi' // Vietnamese
-	| 'pt' // Portuguese (European)
-	| 'ro' // Romanian
-	| 'hu' // Hungarian
-	| 'cs' // Czech
-	| 'sk' // Slovak
-	| 'el' // Greek
-	| 'fi' // Finnish
-	| 'da' // Danish
-	| 'no' // Norwegian
-	| 'id' // Indonesian
-	| 'tr'; // Turkish
+  | "en" // English
+  | "ja" // Japanese
+  | "zh-CN" // Chinese (Simplified)
+  | "zh-TW" // Chinese (Traditional)
+  | "ko" // Korean
+  | "ru" // Russian
+  | "es" // Spanish
+  | "fr" // French
+  | "de" // German
+  | "pt-BR" // Portuguese (Brazil)
+  | "it" // Italian
+  | "pl" // Polish
+  | "nl" // Dutch
+  | "sv" // Swedish
+  | "vi" // Vietnamese
+  | "pt" // Portuguese (European)
+  | "ro" // Romanian
+  | "hu" // Hungarian
+  | "cs" // Czech
+  | "sk" // Slovak
+  | "el" // Greek
+  | "fi" // Finnish
+  | "da" // Danish
+  | "no" // Norwegian
+  | "id" // Indonesian
+  | "tr"; // Turkish
 
-export const SUPPORTED_LANGUAGES: { code: LanguageCode; name: string; nativeName: string }[] = [
-	{ code: 'cs', name: 'Czech', nativeName: 'Čeština' },
-	{ code: 'da', name: 'Danish', nativeName: 'Dansk' },
-	{ code: 'nl', name: 'Dutch', nativeName: 'Nederlands' },
-	{ code: 'en', name: 'English', nativeName: 'English' },
-	{ code: 'fi', name: 'Finnish', nativeName: 'Suomi' },
-	{ code: 'fr', name: 'French', nativeName: 'Français' },
-	{ code: 'de', name: 'German', nativeName: 'Deutsch' },
-	{ code: 'el', name: 'Greek', nativeName: 'Ελληνικά' },
-	{ code: 'hu', name: 'Hungarian', nativeName: 'Magyar' },
-	{ code: 'id', name: 'Indonesian', nativeName: 'Bahasa Indonesia' },
-	{ code: 'it', name: 'Italian', nativeName: 'Italiano' },
-	{ code: 'ja', name: 'Japanese', nativeName: '日本語' },
-	{ code: 'ko', name: 'Korean', nativeName: '한국어' },
-	{ code: 'no', name: 'Norwegian', nativeName: 'Norsk' },
-	{ code: 'pl', name: 'Polish', nativeName: 'Polski' },
-	{ code: 'pt', name: 'Portuguese (European)', nativeName: 'Português (Europeu)' },
-	{ code: 'pt-BR', name: 'Portuguese (Brazil)', nativeName: 'Português (Brasil)' },
-	{ code: 'ro', name: 'Romanian', nativeName: 'Română' },
-	{ code: 'ru', name: 'Russian', nativeName: 'Русский' },
-	{ code: 'sk', name: 'Slovak', nativeName: 'Slovenčina' },
-	{ code: 'es', name: 'Spanish', nativeName: 'Español' },
-	{ code: 'sv', name: 'Swedish', nativeName: 'Svenska' },
-	{ code: 'tr', name: 'Turkish', nativeName: 'Türkçe' },
-	{ code: 'vi', name: 'Vietnamese', nativeName: 'Tiếng Việt' },
-	{ code: 'zh-CN', name: 'Chinese (Simplified)', nativeName: '简体中文' },
-	{ code: 'zh-TW', name: 'Chinese (Traditional)', nativeName: '繁體中文' },
+export const SUPPORTED_LANGUAGES: {
+  code: LanguageCode;
+  name: string;
+  nativeName: string;
+}[] = [
+  { code: "cs", name: "Czech", nativeName: "Čeština" },
+  { code: "da", name: "Danish", nativeName: "Dansk" },
+  { code: "nl", name: "Dutch", nativeName: "Nederlands" },
+  { code: "en", name: "English", nativeName: "English" },
+  { code: "fi", name: "Finnish", nativeName: "Suomi" },
+  { code: "fr", name: "French", nativeName: "Français" },
+  { code: "de", name: "German", nativeName: "Deutsch" },
+  { code: "el", name: "Greek", nativeName: "Ελληνικά" },
+  { code: "hu", name: "Hungarian", nativeName: "Magyar" },
+  { code: "id", name: "Indonesian", nativeName: "Bahasa Indonesia" },
+  { code: "it", name: "Italian", nativeName: "Italiano" },
+  { code: "ja", name: "Japanese", nativeName: "日本語" },
+  { code: "ko", name: "Korean", nativeName: "한국어" },
+  { code: "no", name: "Norwegian", nativeName: "Norsk" },
+  { code: "pl", name: "Polish", nativeName: "Polski" },
+  {
+    code: "pt",
+    name: "Portuguese (European)",
+    nativeName: "Português (Europeu)",
+  },
+  {
+    code: "pt-BR",
+    name: "Portuguese (Brazil)",
+    nativeName: "Português (Brasil)",
+  },
+  { code: "ro", name: "Romanian", nativeName: "Română" },
+  { code: "ru", name: "Russian", nativeName: "Русский" },
+  { code: "sk", name: "Slovak", nativeName: "Slovenčina" },
+  { code: "es", name: "Spanish", nativeName: "Español" },
+  { code: "sv", name: "Swedish", nativeName: "Svenska" },
+  { code: "tr", name: "Turkish", nativeName: "Türkçe" },
+  { code: "vi", name: "Vietnamese", nativeName: "Tiếng Việt" },
+  { code: "zh-CN", name: "Chinese (Simplified)", nativeName: "简体中文" },
+  { code: "zh-TW", name: "Chinese (Traditional)", nativeName: "繁體中文" },
 ];
 
 function detectSystemLanguage(): LanguageCode {
-	if (typeof navigator !== 'undefined') {
-		const browserLang = navigator.language.toLowerCase();
-		if (browserLang.startsWith('zh')) {
-			if (browserLang === 'zh-tw' || browserLang === 'zh-hk') return 'zh-TW';
-			return 'zh-CN';
-		}
-		if (browserLang.startsWith('ja')) return 'ja';
-		if (browserLang.startsWith('ko')) return 'ko';
-		if (browserLang.startsWith('ru')) return 'ru';
-		if (browserLang.startsWith('es')) return 'es';
-		if (browserLang.startsWith('fr')) return 'fr';
-		if (browserLang.startsWith('de')) return 'de';
-		if (browserLang.startsWith('pt')) {
-			if (browserLang === 'pt-br') return 'pt-BR';
-			return 'pt';
-		}
-		if (browserLang.startsWith('it')) return 'it';
-		if (browserLang.startsWith('pl')) return 'pl';
-		if (browserLang.startsWith('nl')) return 'nl';
-		if (browserLang.startsWith('sv')) return 'sv';
-		if (browserLang.startsWith('vi')) return 'vi';
-		if (browserLang.startsWith('ro')) return 'ro';
-		if (browserLang.startsWith('hu')) return 'hu';
-		if (browserLang.startsWith('cs')) return 'cs';
-		if (browserLang.startsWith('sk')) return 'sk';
-		if (browserLang.startsWith('el')) return 'el';
-		if (browserLang.startsWith('fi')) return 'fi';
-		if (browserLang.startsWith('da')) return 'da';
-		if (browserLang.startsWith('no')) return 'no';
-		if (browserLang.startsWith('id')) return 'id';
-		if (browserLang.startsWith('tr')) return 'tr';
-	}
-	return 'en';
+  if (typeof navigator !== "undefined") {
+    const browserLang = navigator.language.toLowerCase();
+    if (browserLang.startsWith("zh")) {
+      if (browserLang === "zh-tw" || browserLang === "zh-hk") return "zh-TW";
+      return "zh-CN";
+    }
+    if (browserLang.startsWith("ja")) return "ja";
+    if (browserLang.startsWith("ko")) return "ko";
+    if (browserLang.startsWith("ru")) return "ru";
+    if (browserLang.startsWith("es")) return "es";
+    if (browserLang.startsWith("fr")) return "fr";
+    if (browserLang.startsWith("de")) return "de";
+    if (browserLang.startsWith("pt")) {
+      if (browserLang === "pt-br") return "pt-BR";
+      return "pt";
+    }
+    if (browserLang.startsWith("it")) return "it";
+    if (browserLang.startsWith("pl")) return "pl";
+    if (browserLang.startsWith("nl")) return "nl";
+    if (browserLang.startsWith("sv")) return "sv";
+    if (browserLang.startsWith("vi")) return "vi";
+    if (browserLang.startsWith("ro")) return "ro";
+    if (browserLang.startsWith("hu")) return "hu";
+    if (browserLang.startsWith("cs")) return "cs";
+    if (browserLang.startsWith("sk")) return "sk";
+    if (browserLang.startsWith("el")) return "el";
+    if (browserLang.startsWith("fi")) return "fi";
+    if (browserLang.startsWith("da")) return "da";
+    if (browserLang.startsWith("no")) return "no";
+    if (browserLang.startsWith("id")) return "id";
+    if (browserLang.startsWith("tr")) return "tr";
+  }
+  return "en";
 }
 
 export interface DefaultFonts {
-	editorFont: string;
-	previewFont: string;
+  editorFont: string;
+  previewFont: string;
 }
 
 export const DEFAULT_FONTS: Record<OSType, DefaultFonts> = {
-	macos: {
-		editorFont: 'Menlo',
-		previewFont: 'Helvetica Neue',
-	},
-	windows: {
-		editorFont: 'Consolas',
-		previewFont: 'Segoe UI',
-	},
-	linux: {
-		editorFont: 'Monospace',
-		previewFont: 'system-ui',
-	},
-	unknown: {
-		editorFont: 'Consolas',
-		previewFont: 'Segoe UI',
-	},
+  macos: {
+    editorFont: "Menlo",
+    previewFont: "Helvetica Neue",
+  },
+  windows: {
+    editorFont: "Consolas",
+    previewFont: "Segoe UI",
+  },
+  linux: {
+    editorFont: "Monospace",
+    previewFont: "system-ui",
+  },
+  unknown: {
+    editorFont: "Consolas",
+    previewFont: "Segoe UI",
+  },
 };
 
 export class SettingsStore {
-	minimap = $state(false);
-	wordWrap = $state('on');
-	textWordWrap = $state('on');
-	lineNumbers = $state('on');
-	statusBar = $state(true);
-	wordCount = $state(false);
-	renderLineHighlight = $state('line');
-	highlightColor = $state('yellow');
-	showTabs = $state(true);
-	restoreStateOnReopen = $state(true);
-	showToc = $state(false);
-	showMarkdownToolbar = $state(true);
-	occurrencesHighlight = $state(false);
-	showWhitespace = $state(false);
-	startInEditor = $state(false);
-	showRecentFiles = $state(true);
-	editorMaxWidth = $state(80);
-	textMaxWidth = $state(120);
-	tocSide = $state<'left' | 'right'>('left');
-	osType = $state<OSType>('unknown');
-	imageDirectory = $state('img');
-	macosImageScaling = $state(true);
-	language = $state<LanguageCode>('en');
+  minimap = $state(false);
+  wordWrap = $state("on");
+  textWordWrap = $state("on");
+  lineNumbers = $state("on");
+  statusBar = $state(true);
+  wordCount = $state(false);
+  renderLineHighlight = $state("line");
+  highlightColor = $state("yellow");
+  showTabs = $state(true);
+  showSidebar = $state(true);
+  restoreStateOnReopen = $state(true);
+  showToc = $state(false);
+  showMarkdownToolbar = $state(true);
+  occurrencesHighlight = $state(false);
+  showWhitespace = $state(false);
+  startInEditor = $state(false);
+  showRecentFiles = $state(true);
+  editorMaxWidth = $state(80);
+  textMaxWidth = $state(120);
+  tocSide = $state<"left" | "right">("left");
+  osType = $state<OSType>("unknown");
+  imageDirectory = $state("img");
+  macosImageScaling = $state(true);
+  language = $state<LanguageCode>("en");
 
-	editorFont = $state('Consolas');
-	editorFontSize = $state(14);
-	previewFont = $state('Segoe UI');
-	previewFontSize = $state(16);
+  editorFont = $state("Consolas");
+  editorFontSize = $state(14);
+  previewFont = $state("Segoe UI");
+  previewFontSize = $state(16);
 
-	// File-save behavior. autoSave = silently persist edits without Cmd+S.
-	// confirmBeforeSave = if true, keep the unsaved-changes modals on close/toggle
-	// (i.e. ask for confirmation) even when autoSave is on.
-	autoSave = $state(true);
-	confirmBeforeSave = $state(false);
+  // File-save behavior. autoSave = silently persist edits without Cmd+S.
+  // confirmBeforeSave = if true, keep the unsaved-changes modals on close/toggle
+  // (i.e. ask for confirmation) even when autoSave is on.
+  autoSave = $state(true);
+  confirmBeforeSave = $state(false);
 
-	constructor() {
-		if (typeof localStorage !== 'undefined') {
-			const savedMinimap = localStorage.getItem('editor.minimap');
-			const savedWordWrap = localStorage.getItem('editor.wordWrap');
-			const savedTextWordWrap = localStorage.getItem('editor.textWordWrap');
-			const savedLineNumbers = localStorage.getItem('editor.lineNumbers');
-			const savedStatusBar = localStorage.getItem('editor.statusBar');
+  constructor() {
+    if (typeof localStorage !== "undefined") {
+      const savedMinimap = localStorage.getItem("editor.minimap");
+      const savedWordWrap = localStorage.getItem("editor.wordWrap");
+      const savedTextWordWrap = localStorage.getItem("editor.textWordWrap");
+      const savedLineNumbers = localStorage.getItem("editor.lineNumbers");
+      const savedStatusBar = localStorage.getItem("editor.statusBar");
 
-			const savedWordCount = localStorage.getItem('editor.wordCount');
-			const savedRenderLineHighlight = localStorage.getItem('editor.renderLineHighlight');
-			const savedShowTabs = localStorage.getItem('editor.showTabs');
-			const savedRestoreStateOnReopen = localStorage.getItem('editor.restoreStateOnReopen');
-			const savedOccurrencesHighlight = localStorage.getItem('editor.occurrencesHighlight');
-			const savedShowWhitespace = localStorage.getItem('editor.showWhitespace');
-			const savedShowToc = localStorage.getItem('editor.showToc');
-			const savedShowMarkdownToolbar = localStorage.getItem('editor.showMarkdownToolbar');
-			const savedHighlightColor = localStorage.getItem('editor.highlightColor');
-			const savedStartInEditor = localStorage.getItem('editor.startInEditor');
-			const savedShowRecentFiles = localStorage.getItem('editor.showRecentFiles');
-			const savedEditorMaxWidth = localStorage.getItem('editor.maxWidth');
-			const savedTextMaxWidth = localStorage.getItem('editor.textMaxWidth');
-			const savedTocSide = localStorage.getItem('editor.tocSide');
-			const savedImageDirectory = localStorage.getItem('editor.imageDirectory');
-			const savedMacosImageScaling = localStorage.getItem('editor.macosImageScaling');
-			const savedLanguage = localStorage.getItem('editor.language');
+      const savedWordCount = localStorage.getItem("editor.wordCount");
+      const savedRenderLineHighlight = localStorage.getItem(
+        "editor.renderLineHighlight",
+      );
+      const savedShowTabs = localStorage.getItem("editor.showTabs");
+      const savedShowSidebar = localStorage.getItem("editor.showSidebar");
+      const savedRestoreStateOnReopen = localStorage.getItem(
+        "editor.restoreStateOnReopen",
+      );
+      const savedOccurrencesHighlight = localStorage.getItem(
+        "editor.occurrencesHighlight",
+      );
+      const savedShowWhitespace = localStorage.getItem("editor.showWhitespace");
+      const savedShowToc = localStorage.getItem("editor.showToc");
+      const savedShowMarkdownToolbar = localStorage.getItem(
+        "editor.showMarkdownToolbar",
+      );
+      const savedHighlightColor = localStorage.getItem("editor.highlightColor");
+      const savedStartInEditor = localStorage.getItem("editor.startInEditor");
+      const savedShowRecentFiles = localStorage.getItem(
+        "editor.showRecentFiles",
+      );
+      const savedEditorMaxWidth = localStorage.getItem("editor.maxWidth");
+      const savedTextMaxWidth = localStorage.getItem("editor.textMaxWidth");
+      const savedTocSide = localStorage.getItem("editor.tocSide");
+      const savedImageDirectory = localStorage.getItem("editor.imageDirectory");
+      const savedMacosImageScaling = localStorage.getItem(
+        "editor.macosImageScaling",
+      );
+      const savedLanguage = localStorage.getItem("editor.language");
 
-			const savedEditorFont = localStorage.getItem('editor.font');
-			const savedEditorFontSize = localStorage.getItem('editor.fontSize');
-			const savedPreviewFont = localStorage.getItem('preview.font');
-			const savedPreviewFontSize = localStorage.getItem('preview.fontSize');
-			localStorage.removeItem('preview.codeFont');
-			localStorage.removeItem('preview.codeFontSize');
+      const savedEditorFont = localStorage.getItem("editor.font");
+      const savedEditorFontSize = localStorage.getItem("editor.fontSize");
+      const savedPreviewFont = localStorage.getItem("preview.font");
+      const savedPreviewFontSize = localStorage.getItem("preview.fontSize");
+      localStorage.removeItem("preview.codeFont");
+      localStorage.removeItem("preview.codeFontSize");
 
-			const savedAutoSave = localStorage.getItem('editor.autoSave');
-			const savedConfirmBeforeSave = localStorage.getItem('editor.confirmBeforeSave');
-			if (savedAutoSave !== null) this.autoSave = savedAutoSave === 'true';
-			if (savedConfirmBeforeSave !== null) this.confirmBeforeSave = savedConfirmBeforeSave === 'true';
+      const savedAutoSave = localStorage.getItem("editor.autoSave");
+      const savedConfirmBeforeSave = localStorage.getItem(
+        "editor.confirmBeforeSave",
+      );
+      if (savedAutoSave !== null) this.autoSave = savedAutoSave === "true";
+      if (savedConfirmBeforeSave !== null)
+        this.confirmBeforeSave = savedConfirmBeforeSave === "true";
 
-			const parseFontSize = (value: string | null, fallback: number, min: number, max: number) => {
-				if (value === null) return fallback;
-				const parsed = Number.parseInt(value, 10);
-				if (!Number.isFinite(parsed)) return fallback;
-				return Math.min(max, Math.max(min, parsed));
-			};
+      const parseFontSize = (
+        value: string | null,
+        fallback: number,
+        min: number,
+        max: number,
+      ) => {
+        if (value === null) return fallback;
+        const parsed = Number.parseInt(value, 10);
+        if (!Number.isFinite(parsed)) return fallback;
+        return Math.min(max, Math.max(min, parsed));
+      };
 
-			if (savedMinimap !== null) this.minimap = savedMinimap === 'true';
-			if (savedWordWrap !== null) this.wordWrap = savedWordWrap;
-			if (savedTextWordWrap !== null) this.textWordWrap = savedTextWordWrap;
-			if (savedLineNumbers !== null) this.lineNumbers = savedLineNumbers;
-			if (savedStatusBar !== null) this.statusBar = savedStatusBar === 'true';
+      if (savedMinimap !== null) this.minimap = savedMinimap === "true";
+      if (savedWordWrap !== null) this.wordWrap = savedWordWrap;
+      if (savedTextWordWrap !== null) this.textWordWrap = savedTextWordWrap;
+      if (savedLineNumbers !== null) this.lineNumbers = savedLineNumbers;
+      if (savedStatusBar !== null) this.statusBar = savedStatusBar === "true";
 
-			if (savedWordCount !== null) this.wordCount = savedWordCount === 'true';
-			if (savedRenderLineHighlight !== null) this.renderLineHighlight = savedRenderLineHighlight;
-			if (savedShowTabs !== null) this.showTabs = savedShowTabs === 'true';
-			if (savedRestoreStateOnReopen !== null) this.restoreStateOnReopen = savedRestoreStateOnReopen === 'true';
-			if (savedOccurrencesHighlight !== null) this.occurrencesHighlight = savedOccurrencesHighlight === 'true';
-			if (savedShowWhitespace !== null) this.showWhitespace = savedShowWhitespace === 'true';
-			if (savedShowToc !== null) this.showToc = savedShowToc === 'true';
-			if (savedShowMarkdownToolbar !== null) this.showMarkdownToolbar = savedShowMarkdownToolbar === 'true';
-			if (savedHighlightColor !== null) this.highlightColor = savedHighlightColor;
-			if (savedStartInEditor !== null) this.startInEditor = savedStartInEditor === 'true';
-			if (savedShowRecentFiles !== null) this.showRecentFiles = savedShowRecentFiles === 'true';
-			if (savedEditorMaxWidth !== null) this.editorMaxWidth = parseFontSize(savedEditorMaxWidth, 80, 20, 500);
-			if (savedTextMaxWidth !== null) this.textMaxWidth = parseFontSize(savedTextMaxWidth, 120, 20, 500);
-			if (savedTocSide !== null) this.tocSide = savedTocSide as 'left' | 'right';
-			localStorage.removeItem('editor.pinnedToc');
-			if (savedImageDirectory !== null) this.imageDirectory = savedImageDirectory;
-			if (savedMacosImageScaling !== null) this.macosImageScaling = savedMacosImageScaling === 'true';
-			if (savedLanguage !== null) {
-				const lang = savedLanguage as LanguageCode;
-				const supportedCodes: LanguageCode[] = ['en', 'ja', 'zh-CN', 'zh-TW', 'ko', 'ru', 'es', 'fr', 'de', 'pt-BR', 'it', 'pl', 'nl', 'sv', 'vi', 'pt', 'ro', 'hu', 'cs', 'sk', 'el', 'fi', 'da', 'no', 'id', 'tr'];
-				if (supportedCodes.includes(lang)) {
-					this.language = lang;
-				}
-			} else {
-				this.language = detectSystemLanguage();
-			}
-			this.initOSType().then(() => {
-				const defaults = DEFAULT_FONTS[this.osType];
+      if (savedWordCount !== null) this.wordCount = savedWordCount === "true";
+      if (savedRenderLineHighlight !== null)
+        this.renderLineHighlight = savedRenderLineHighlight;
+      if (savedShowTabs !== null) this.showTabs = savedShowTabs === "true";
+      if (savedShowSidebar !== null)
+        this.showSidebar = savedShowSidebar === "true";
+      if (savedRestoreStateOnReopen !== null)
+        this.restoreStateOnReopen = savedRestoreStateOnReopen === "true";
+      if (savedOccurrencesHighlight !== null)
+        this.occurrencesHighlight = savedOccurrencesHighlight === "true";
+      if (savedShowWhitespace !== null)
+        this.showWhitespace = savedShowWhitespace === "true";
+      if (savedShowToc !== null) this.showToc = savedShowToc === "true";
+      if (savedShowMarkdownToolbar !== null)
+        this.showMarkdownToolbar = savedShowMarkdownToolbar === "true";
+      if (savedHighlightColor !== null)
+        this.highlightColor = savedHighlightColor;
+      if (savedStartInEditor !== null)
+        this.startInEditor = savedStartInEditor === "true";
+      if (savedShowRecentFiles !== null)
+        this.showRecentFiles = savedShowRecentFiles === "true";
+      if (savedEditorMaxWidth !== null)
+        this.editorMaxWidth = parseFontSize(savedEditorMaxWidth, 80, 20, 500);
+      if (savedTextMaxWidth !== null)
+        this.textMaxWidth = parseFontSize(savedTextMaxWidth, 120, 20, 500);
+      if (savedTocSide !== null)
+        this.tocSide = savedTocSide as "left" | "right";
+      localStorage.removeItem("editor.pinnedToc");
+      if (savedImageDirectory !== null)
+        this.imageDirectory = savedImageDirectory;
+      if (savedMacosImageScaling !== null)
+        this.macosImageScaling = savedMacosImageScaling === "true";
+      if (savedLanguage !== null) {
+        const lang = savedLanguage as LanguageCode;
+        const supportedCodes: LanguageCode[] = [
+          "en",
+          "ja",
+          "zh-CN",
+          "zh-TW",
+          "ko",
+          "ru",
+          "es",
+          "fr",
+          "de",
+          "pt-BR",
+          "it",
+          "pl",
+          "nl",
+          "sv",
+          "vi",
+          "pt",
+          "ro",
+          "hu",
+          "cs",
+          "sk",
+          "el",
+          "fi",
+          "da",
+          "no",
+          "id",
+          "tr",
+        ];
+        if (supportedCodes.includes(lang)) {
+          this.language = lang;
+        }
+      } else {
+        this.language = detectSystemLanguage();
+      }
+      this.initOSType().then(() => {
+        const defaults = DEFAULT_FONTS[this.osType];
 
-				if (savedEditorFont !== null) {
-					this.editorFont = savedEditorFont;
-				} else {
-					this.editorFont = defaults.editorFont;
-				}
-				this.editorFontSize = parseFontSize(savedEditorFontSize, 14, 10, 24);
+        if (savedEditorFont !== null) {
+          this.editorFont = savedEditorFont;
+        } else {
+          this.editorFont = defaults.editorFont;
+        }
+        this.editorFontSize = parseFontSize(savedEditorFontSize, 14, 10, 24);
 
-				if (savedPreviewFont !== null) {
-					this.previewFont = savedPreviewFont;
-				} else {
-					this.previewFont = defaults.previewFont;
-				}
-				this.previewFontSize = parseFontSize(savedPreviewFontSize, 16, 12, 28);
+        if (savedPreviewFont !== null) {
+          this.previewFont = savedPreviewFont;
+        } else {
+          this.previewFont = defaults.previewFont;
+        }
+        this.previewFontSize = parseFontSize(savedPreviewFontSize, 16, 12, 28);
+      });
 
-			});
+      $effect.root(() => {
+        $effect(() => {
+          localStorage.setItem("editor.minimap", String(this.minimap));
+          localStorage.setItem("editor.wordWrap", this.wordWrap);
+          localStorage.setItem("editor.textWordWrap", this.textWordWrap);
+          localStorage.setItem("editor.lineNumbers", this.lineNumbers);
+          localStorage.setItem("editor.statusBar", String(this.statusBar));
 
-			$effect.root(() => {
-				$effect(() => {
-					localStorage.setItem('editor.minimap', String(this.minimap));
-					localStorage.setItem('editor.wordWrap', this.wordWrap);
-					localStorage.setItem('editor.textWordWrap', this.textWordWrap);
-					localStorage.setItem('editor.lineNumbers', this.lineNumbers);
-					localStorage.setItem('editor.statusBar', String(this.statusBar));
+          localStorage.setItem("editor.wordCount", String(this.wordCount));
+          localStorage.setItem(
+            "editor.renderLineHighlight",
+            this.renderLineHighlight,
+          );
+          localStorage.setItem("editor.showTabs", String(this.showTabs));
+          localStorage.setItem("editor.showSidebar", String(this.showSidebar));
+          localStorage.setItem(
+            "editor.restoreStateOnReopen",
+            String(this.restoreStateOnReopen),
+          );
+          localStorage.setItem(
+            "editor.occurrencesHighlight",
+            String(this.occurrencesHighlight),
+          );
+          localStorage.setItem(
+            "editor.showWhitespace",
+            String(this.showWhitespace),
+          );
+          localStorage.setItem("editor.showToc", String(this.showToc));
+          localStorage.setItem(
+            "editor.showMarkdownToolbar",
+            String(this.showMarkdownToolbar),
+          );
+          localStorage.setItem("editor.highlightColor", this.highlightColor);
+          localStorage.setItem(
+            "editor.startInEditor",
+            String(this.startInEditor),
+          );
+          localStorage.setItem(
+            "editor.showRecentFiles",
+            String(this.showRecentFiles),
+          );
+          localStorage.setItem("editor.maxWidth", String(this.editorMaxWidth));
+          localStorage.setItem(
+            "editor.textMaxWidth",
+            String(this.textMaxWidth),
+          );
+          localStorage.setItem("editor.tocSide", this.tocSide);
+          localStorage.setItem("editor.imageDirectory", this.imageDirectory);
+          localStorage.setItem(
+            "editor.macosImageScaling",
+            String(this.macosImageScaling),
+          );
+          localStorage.setItem("editor.language", this.language);
+          localStorage.setItem("editor.font", this.editorFont);
+          localStorage.setItem("editor.fontSize", String(this.editorFontSize));
+          localStorage.setItem("preview.font", this.previewFont);
+          localStorage.setItem(
+            "preview.fontSize",
+            String(this.previewFontSize),
+          );
+          localStorage.setItem("editor.autoSave", String(this.autoSave));
+          localStorage.setItem(
+            "editor.confirmBeforeSave",
+            String(this.confirmBeforeSave),
+          );
+        });
+      });
+    }
+  }
 
-					localStorage.setItem('editor.wordCount', String(this.wordCount));
-					localStorage.setItem('editor.renderLineHighlight', this.renderLineHighlight);
-					localStorage.setItem('editor.showTabs', String(this.showTabs));
-					localStorage.setItem('editor.restoreStateOnReopen', String(this.restoreStateOnReopen));
-					localStorage.setItem('editor.occurrencesHighlight', String(this.occurrencesHighlight));
-					localStorage.setItem('editor.showWhitespace', String(this.showWhitespace));
-					localStorage.setItem('editor.showToc', String(this.showToc));
-					localStorage.setItem('editor.showMarkdownToolbar', String(this.showMarkdownToolbar));
-					localStorage.setItem('editor.highlightColor', this.highlightColor);
-					localStorage.setItem('editor.startInEditor', String(this.startInEditor));
-					localStorage.setItem('editor.showRecentFiles', String(this.showRecentFiles));
-					localStorage.setItem('editor.maxWidth', String(this.editorMaxWidth));
-					localStorage.setItem('editor.textMaxWidth', String(this.textMaxWidth));
-				  localStorage.setItem('editor.tocSide', this.tocSide);
-				  localStorage.setItem('editor.imageDirectory', this.imageDirectory);
-				  localStorage.setItem('editor.macosImageScaling', String(this.macosImageScaling));
-				  localStorage.setItem('editor.language', this.language);
-					localStorage.setItem('editor.font', this.editorFont);
-					localStorage.setItem('editor.fontSize', String(this.editorFontSize));
-					localStorage.setItem('preview.font', this.previewFont);
-					localStorage.setItem('preview.fontSize', String(this.previewFontSize));
-					localStorage.setItem('editor.autoSave', String(this.autoSave));
-					localStorage.setItem('editor.confirmBeforeSave', String(this.confirmBeforeSave));
-				});
-			});
-		}
-	}
+  toggleMinimap() {
+    this.minimap = !this.minimap;
+  }
 
-	toggleMinimap() {
-		this.minimap = !this.minimap;
-	}
+  toggleWordWrap() {
+    if (this.wordWrap === "off") {
+      this.wordWrap = "on";
+    } else if (this.wordWrap === "on") {
+      this.wordWrap = "wordWrapColumn";
+    } else {
+      this.wordWrap = "off";
+    }
+  }
 
-	toggleWordWrap() {
-		if (this.wordWrap === 'off') {
-			this.wordWrap = 'on';
-		} else if (this.wordWrap === 'on') {
-			this.wordWrap = 'wordWrapColumn';
-		} else {
-			this.wordWrap = 'off';
-		}
-	}
+  toggleTextWordWrap() {
+    if (this.textWordWrap === "off") {
+      this.textWordWrap = "on";
+    } else if (this.textWordWrap === "on") {
+      this.textWordWrap = "wordWrapColumn";
+    } else {
+      this.textWordWrap = "off";
+    }
+  }
 
-	toggleTextWordWrap() {
-		if (this.textWordWrap === 'off') {
-			this.textWordWrap = 'on';
-		} else if (this.textWordWrap === 'on') {
-			this.textWordWrap = 'wordWrapColumn';
-		} else {
-			this.textWordWrap = 'off';
-		}
-	}
+  toggleLineNumbers() {
+    this.lineNumbers = this.lineNumbers === "on" ? "off" : "on";
+  }
 
-	toggleLineNumbers() {
-		this.lineNumbers = this.lineNumbers === 'on' ? 'off' : 'on';
-	}
+  toggleStatusBar() {
+    this.statusBar = !this.statusBar;
+  }
 
-	toggleStatusBar() {
-		this.statusBar = !this.statusBar;
-	}
+  toggleWordCount() {
+    this.wordCount = !this.wordCount;
+  }
 
-	toggleWordCount() {
-		this.wordCount = !this.wordCount;
-	}
+  toggleLineHighlight() {
+    this.renderLineHighlight =
+      this.renderLineHighlight === "line" ? "none" : "line";
+  }
 
-	toggleLineHighlight() {
-		this.renderLineHighlight = this.renderLineHighlight === 'line' ? 'none' : 'line';
-	}
+  toggleTabs() {
+    this.showTabs = !this.showTabs;
+  }
 
-	toggleTabs() {
-		this.showTabs = !this.showTabs;
-	}
+  toggleSidebar() {
+    this.showSidebar = !this.showSidebar;
+  }
 
-	toggleRestoreStateOnReopen() {
-		this.restoreStateOnReopen = !this.restoreStateOnReopen;
-	}
+  toggleRestoreStateOnReopen() {
+    this.restoreStateOnReopen = !this.restoreStateOnReopen;
+  }
 
-	toggleShowRecentFiles() {
-		this.showRecentFiles = !this.showRecentFiles;
-	}
+  toggleShowRecentFiles() {
+    this.showRecentFiles = !this.showRecentFiles;
+  }
 
-	toggleToc() {
-		this.showToc = !this.showToc;
-	}
+  toggleToc() {
+    this.showToc = !this.showToc;
+  }
 
-	toggleMarkdownToolbar() {
-		this.showMarkdownToolbar = !this.showMarkdownToolbar;
-	}
+  toggleMarkdownToolbar() {
+    this.showMarkdownToolbar = !this.showMarkdownToolbar;
+  }
 
-	toggleOccurrencesHighlight() {
-		this.occurrencesHighlight = !this.occurrencesHighlight;
-	}
+  toggleOccurrencesHighlight() {
+    this.occurrencesHighlight = !this.occurrencesHighlight;
+  }
 
-	toggleShowWhitespace() {
-		this.showWhitespace = !this.showWhitespace;
-	}
+  toggleShowWhitespace() {
+    this.showWhitespace = !this.showWhitespace;
+  }
 
-	toggleStartInEditor() {
-		this.startInEditor = !this.startInEditor;
-	}
+  toggleStartInEditor() {
+    this.startInEditor = !this.startInEditor;
+  }
 
-	toggleTocSide() {
-		this.tocSide = this.tocSide === 'left' ? 'right' : 'left';
-	}
+  toggleTocSide() {
+    this.tocSide = this.tocSide === "left" ? "right" : "left";
+  }
 
-	toggleMacosImageScaling() {
-		this.macosImageScaling = !this.macosImageScaling;
-	}
+  toggleMacosImageScaling() {
+    this.macosImageScaling = !this.macosImageScaling;
+  }
 
-	toggleAutoSave() {
-		this.autoSave = !this.autoSave;
-	}
+  toggleAutoSave() {
+    this.autoSave = !this.autoSave;
+  }
 
-	toggleConfirmBeforeSave() {
-		this.confirmBeforeSave = !this.confirmBeforeSave;
-	}
+  toggleConfirmBeforeSave() {
+    this.confirmBeforeSave = !this.confirmBeforeSave;
+  }
 
-	setLanguage(lang: LanguageCode) {
-		this.language = lang;
-	}
+  setLanguage(lang: LanguageCode) {
+    this.language = lang;
+  }
 
-	resetEditorMaxWidth() {
-		this.editorMaxWidth = 80;
-	}
+  resetEditorMaxWidth() {
+    this.editorMaxWidth = 80;
+  }
 
-	resetTextMaxWidth() {
-		this.textMaxWidth = 120;
-	}
+  resetTextMaxWidth() {
+    this.textMaxWidth = 120;
+  }
 
-	resetAllSettings() {
-		const defaults = DEFAULT_FONTS[this.osType] || DEFAULT_FONTS.unknown;
+  resetAllSettings() {
+    const defaults = DEFAULT_FONTS[this.osType] || DEFAULT_FONTS.unknown;
 
-		this.minimap = false;
-		this.wordWrap = 'on';
-		this.textWordWrap = 'on';
-		this.lineNumbers = 'on';
-		this.statusBar = true;
-		this.wordCount = false;
-		this.renderLineHighlight = 'line';
-		this.highlightColor = 'yellow';
-		this.showTabs = true;
-		this.restoreStateOnReopen = true;
-		this.showToc = false;
-		this.showMarkdownToolbar = true;
-		this.occurrencesHighlight = false;
-		this.showWhitespace = false;
-		this.startInEditor = false;
-		this.showRecentFiles = true;
-		this.editorMaxWidth = 80;
-		this.textMaxWidth = 120;
-		this.tocSide = 'left';
-		this.imageDirectory = 'img';
-		this.macosImageScaling = true;
-		this.editorFont = defaults.editorFont;
-		this.editorFontSize = 14;
-		this.previewFont = defaults.previewFont;
-		this.previewFontSize = 16;
-		this.autoSave = true;
-		this.confirmBeforeSave = false;
-	}
+    this.minimap = false;
+    this.wordWrap = "on";
+    this.textWordWrap = "on";
+    this.lineNumbers = "on";
+    this.statusBar = true;
+    this.wordCount = false;
+    this.renderLineHighlight = "line";
+    this.highlightColor = "yellow";
+    this.showTabs = true;
+    this.showSidebar = true;
+    this.restoreStateOnReopen = true;
+    this.showToc = false;
+    this.showMarkdownToolbar = true;
+    this.occurrencesHighlight = false;
+    this.showWhitespace = false;
+    this.startInEditor = false;
+    this.showRecentFiles = true;
+    this.editorMaxWidth = 80;
+    this.textMaxWidth = 120;
+    this.tocSide = "left";
+    this.imageDirectory = "img";
+    this.macosImageScaling = true;
+    this.editorFont = defaults.editorFont;
+    this.editorFontSize = 14;
+    this.previewFont = defaults.previewFont;
+    this.previewFontSize = 16;
+    this.autoSave = true;
+    this.confirmBeforeSave = false;
+  }
 
-	async initOSType() {
-		try {
-			const osType = await invoke<string>('get_os_type');
-			this.osType = osType as OSType;
-		} catch (e) {
-			console.error('Failed to get OS type:', e);
-			this.osType = 'unknown';
-		}
-	}
+  async initOSType() {
+    try {
+      const osType = await invoke<string>("get_os_type");
+      this.osType = osType as OSType;
+    } catch (e) {
+      console.error("Failed to get OS type:", e);
+      this.osType = "unknown";
+    }
+  }
 
-	resetEditorFont() {
-		const defaults = DEFAULT_FONTS[this.osType];
-		this.editorFont = defaults.editorFont;
-		this.editorFontSize = 14;
-	}
+  resetEditorFont() {
+    const defaults = DEFAULT_FONTS[this.osType];
+    this.editorFont = defaults.editorFont;
+    this.editorFontSize = 14;
+  }
 
-	resetPreviewFont() {
-		const defaults = DEFAULT_FONTS[this.osType];
-		this.previewFont = defaults.previewFont;
-		this.previewFontSize = 16;
-	}
+  resetPreviewFont() {
+    const defaults = DEFAULT_FONTS[this.osType];
+    this.previewFont = defaults.previewFont;
+    this.previewFontSize = 16;
+  }
 }
 
 export const settings = new SettingsStore();
