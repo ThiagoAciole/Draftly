@@ -2793,7 +2793,12 @@ import { t } from './utils/i18n.js';
 					{/if}
 
 					<!-- Editor Pane -->
-					<div bind:this={editorPaneEl} class="pane editor-pane" class:active={isEditing || isSplit} style="flex: {isSplit ? tabManager.activeTab.splitRatio : isEditing ? 1 : 0}">
+					<div
+						bind:this={editorPaneEl}
+						class="pane editor-pane"
+						class:active={isEditing || isSplit}
+						class:markdown-toolbar-pane={isMarkdown && settings.showMarkdownToolbar}
+						style="flex: {isSplit ? tabManager.activeTab.splitRatio : isEditing ? 1 : 0}">
 						{#if isEditing || isSplit}
 							<div class="editor-shell">
 								<div class="editor-surface">
@@ -3391,6 +3396,10 @@ import { t } from './utils/i18n.js';
 
 	.pane.editor-pane {
 		background: var(--color-canvas-default);
+	}
+
+	.layout-container.split .editor-pane.markdown-toolbar-pane {
+		min-width: min(400px, calc(100% - 80px));
 	}
 
 	.pane.viewer-pane {
