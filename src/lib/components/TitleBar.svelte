@@ -22,6 +22,7 @@
 
 		windowTitle,
 		showHome,
+		showZenMode = false,
 		onselectFile,
 		onopenFile,
 		onsaveFile,
@@ -30,6 +31,7 @@
 		onexportPdf,
 		onexit,
 		ontoggleHome,
+		ontoggleZenMode,
 		onopenFileLocation,
 		ontoggleLiveMode,
 
@@ -52,6 +54,7 @@
 
 		windowTitle: string;
 		showHome: boolean;
+		showZenMode?: boolean;
 		onselectFile?: () => void;
 		onopenFile?: () => void;
 		onsaveFile?: () => void;
@@ -60,6 +63,7 @@
 		onexportPdf?: () => void;
 		onexit?: () => void;
 		ontoggleHome: () => void;
+		ontoggleZenMode?: () => void;
 		onopenFileLocation: () => void;
 		ontoggleLiveMode: () => void;
 
@@ -169,7 +173,7 @@
 		}
 	});
 
-	const inlineIds = ['sync', 'live'];
+	const inlineIds = ['zen', 'sync', 'live'];
 
 	let visibleActionIds = $derived.by(() => {
 		const list: string[] = [];
@@ -191,6 +195,7 @@
 			list.push('tabs');
 		}
 
+		list.push('zen');
 		if (zoomLevel && zoomLevel !== 100) list.push('zoom');
 		list.push('theme');
 		list.push('settings');
@@ -367,7 +372,7 @@
 		</div>
 	</div>
 
-	{#if tabManager.tabs.length > 0 && settings.showTabs}
+	{#if tabManager.tabs.length > 0 && settings.showTabs && !showZenMode}
 		<div class="tab-area">
 			<TabList onnewTab={(type) => tabManager.addNewTab(type)} {ondetach} {showHome} {ontabclick} {oncloseTab} />
 		</div>
@@ -409,7 +414,29 @@
 
 	{#snippet actionItems(ids: string[])}
 			{#each ids as id (id)}
-				{#if id === 'settings'}
+				{#if id === 'zen'}
+					<button
+						class="title-action-btn {showZenMode ? 'active' : ''}"
+						onclick={() => {
+							hideTooltip();
+							ontoggleZenMode?.();
+						}}
+						aria-label={t('menu.zenMode', currentLanguage)}
+						onmouseenter={(e) => showTooltip(e, t('menu.zenMode', currentLanguage))}
+						onmousedown={(e) => e.preventDefault()}
+						onmouseleave={hideTooltip}
+						transition:fly={{ x: 10, duration: 200 }}>
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<path d="M12 3v3"></path>
+							<path d="M12 18v3"></path>
+							<path d="M3 12h3"></path>
+							<path d="M18 12h3"></path>
+							<circle cx="12" cy="12" r="5"></circle>
+							<circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"></circle>
+						</svg>
+						<span class="action-label">{t('menu.zenMode', currentLanguage)}</span>
+					</button>
+				{:else if id === 'settings'}
 					<button
 						class="title-action-btn"
 						onclick={() => {

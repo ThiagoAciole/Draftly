@@ -23,6 +23,7 @@
 	import RecoveryDialog from './components/RecoveryDialog.svelte';
 	import ExternalConflictDialog from './components/ExternalConflictDialog.svelte';
 	import ExportPreviewModal from './components/ExportPreviewModal.svelte';
+	import ZenNotes from './components/ZenNotes.svelte';
 	import { tauriCommands } from './api/tauri.js';
 	import { processMarkdownHtml, highlightColorMap, renderRichContent as _renderRichContent } from './features/preview/markdown.processor.js';
 	import { getLanguage, isMarkdownPath, isPlainTextPath, MARKDOWN_EXTENSIONS } from './features/files/file-types.js';
@@ -317,6 +318,7 @@ import { t } from './utils/i18n.js';
 	let isAtBottom = $state(false);
 
 	let showHome = $state(false);
+	let showZenMode = $state(false);
 	let showExportPreview = $state(false);
 	let exportPreviewContent = $state('');
 	let exportPreviewTitle = $state('');
@@ -1682,7 +1684,13 @@ import { t } from './utils/i18n.js';
 	}
 
 	function toggleHome() {
+		showZenMode = false;
 		showHome = !showHome;
+	}
+
+	function toggleZenMode() {
+		showHome = false;
+		showZenMode = !showZenMode;
 	}
 
 	async function closeFile() {
@@ -2641,15 +2649,20 @@ import { t } from './utils/i18n.js';
 		{liveMode}
 		windowTitle="Draftly"
 		showHome={false}
+		showZenMode={false}
 		{zoomLevel}
 		onselectFile={selectFile}
-		onopenFile={selectFile}
+		onopenFile={() => {
+			showZenMode = false;
+			selectFile();
+		}}
 		onsaveFile={saveContent}
 		onsaveFileAs={saveContentAs}
 		onexportHtml={openExportPreview}
 		onexportPdf={openExportPreview}
 		onexit={appExit}
 		ontoggleHome={toggleHome}
+		ontoggleZenMode={toggleZenMode}
 		onopenFileLocation={openFileLocation}
 		ontoggleLiveMode={toggleLiveMode}
 		{isEditing}
@@ -2677,20 +2690,28 @@ import { t } from './utils/i18n.js';
 		{liveMode}
 		{windowTitle}
 		{showHome}
+		{showZenMode}
 		{zoomLevel}
 		onselectFile={selectFile}
-		onopenFile={selectFile}
+		onopenFile={() => {
+			showZenMode = false;
+			selectFile();
+		}}
 		onsaveFile={saveContent}
 		onsaveFileAs={saveContentAs}
 		onexportHtml={openExportPreview}
 		onexportPdf={openExportPreview}
 		onexit={appExit}
 		ontoggleHome={toggleHome}
+		ontoggleZenMode={toggleZenMode}
 		onopenFileLocation={openFileLocation}
 		ontoggleLiveMode={toggleLiveMode}
 		{isEditing}
 		ondetach={handleDetach}
-		ontabclick={() => (showHome = false)}
+		ontabclick={() => {
+			showHome = false;
+			showZenMode = false;
+		}}
 		onresetZoom={() => (zoomLevel = 100)}
 		{isScrollSynced}
 		ontoggleSync={() => tabManager.activeTabId && tabManager.toggleScrollSync(tabManager.activeTabId)}
@@ -2734,7 +2755,9 @@ import { t } from './utils/i18n.js';
 		{markdownBody}
 		language={settings.language} />
 
-	{#if tabManager.activeTab && (tabManager.activeTab.path !== '' || tabManager.activeTab.title !== 'Recents') && !showHome}
+	{#if showZenMode}
+		<ZenNotes />
+	{:else if tabManager.activeTab && (tabManager.activeTab.path !== '' || tabManager.activeTab.title !== 'Recents') && !showHome}
 			<div
 				class="markdown-container"
 				style="zoom: {zoomLevel / 100}; --code-font: {settings.previewFont}, monospace; --code-font-size: {Math.max(10, settings.previewFontSize - 1)}px; --highlight-color: {highlightColorMap[settings.highlightColor] || highlightColorMap.yellow};"
