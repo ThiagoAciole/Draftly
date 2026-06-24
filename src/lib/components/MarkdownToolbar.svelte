@@ -177,7 +177,7 @@
 	.markdown-toolbar {
 		position: absolute;
 		left: 50%;
-		bottom: 12px;
+		bottom: 40px;
 		z-index: 20;
 		display: flex;
 		align-items: center;

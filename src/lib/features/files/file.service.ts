@@ -21,7 +21,7 @@ export class FileService {
 		return tauriCommands.watchFile(path);
 	}
 
-	static async unwatch(): Promise<void> {
-		return tauriCommands.unwatchFile();
+	static async unwatch(path?: string): Promise<void> {
+		return tauriCommands.unwatchFile(path);
 	}
 }

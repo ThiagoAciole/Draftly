@@ -20,13 +20,19 @@
 	const DEBOUNCE_MS = 80;
 
 	let inputEl = $state<HTMLInputElement>();
+	let replaceEl = $state<HTMLInputElement>();
 	let query = $state('');
+	let replaceText = $state('');
 	let caseSensitive = $state(false);
 	let wholeWord = $state(false);
+	let showReplace = $state(false);
 	let matchCount = $state(0);
 	let activeIndex = $state(-1);
 	let truncated = $state(false);
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+	let searchHistory = $state<string[]>([]);
+	let showSearchHistory = $state(false);
+	let focusedInput = $state<'find' | 'replace'>('find');
 
 	function isHostElement(el: Element | null): boolean {
 		if (!el) return false;
@@ -202,6 +208,63 @@
 		setActive(activeIndex - 1);
 	}
 
+	function loadSearchHistory() {
+		try {
+			const stored = localStorage.getItem('draftly:search-history');
+			if (stored) {
+				searchHistory = JSON.parse(stored);
+			}
+		} catch {
+			searchHistory = [];
+		}
+	}
+
+	function saveToSearchHistory(text: string) {
+		if (!text.trim()) return;
+		const filtered = searchHistory.filter((h) => h !== text);
+		filtered.unshift(text);
+		searchHistory = filtered.slice(0, 50);
+		try {
+			localStorage.setItem('draftly:search-history', JSON.stringify(searchHistory));
+		} catch {
+			// ignore
+		}
+	}
+
+	function replaceOne() {
+		if (matchCount === 0) return;
+		const marks = getMarks();
+		if (marks.length === 0) return;
+
+		const activeMark = marks[activeIndex];
+		if (!activeMark.parentNode) return;
+
+		const text = activeMark.textContent || '';
+		const newNode = document.createTextNode(replaceText);
+		activeMark.parentNode.replaceChild(newNode, activeMark);
+
+		// Re-apply highlights
+		applyHighlights();
+		// Move to next match
+		if (activeIndex < matchCount - 1) {
+			next();
+		}
+	}
+
+	function replaceAll() {
+		if (matchCount === 0) return;
+		const marks = getMarks();
+		for (const mark of marks) {
+			if (!mark.parentNode) continue;
+			const newNode = document.createTextNode(replaceText);
+			mark.parentNode.replaceChild(newNode, mark);
+		}
+		// Re-apply highlights
+		clearHighlights();
+		matchCount = 0;
+		activeIndex = -1;
+	}
+
 	function cancelPendingApply() {
 		if (debounceTimer) {
 			clearTimeout(debounceTimer);
@@ -231,9 +294,12 @@
 		cancelPendingApply();
 		clearHighlights();
 		query = '';
+		replaceText = '';
 		matchCount = 0;
 		activeIndex = -1;
 		truncated = false;
+		showReplace = false;
+		showSearchHistory = false;
 		open = false;
 	}
 
@@ -245,6 +311,10 @@
 		wholeWord;
 		if (!open) return;
 		scheduleApply();
+		// Save to history when query changes
+		if (query && query.length > 2) {
+			saveToSearchHistory(query);
+		}
 	});
 
 	$effect(() => {
@@ -256,7 +326,8 @@
 			clearHighlights();
 			return;
 		}
-		// On open, focus and select the input so typing replaces.
+		// On open, load history and focus find input
+		loadSearchHistory();
 		tick().then(() => {
 			inputEl?.focus();
 			inputEl?.select();
@@ -270,18 +341,60 @@
 			close();
 			return;
 		}
+
+		// Tab navigation between find and replace
+		if (e.key === 'Tab') {
+			e.preventDefault();
+			e.stopPropagation();
+			if (e.shiftKey) {
+				focusedInput = focusedInput === 'replace' ? 'find' : 'replace';
+			} else {
+				focusedInput = focusedInput === 'find' ? 'replace' : 'find';
+			}
+			if (focusedInput === 'find') {
+				inputEl?.focus();
+			} else if (showReplace) {
+				replaceEl?.focus();
+			}
+			return;
+		}
+
+		// Navigate matches
 		if (e.key === 'Enter') {
+			e.preventDefault();
+			e.stopPropagation();
+			if (focusedInput === 'replace' && showReplace) {
+				replaceOne();
+			} else {
+				if (e.shiftKey) prev();
+				else next();
+			}
+			return;
+		}
+
+		// Ctrl/Cmd+G for next/prev match
+		if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'g') {
 			e.preventDefault();
 			e.stopPropagation();
 			if (e.shiftKey) prev();
 			else next();
 			return;
 		}
-		if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'g') {
+
+		// Ctrl/Cmd+Shift+H for Replace All
+		if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'H') {
 			e.preventDefault();
 			e.stopPropagation();
-			if (e.shiftKey) prev();
-			else next();
+			replaceAll();
+			return;
+		}
+
+		// Ctrl/Cmd+Shift+1 for Replace One
+		if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === '!') {
+			e.preventDefault();
+			e.stopPropagation();
+			replaceOne();
+			return;
 		}
 	}
 
@@ -302,86 +415,177 @@
 		role="search"
 		transition:fly={{ y: -8, duration: 120 }}
 		onkeydown={handleKeydown}>
-		<div class="find-input-wrap">
-			<svg class="find-icon" width="14" height="14" viewBox="0 0 24 24" fill="none"
-				stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-				aria-hidden="true">
-				<circle cx="11" cy="11" r="7"></circle>
-				<line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-			</svg>
-			<input
-				bind:this={inputEl}
-				bind:value={query}
-				type="text"
-				class="find-input"
-				placeholder={t('find.placeholder', language)}
-				aria-label={t('find.placeholder', language)}
-				spellcheck="false"
-				autocomplete="off" />
-			<span class="find-count" class:no-matches={!!query && matchCount === 0}>
-				{countLabel()}
-			</span>
+		<div class="find-bar-column">
+			<div class="find-input-wrap">
+				<svg class="find-icon" width="14" height="14" viewBox="0 0 24 24" fill="none"
+					stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+					aria-hidden="true">
+					<circle cx="11" cy="11" r="7"></circle>
+					<line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+				</svg>
+				<input
+					bind:this={inputEl}
+					bind:value={query}
+					type="text"
+					class="find-input"
+					placeholder={t('find.placeholder', language)}
+					aria-label={t('find.placeholder', language)}
+					spellcheck="false"
+					autocomplete="off"
+					onfocus={() => {
+						focusedInput = 'find';
+						showSearchHistory = true;
+					}}
+					onblur={() => (showSearchHistory = false)} />
+				<span class="find-count" class:no-matches={!!query && matchCount === 0}>
+					{countLabel()}
+				</span>
+				{#if showSearchHistory && searchHistory.length > 0}
+					<div class="search-history-dropdown">
+						{#each searchHistory.slice(0, 10) as hist}
+							<button
+								type="button"
+								class="history-item"
+								onclick={() => {
+									query = hist;
+									showSearchHistory = false;
+									inputEl?.focus();
+								}}>
+								{hist}
+							</button>
+						{/each}
+					</div>
+				{/if}
+			</div>
+
+			{#if showReplace}
+				<div class="find-input-wrap">
+					<svg class="find-icon" width="14" height="14" viewBox="0 0 24 24" fill="none"
+						stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+						aria-hidden="true">
+						<polygon points="12 3 20 7 20 17 12 21 4 17 4 7 12 3"></polygon>
+					</svg>
+					<input
+						bind:this={replaceEl}
+						bind:value={replaceText}
+						type="text"
+						class="find-input"
+						placeholder="Replace with..."
+						aria-label="Replace with"
+						spellcheck="false"
+						autocomplete="off"
+						onfocus={() => (focusedInput = 'replace')} />
+				</div>
+			{/if}
+
+			<div class="find-controls">
+				<button
+					type="button"
+					class="find-toggle"
+					class:active={caseSensitive}
+					title={t('find.caseSensitive', language)}
+					aria-label={t('find.caseSensitive', language)}
+					aria-pressed={caseSensitive}
+					onclick={() => (caseSensitive = !caseSensitive)}>
+					Aa
+				</button>
+				<button
+					type="button"
+					class="find-toggle"
+					class:active={wholeWord}
+					title={t('find.wholeWord', language)}
+					aria-label={t('find.wholeWord', language)}
+					aria-pressed={wholeWord}
+					onclick={() => (wholeWord = !wholeWord)}>
+					ab|
+				</button>
+
+				<div class="find-divider"></div>
+
+				<button
+					type="button"
+					class="find-btn"
+					title={t('find.previous', language)}
+					aria-label={t('find.previous', language)}
+					disabled={matchCount === 0}
+					onclick={prev}>
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+						stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<polyline points="18 15 12 9 6 15"></polyline>
+					</svg>
+				</button>
+				<button
+					type="button"
+					class="find-btn"
+					title={t('find.next', language)}
+					aria-label={t('find.next', language)}
+					disabled={matchCount === 0}
+					onclick={next}>
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+						stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<polyline points="6 9 12 15 18 9"></polyline>
+					</svg>
+				</button>
+
+				<div class="find-divider"></div>
+
+				<button
+					type="button"
+					class="find-btn"
+					class:active={showReplace}
+					title="Toggle Replace (Ctrl+H)"
+					aria-label="Toggle Replace"
+					onclick={() => (showReplace = !showReplace)}>
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+						stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<path d="M17 1H5c-1.1 0-2 .9-2 2v2h2V3h12v10h2V3c0-1.1-.9-2-2-2z"></path>
+						<path d="M3 15h10c1.1 0 2 .9 2 2v2c0 1.1-.9 2-2 2H3c-1.1 0-2-.9-2-2v-2c0-1.1.9-2 2-2z"></path>
+					</svg>
+				</button>
+
+				{#if showReplace}
+					<button
+						type="button"
+						class="find-btn"
+						title="Replace (Ctrl+Shift+1)"
+						aria-label="Replace"
+						disabled={matchCount === 0}
+						onclick={replaceOne}>
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+							stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+							<path d="M3 5v14h16V5H3z"></path>
+							<line x1="7" y1="9" x2="17" y2="9"></line>
+							<line x1="7" y1="13" x2="17" y2="13"></line>
+						</svg>
+					</button>
+					<button
+						type="button"
+						class="find-btn"
+						title="Replace All (Ctrl+Shift+H)"
+						aria-label="Replace All"
+						disabled={matchCount === 0}
+						onclick={replaceAll}>
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+							stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+							<path d="M3 5v14h16V5H3z M3 12h16"></path>
+						</svg>
+					</button>
+				{/if}
+
+				<button
+					type="button"
+					class="find-btn"
+					title={t('find.close', language)}
+					aria-label={t('find.close', language)}
+					onclick={close}>
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+						stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<line x1="18" y1="6" x2="6" y2="18"></line>
+						<line x1="6" y1="6" x2="18" y2="18"></line>
+					</svg>
+				</button>
+			</div>
 		</div>
-
-		<button
-			type="button"
-			class="find-toggle"
-			class:active={caseSensitive}
-			title={t('find.caseSensitive', language)}
-			aria-label={t('find.caseSensitive', language)}
-			aria-pressed={caseSensitive}
-			onclick={() => (caseSensitive = !caseSensitive)}>
-			Aa
-		</button>
-		<button
-			type="button"
-			class="find-toggle"
-			class:active={wholeWord}
-			title={t('find.wholeWord', language)}
-			aria-label={t('find.wholeWord', language)}
-			aria-pressed={wholeWord}
-			onclick={() => (wholeWord = !wholeWord)}>
-			ab|
-		</button>
-
-		<div class="find-divider"></div>
-
-		<button
-			type="button"
-			class="find-btn"
-			title={t('find.previous', language)}
-			aria-label={t('find.previous', language)}
-			disabled={matchCount === 0}
-			onclick={prev}>
-			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-				stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-				<polyline points="18 15 12 9 6 15"></polyline>
-			</svg>
-		</button>
-		<button
-			type="button"
-			class="find-btn"
-			title={t('find.next', language)}
-			aria-label={t('find.next', language)}
-			disabled={matchCount === 0}
-			onclick={next}>
-			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-				stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-				<polyline points="6 9 12 15 18 9"></polyline>
-			</svg>
-		</button>
-		<button
-			type="button"
-			class="find-btn"
-			title={t('find.close', language)}
-			aria-label={t('find.close', language)}
-			onclick={close}>
-			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-				stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-				<line x1="18" y1="6" x2="6" y2="18"></line>
-				<line x1="6" y1="6" x2="18" y2="18"></line>
-			</svg>
-		</button>
 	</div>
 {/if}
 
@@ -393,7 +597,7 @@
 		transform: none;
 		z-index: 10020;
 		display: flex;
-		align-items: center;
+		align-items: flex-start;
 		gap: 4px;
 		padding: 4px 6px;
 		width: fit-content;
@@ -408,7 +612,20 @@
 		user-select: none;
 	}
 
+	.find-bar-column {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.find-controls {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
+
 	.find-input-wrap {
+		position: relative;
 		display: flex;
 		align-items: center;
 		gap: 6px;
@@ -423,6 +640,40 @@
 
 	.find-input-wrap:focus-within {
 		border-color: var(--color-accent-fg);
+	}
+
+	.search-history-dropdown {
+		position: absolute;
+		top: 100%;
+		left: 0;
+		right: 0;
+		margin-top: 2px;
+		background: var(--color-canvas-default);
+		border: 1px solid var(--color-border-muted);
+		border-radius: 4px;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+		max-height: 200px;
+		overflow-y: auto;
+		z-index: 10021;
+	}
+
+	.history-item {
+		display: block;
+		width: 100%;
+		padding: 6px 8px;
+		text-align: left;
+		border: none;
+		background: transparent;
+		color: inherit;
+		font: inherit;
+		cursor: pointer;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.history-item:hover {
+		background: var(--color-neutral-muted, rgba(128, 128, 128, 0.15));
 	}
 
 	.find-icon {
@@ -510,6 +761,12 @@
 	.find-btn:disabled {
 		opacity: 0.4;
 		cursor: default;
+	}
+
+	.find-btn.active {
+		background: var(--color-accent-subtle, rgba(67, 138, 243, 0.25));
+		border-color: var(--color-accent-fg);
+		color: var(--color-accent-fg);
 	}
 
 	:global(.markdown-body mark.draftly-find-match) {

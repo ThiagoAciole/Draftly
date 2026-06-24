@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { invoke, convertFileSrc } from '@tauri-apps/api/core';
+	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { listen } from '@tauri-apps/api/event';
 	import { getCurrentWindow } from '@tauri-apps/api/window';
 	import { onMount, tick, untrack } from 'svelte';
@@ -22,14 +22,41 @@
 	import CommandPalette, { type CommandPaletteItem } from './components/CommandPalette.svelte';
 	import RecoveryDialog from './components/RecoveryDialog.svelte';
 	import ExternalConflictDialog from './components/ExternalConflictDialog.svelte';
+	import ExportPreviewModal from './components/ExportPreviewModal.svelte';
 	import { tauriCommands } from './api/tauri.js';
 	import { processMarkdownHtml, highlightColorMap, renderRichContent as _renderRichContent } from './features/preview/markdown.processor.js';
 	import { getLanguage, isMarkdownPath, isPlainTextPath, MARKDOWN_EXTENSIONS } from './features/files/file-types.js';
 	import { recoveryStore } from './services/recovery.js';
 	import type { DocumentSnapshot, SaveStatus } from './services/document-session.js';
+	import { closeTabsSafely } from './services/tab-close.js';
+	import { inspectExternalFileChange } from './services/external-file-change.js';
+	import { createFileWatcherSync } from './services/file-watcher.js';
+	import { createRecentFilesStore } from './services/recent-files.js';
+	import { loadDocument } from './services/document-load.js';
+	import { persistDocument } from './services/document-persist.js';
+	import {
+		clearWindowSession,
+		flushDirtyFileTabs,
+		persistWindowSession,
+		restoreWindowSession,
+		saveTabsSequentially,
+	} from './services/window-lifecycle.js';
+	import {
+		decodeMarkdownLink,
+		getRelativeMarkdownTarget,
+		isAbsoluteMarkdownPath,
+		normalizeComparableMarkdownPath,
+		resolveMarkdownTarget,
+		type RelativeMarkdownTarget,
+	} from './features/preview/markdown-navigation.js';
 	import { DOCUMENT_TEMPLATES, type DocumentTemplate } from './utils/templates.js';
 
-	const appWindow = getCurrentWindow();
+	let appWindow: any = null;
+	try {
+		appWindow = getCurrentWindow();
+	} catch (err) {
+		appWindow = null;
+	}
 
 	import DOMPurify from 'dompurify';
 	import HomePage from './components/HomePage.svelte';
@@ -52,6 +79,7 @@ import { t } from './utils/i18n.js';
 	let showCommandPalette = $state(false);
 	let showRecovery = $state(false);
 	let recoverySnapshots = $state<DocumentSnapshot[]>([]);
+	let recoverySaveWarningShown = false;
 	let externalConflict = $state<{ path: string; content: string } | null>(null);
 	let saveStatus = $state<SaveStatus>('idle');
 
@@ -62,6 +90,7 @@ import { t } from './utils/i18n.js';
 	});
 
 	let recentFiles = $state<string[]>([]);
+	const recentFilesStore = createRecentFilesStore(localStorage);
 	let commandPaletteItems = $derived.by<CommandPaletteItem[]>(() => [
 		{
 			id: 'new-markdown',
@@ -92,6 +121,20 @@ import { t } from './utils/i18n.js';
 			label: t('settings.save', settings.language),
 			detail: 'Ctrl/Cmd+S',
 			run: () => saveContent(),
+		},
+		{
+			id: 'find',
+			label: 'Find in document',
+			detail: 'Ctrl/Cmd+F',
+			keywords: 'search find preview',
+			run: () => triggerFindAction(),
+		},
+		{
+			id: 'preview-export',
+			label: 'Preview export',
+			detail: 'Ctrl/Cmd+Shift+E',
+			keywords: 'export html pdf preview',
+			run: () => openExportPreview(),
 		},
 		{
 			id: 'settings',
@@ -129,6 +172,20 @@ import { t } from './utils/i18n.js';
 		triggerFind: () => void;
 	} | null>(null);
 	let liveMode = $state(false);
+	const fileWatcher = createFileWatcherSync({
+		watch: tauriCommands.watchFile,
+		unwatch: tauriCommands.unwatchFile,
+	});
+
+	$effect(() => {
+		const paths = tabManager.tabs
+			.map((tab) => tab.path)
+			.filter((path) => path && path !== 'HOME');
+		const enabled = liveMode;
+		untrack(() => {
+			void fileWatcher.sync(enabled ? paths : []).catch(console.error);
+		});
+	});
 
 	let findOpen = $state(false);
 	let findBar = $state<{ reapply: () => void; clearHighlights: () => void } | null>(null);
@@ -196,6 +253,14 @@ import { t } from './utils/i18n.js';
 	const SELF_WRITE_GRACE_MS = 400;
 	const AUTO_SAVE_DEBOUNCE_MS = 1500;
 
+	function markSelfWrite(path: string) {
+		selfWriteUntilByPath.set(path, Date.now() + SELF_WRITE_GRACE_MS);
+	}
+
+	function clearSelfWrite(path: string) {
+		selfWriteUntilByPath.delete(path);
+	}
+
 	// Cancel a pending auto-save for a tab. Call this only on paths that
 	// COMMIT to a save or discard outcome — never before showing a modal,
 	// because if the user picks Cancel, the timer is gone forever and
@@ -252,7 +317,20 @@ import { t } from './utils/i18n.js';
 	let isAtBottom = $state(false);
 
 	let showHome = $state(false);
+	let showExportPreview = $state(false);
+	let exportPreviewContent = $state('');
+	let exportPreviewTitle = $state('');
+	let exportPreviewPath = $state('');
 	localStorage.removeItem('isFullWidth');
+
+	const openExportPreview = () => {
+		const tab = tabManager.activeTab;
+		if (!tab) return;
+		exportPreviewContent = sanitizedHtml;
+		exportPreviewTitle = tab.title || '';
+		exportPreviewPath = tab.path || '';
+		showExportPreview = true;
+	};
 
 	$effect(() => {
 		const tab = tabManager.activeTab;
@@ -280,7 +358,7 @@ import { t } from './utils/i18n.js';
 
 	$effect(() => {
 		localStorage.setItem('theme', theme);
-		invoke('save_theme', { theme }).catch(console.error);
+		tauriCommands.saveTheme(theme).catch(console.error);
 
 		if (theme === 'light' || theme === 'dark') {
 			document.documentElement.dataset.theme = theme;
@@ -381,10 +459,10 @@ import { t } from './utils/i18n.js';
 				});
 				if (response !== 'discard') return;
 			}
-			localStorage.removeItem('savedTabsData');
+			clearWindowSession(localStorage);
 			isForceExiting = true;
 		}
-		appWindow.close();
+		await appWindow?.close?.();
 	}
 
 	$effect(() => {
@@ -423,28 +501,28 @@ import { t } from './utils/i18n.js';
 			const activeId = tabManager.activeTabId;
 			if (!activeId) return;
 
-			const isMarkdown = isMarkdownPath(filePath);
 			const tab = tabManager.tabs.find((t) => t.id === activeId);
+			const loaded = await loadDocument(filePath, tauriCommands);
 
-			if (isMarkdown) {
+			if (loaded.kind === 'markdown') {
 				if (tab && !tab.isSplit) {
 					tab.splitRatio = 0.6;
 					tabManager.setSplitEnabled(tab.id, true);
 				}
-				const [html, content, isFull] = await invoke('open_markdown_preview', { path: filePath, maxBytes: 50000 }) as [string, string, boolean];
-				const processedInfo = processMarkdownHtml(html, filePath, collapsedHeaders);
+				const processedInfo = processMarkdownHtml(
+					loaded.initial.html,
+					filePath,
+					collapsedHeaders,
+				);
 				tabManager.updateTabContent(activeId, processedInfo);
-				tabManager.setTabRawContent(activeId, content);
+				tabManager.setTabRawContent(activeId, loaded.initial.content);
 
-				if (!isFull) {
+				if (loaded.full) {
 					loadingTabs = [...loadingTabs, activeId];
 					tick().then(() => {
 						if (markdownBody) isAtBottom = markdownBody.scrollHeight <= markdownBody.clientHeight + 100;
 					});
-					Promise.all([
-						invoke('open_markdown', { path: filePath }) as Promise<string>,
-						invoke('read_file_content', { path: filePath }) as Promise<string>
-					]).then(([fullHtml, fullContent]) => {
+					loaded.full.then(({ html, content }) => {
 						const applyFull = () => {
 							try {
 								if (isScrolling) {
@@ -452,9 +530,9 @@ import { t } from './utils/i18n.js';
 									return;
 								}
 								if (tabManager.tabs.find((t) => t.id === activeId)?.path === filePath) {
-									const fullProcessed = processMarkdownHtml(fullHtml, filePath, collapsedHeaders);
+									const fullProcessed = processMarkdownHtml(html, filePath, collapsedHeaders);
 									tabManager.updateTabContent(activeId, fullProcessed);
-									tabManager.setTabRawContent(activeId, fullContent);
+									tabManager.setTabRawContent(activeId, content);
 									loadingTabs = loadingTabs.filter((id) => id !== activeId);
 									if (tabManager.activeTabId === activeId) {
 										tick().then(() => {
@@ -487,11 +565,8 @@ import { t } from './utils/i18n.js';
 					tabManager.setSplitEnabled(tab.id, false);
 					tab.isEditing = true;
 				}
-				const content = (await invoke('read_file_content', { path: filePath })) as string;
-				tabManager.setTabRawContent(activeId, content);
+				tabManager.setTabRawContent(activeId, loaded.content);
 			}
-
-			if (liveMode) invoke('watch_file', { path: filePath }).catch(console.error);
 
 			await tick();
 			if (filePath) saveRecentFile(filePath);
@@ -511,16 +586,68 @@ import { t } from './utils/i18n.js';
 		if (!markdownBody) return;
 
 		const hasMermaid = !!markdownBody.querySelector('code.language-mermaid');
+		const hasMath = !!markdownBody.querySelector('[data-math]') || markdownBody.textContent?.includes('$$') || markdownBody.textContent?.includes('$');
+		const hasCode = !!markdownBody.querySelector('pre code');
+
 		if (hasMermaid && !mermaid) {
 			const mermaidModule = await import('mermaid');
 			mermaid = mermaidModule.default;
 		}
 
-		await _renderRichContent(markdownBody, hljs, katex, renderMathInElement, mermaid, theme, invoke);
+		if (hasCode && !hljs) {
+			const [hljsModule, javascript, typescript, json, xml, css, markdownLang, bash, python, rust, sql] = await Promise.all([
+				import('highlight.js/lib/core'),
+				import('highlight.js/lib/languages/javascript'),
+				import('highlight.js/lib/languages/typescript'),
+				import('highlight.js/lib/languages/json'),
+				import('highlight.js/lib/languages/xml'),
+				import('highlight.js/lib/languages/css'),
+				import('highlight.js/lib/languages/markdown'),
+				import('highlight.js/lib/languages/bash'),
+				import('highlight.js/lib/languages/python'),
+				import('highlight.js/lib/languages/rust'),
+				import('highlight.js/lib/languages/sql'),
+			]);
+			hljs = hljsModule.default;
+			hljs.registerLanguage('javascript', javascript.default);
+			hljs.registerLanguage('typescript', typescript.default);
+			hljs.registerLanguage('json', json.default);
+			hljs.registerLanguage('html', xml.default);
+			hljs.registerLanguage('xml', xml.default);
+			hljs.registerLanguage('css', css.default);
+			hljs.registerLanguage('markdown', markdownLang.default);
+			hljs.registerLanguage('bash', bash.default);
+			hljs.registerLanguage('shell', bash.default);
+			hljs.registerLanguage('python', python.default);
+			hljs.registerLanguage('rust', rust.default);
+			hljs.registerLanguage('sql', sql.default);
+		}
+
+		if (hasMath && !katex) {
+			const katexMainModule = await import('katex');
+			katex = katexMainModule.default;
+			(window as any).katex = katex;
+			const [autoRenderModule] = await Promise.all([
+				import('katex/dist/contrib/auto-render.js'),
+				import('katex/dist/contrib/mhchem.js'),
+				import('katex/dist/contrib/copy-tex.js'),
+			]);
+			renderMathInElement = autoRenderModule.default;
+		}
+
+		await _renderRichContent(
+			markdownBody,
+			hljs,
+			katex,
+			renderMathInElement,
+			mermaid,
+			theme,
+			tauriCommands.writeClipboardText,
+		);
 	}
 
 	$effect(() => {
-		if (sanitizedHtml && markdownBody && !isEditing && hljs && renderMathInElement) renderRichContent();
+		if (sanitizedHtml && markdownBody && !isEditing) renderRichContent();
 	});
 
 	// Re-apply find highlights after the preview HTML is replaced. The
@@ -767,51 +894,8 @@ import { t } from './utils/i18n.js';
 		wrapper.classList.toggle('is-collapsed', !isCurrentlyCollapsed);
 	}
 
-	type RelativeMarkdownTarget = {
-		path: string;
-		hash: string;
-	};
-
-	function decodeLinkPath(path: string) {
-		try {
-			return decodeURIComponent(path);
-		} catch {
-			return path;
-		}
-	}
-
-	function normalizeComparableMarkdownPath(path: string) {
-		const normalized = path.replace(/\\/g, '/');
-		const comparable = normalized.startsWith('//')
-			? `//${normalized.slice(2).replace(/\/+/g, '/')}`
-			: normalized.replace(/\/+/g, '/');
-		if (settings.osType === 'windows' || /^[a-z]:/i.test(comparable) || comparable.startsWith('//')) {
-			return comparable.toLowerCase();
-		}
-		return comparable;
-	}
-
-	function isAbsoluteMarkdownPath(path: string) {
-		return path.startsWith('/') || path.startsWith('\\') || /^[a-z]:/i.test(path);
-	}
-
-	function getRelativeMarkdownTarget(href: string): RelativeMarkdownTarget | null {
-		const pathWithoutHash = href.split('#')[0].split('?')[0];
-		const isMarkdownTarget = isMarkdownPath(pathWithoutHash);
-		const isWindowsDrivePath = /^[a-z]:/i.test(href);
-		const isProtocolRelativeExternal = href.startsWith('//');
-		const hasScheme = /^[a-z][a-z0-9+.-]*:/i.test(href);
-		if (!isMarkdownTarget || isProtocolRelativeExternal || (hasScheme && !isWindowsDrivePath)) return null;
-
-		const hashIndex = href.indexOf('#');
-		return {
-			path: decodeLinkPath(pathWithoutHash),
-			hash: hashIndex === -1 ? '' : href.slice(hashIndex + 1)
-		};
-	}
-
 	function scrollToAnchor(anchor: string, options: { pushHistory?: boolean } = {}) {
-		let id = decodeLinkPath(anchor);
+		let id = decodeMarkdownLink(anchor);
 		if (id.startsWith('^')) {
 			id = id.substring(1);
 		}
@@ -846,8 +930,13 @@ import { t } from './utils/i18n.js';
 	async function openRelativeMarkdownTarget(target: RelativeMarkdownTarget) {
 		const isAbsoluteTarget = isAbsoluteMarkdownPath(target.path);
 		if (!currentFile && !isAbsoluteTarget) return;
-		const resolved = isAbsoluteTarget ? target.path : resolvePath(currentFile, target.path);
-		if (normalizeComparableMarkdownPath(resolved) === normalizeComparableMarkdownPath(currentFile)) {
+		const resolved = isAbsoluteTarget
+			? target.path
+			: resolveMarkdownTarget(currentFile, target.path);
+		if (
+			normalizeComparableMarkdownPath(resolved, settings.osType) ===
+			normalizeComparableMarkdownPath(currentFile, settings.osType)
+		) {
 			if (target.hash) {
 				await scrollToAnchorWhenReady(target.hash);
 			} else if (markdownBody) {
@@ -959,7 +1048,7 @@ import { t } from './utils/i18n.js';
 		// always read latest from disk to avoid stale state
 		let raw: string;
 		try {
-			raw = (await invoke('read_file_content', { path: tab.path })) as string;
+			raw = await tauriCommands.readFile(tab.path);
 		} catch (e) {
 			console.error('failed to read file for task toggle', e);
 			return;
@@ -988,7 +1077,7 @@ import { t } from './utils/i18n.js';
 
 		// save file
 		try {
-			await invoke('save_file_content', { path: tab.path, content: updated });
+			await tauriCommands.writeFile(tab.path, updated);
 			tab.rawContent = updated;
 			tab.originalContent = updated;
 		} catch (e) {
@@ -1007,26 +1096,15 @@ import { t } from './utils/i18n.js';
 
 
 	function saveRecentFile(path: string) {
-		let files = [...recentFiles].filter((f) => f !== path);
-		files.unshift(path);
-		recentFiles = files.slice(0, 9);
-		localStorage.setItem('recent-files', JSON.stringify(recentFiles));
+		recentFiles = recentFilesStore.add(path);
 	}
 
 	function loadRecentFiles() {
-		const stored = localStorage.getItem('recent-files');
-		if (stored) {
-			try {
-				recentFiles = JSON.parse(stored);
-			} catch (e) {
-				console.error('Error parsing recent files:', e);
-			}
-		}
+		recentFiles = recentFilesStore.list();
 	}
 
 	function deleteRecentFile(path: string) {
-		recentFiles = recentFiles.filter((f) => f !== path);
-		localStorage.setItem('recent-files', JSON.stringify(recentFiles));
+		recentFiles = recentFilesStore.remove(path);
 	}
 
 	function refreshRecoverySnapshots() {
@@ -1034,6 +1112,7 @@ import { t } from './utils/i18n.js';
 	}
 
 	function persistRecoverySnapshots() {
+		let failed = false;
 		for (const tab of tabManager.tabs) {
 			const shouldKeep =
 				tab.isDirty || (tab.path === '' && tab.rawContent.trim() !== '');
@@ -1041,13 +1120,21 @@ import { t } from './utils/i18n.js';
 				recoveryStore.remove(tab.id);
 				continue;
 			}
-			recoveryStore.save({
+			const saved = recoveryStore.save({
 				id: tab.id,
 				path: tab.path,
 				title: tab.title,
 				content: tab.rawContent,
 				updatedAt: Date.now(),
 			});
+			if (!saved) failed = true;
+		}
+
+		if (failed && !recoverySaveWarningShown) {
+			recoverySaveWarningShown = true;
+			addToast('Recovery storage is full. Save large documents to disk to keep them safe.', 'warning');
+		} else if (!failed) {
+			recoverySaveWarningShown = false;
 		}
 	}
 
@@ -1084,22 +1171,70 @@ import { t } from './utils/i18n.js';
 		await saveContentAs();
 	}
 
+	async function handleExternalFileChange(filePath: string) {
+		if (!liveMode || !filePath) return;
+
+		const until = selfWriteUntilByPath.get(filePath);
+		if (until !== undefined) {
+			if (Date.now() < until) return;
+			selfWriteUntilByPath.delete(filePath);
+		}
+
+		const tab = tabManager.tabs.find((item) => item.path === filePath);
+		if (!tab) return;
+
+		const change = await inspectExternalFileChange({
+			path: filePath,
+			originalContent: tab.originalContent,
+			isDirty: tab.isDirty,
+			read: tauriCommands.readFile,
+		});
+
+		if (change.kind === 'unchanged') return;
+
+		if (change.kind === 'missing') {
+			tab.isDirty = true;
+			addToast('The file was moved or deleted externally. Your open copy was preserved.', 'warning');
+			return;
+		}
+
+		if (change.kind === 'unavailable') {
+			console.error('Failed to reload external file change', change.error);
+			addToast('The file is temporarily unavailable. Your open copy was preserved.', 'warning');
+			return;
+		}
+
+		if (change.kind === 'conflict') {
+			tabManager.setActive(tab.id);
+			showHome = false;
+			externalConflict = {
+				path: filePath,
+				content: change.content,
+			};
+			saveStatus = 'conflict';
+			return;
+		}
+
+		try {
+			tabManager.setTabRawContent(tab.id, change.content);
+			if (isMarkdownPath(filePath)) {
+				const html = await tauriCommands.renderMarkdown(change.content);
+				const processed = processMarkdownHtml(html, filePath, collapsedHeaders);
+				tabManager.updateTabContent(tab.id, processed);
+				if (tabManager.activeTabId === tab.id) {
+					await tick();
+					await renderRichContent();
+				}
+			}
+		} catch (error) {
+			console.error('Failed to process external file change', error);
+		}
+	}
+
 	function removeRecentFile(path: string, event: MouseEvent) {
 		event.stopPropagation();
 		deleteRecentFile(path);
 		if (currentFile === path) tabManager.closeTab(tabManager.activeTabId!);
-	}
-
-	function resolvePath(basePath: string, relativePath: string) {
-		if (relativePath.match(/^[a-zA-Z]:/) || relativePath.startsWith('/')) return relativePath;
-		const parts = basePath.split(/[/\\]/);
-		parts.pop();
-		for (const p of relativePath.split(/[/\\]/)) {
-			if (p === '.') continue;
-			if (p === '..') parts.pop();
-			else parts.push(p);
-		}
-		return parts.join('/');
 	}
 
 	function isYoutubeLink(url: string) {
@@ -1124,7 +1259,10 @@ import { t } from './utils/i18n.js';
 		element.replaceWith(container);
 	}
 
-	async function canCloseTab(tabId: string): Promise<boolean> {
+	async function canCloseTab(
+		tabId: string,
+		options: { deferDiscardCleanup?: boolean } = {},
+	): Promise<boolean> {
 		const tab = tabManager.tabs.find((t) => t.id === tabId);
 		if (!tab || (!tab.isDirty && tab.path !== '')) return true;
 
@@ -1171,7 +1309,7 @@ import { t } from './utils/i18n.js';
 		// Discard: drop pending save so we don't write what the user just
 		// threw away. The effect will re-arm a timer if the tab gets edited
 		// again.
-		cancelPendingAutoSave(tabId);
+		if (!options.deferDiscardCleanup) cancelPendingAutoSave(tabId);
 		return true;
 	}
 
@@ -1232,7 +1370,7 @@ import { t } from './utils/i18n.js';
 			} else {
 				// Untitled: render the in-memory buffer for the preview.
 				try {
-					const html = (await invoke('render_markdown', { content: tab.rawContent })) as string;
+					const html = await tauriCommands.renderMarkdown(tab.rawContent);
 					const processedInfo = processMarkdownHtml(html, '', collapsedHeaders);
 					tabManager.updateTabContent(tab.id, processedInfo);
 				} catch (e) {
@@ -1250,7 +1388,7 @@ import { t } from './utils/i18n.js';
 					tab.isEditing = true;
 				} else {
 					try {
-						const content = (await invoke('read_file_content', { path: tab.path })) as string;
+						const content = await tauriCommands.readFile(tab.path);
 						tab.rawContent = content;
 						tab.isEditing = true;
 						tab.isDirty = false;
@@ -1312,26 +1450,30 @@ import { t } from './utils/i18n.js';
 
 		const snapshot = tab.rawContent;
 		saveStatus = 'saving';
-		selfWriteUntilByPath.set(targetPath, Date.now() + SELF_WRITE_GRACE_MS);
 
 		try {
-			await invoke('save_file_content', { path: targetPath, content: snapshot });
+			const result = await persistDocument({
+				path: targetPath,
+				content: snapshot,
+				getCurrentContent: () => tab.rawContent,
+				write: tauriCommands.writeFile,
+				markSelfWrite,
+				clearSelfWrite,
+			});
+			if (!result.ok) throw result.error;
 			// Refresh the grace window — the watcher event arrives after the write
 			// completes, not when it started.
-			selfWriteUntilByPath.set(targetPath, Date.now() + SELF_WRITE_GRACE_MS);
 			if (tab.path === '') {
 				// We just saved an untitled tab for the first time
 				tabManager.updateTabPath(tab.id, targetPath);
 				saveRecentFile(targetPath);
 			}
-			tab.originalContent = snapshot;
-			// If the user kept typing during the await, the buffer is still dirty.
-			tab.isDirty = tab.rawContent !== snapshot;
+			tab.originalContent = result.savedContent;
+			tab.isDirty = result.isDirty;
 			if (!tab.isDirty) recoveryStore.remove(tab.id);
 			saveStatus = tab.isDirty ? 'idle' : 'saved';
 			return true;
 		} catch (e) {
-			selfWriteUntilByPath.delete(targetPath);
 			console.error('Failed to save file', e);
 			saveStatus = 'error';
 			return false;
@@ -1358,19 +1500,24 @@ import { t } from './utils/i18n.js';
 		if (selected) {
 			const snapshot = tab.rawContent;
 			saveStatus = 'saving';
-			selfWriteUntilByPath.set(selected, Date.now() + SELF_WRITE_GRACE_MS);
 			try {
-				await invoke('save_file_content', { path: selected, content: snapshot });
-				selfWriteUntilByPath.set(selected, Date.now() + SELF_WRITE_GRACE_MS);
+				const result = await persistDocument({
+					path: selected,
+					content: snapshot,
+					getCurrentContent: () => tab.rawContent,
+					write: tauriCommands.writeFile,
+					markSelfWrite,
+					clearSelfWrite,
+				});
+				if (!result.ok) throw result.error;
 				tabManager.updateTabPath(tab.id, selected);
 				saveRecentFile(selected);
-				tab.originalContent = snapshot;
-				tab.isDirty = tab.rawContent !== snapshot;
+				tab.originalContent = result.savedContent;
+				tab.isDirty = result.isDirty;
 				if (!tab.isDirty) recoveryStore.remove(tab.id);
 				saveStatus = tab.isDirty ? 'idle' : 'saved';
 				return true;
 			} catch (e) {
-				selfWriteUntilByPath.delete(selected);
 				console.error('Failed to save file as', e);
 				saveStatus = 'error';
 				return false;
@@ -1554,16 +1701,30 @@ import { t } from './utils/i18n.js';
 		tabManager.closeTab(tabId);
 		if (tabManager.tabs.length > 0) return;
 
-		if (liveMode) tauriCommands.unwatchFile().catch(console.error);
+		if (liveMode) await fileWatcher.sync([]);
 		await destroyWindowAfterTabsClosed();
 	}
 
-	async function destroyWindowAfterTabsClosed() {
-		if (settings.restoreStateOnReopen) {
-			localStorage.setItem('savedTabsData', tabManager.serializeState());
-		}
+	async function closeTabBatch(tabIds: string[]) {
+		await closeTabsSafely(
+			tabIds,
+			(tabId) => canCloseTab(tabId, { deferDiscardCleanup: true }),
+			(tabId) => {
+			cancelPendingAutoSave(tabId);
+			recoveryStore.remove(tabId);
+			tabManager.closeTab(tabId);
+			},
+		);
+	}
 
-		await appWindow.destroy();
+	async function destroyWindowAfterTabsClosed() {
+		persistWindowSession(
+			settings.restoreStateOnReopen,
+			localStorage,
+			() => tabManager.serializeState(),
+		);
+
+		await appWindow?.destroy?.();
 	}
 
 	async function openFileLocation() {
@@ -1572,12 +1733,11 @@ import { t } from './utils/i18n.js';
 
 	async function toggleLiveMode() {
 		liveMode = !liveMode;
-		if (liveMode && currentFile) {
-			await tauriCommands.watchFile(currentFile);
-			if (tabManager.activeTabId) await loadMarkdown(currentFile);
-		} else {
-			await tauriCommands.unwatchFile();
-		}
+		const paths = tabManager.tabs
+			.map((tab) => tab.path)
+			.filter((path) => path && path !== 'HOME');
+		await fileWatcher.sync(liveMode ? paths : []);
+		if (liveMode && currentFile) await handleExternalFileChange(currentFile);
 	}
 
 	async function saveImageAs(src: string) {
@@ -1603,7 +1763,10 @@ import { t } from './utils/i18n.js';
 					filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp'] }]
 				});
 				if (dest) {
-					await invoke('save_file_binary', { path: dest, data: Array.from(new Uint8Array(buffer)) });
+					await tauriCommands.writeBinaryFile(
+						dest,
+						Array.from(new Uint8Array(buffer)),
+					);
 					addToast('Image saved successfully');
 				}
 			} catch (e) {
@@ -1620,7 +1783,7 @@ import { t } from './utils/i18n.js';
 			});
 			if (dest) {
 				try {
-					await invoke('copy_file', { src: realPath, dest });
+					await tauriCommands.copyFile(realPath, dest);
 					addToast('Image saved successfully');
 				} catch (e) {
 					addToast(`Failed to save image: ${e}`, 'error');
@@ -1638,7 +1801,7 @@ import { t } from './utils/i18n.js';
 		});
 		if (dest) {
 			try {
-				await invoke('save_file_content', { path: dest, content: svg });
+				await tauriCommands.writeFile(dest, svg);
 				addToast('Diagram saved as SVG');
 			} catch (e) {
 				addToast(`Failed to save diagram: ${e}`, 'error');
@@ -1663,7 +1826,10 @@ import { t } from './utils/i18n.js';
 			const filename = tab?.path ? tab.path.split(/[/\\]/).pop()?.replace(/\.[^.]+$/, '') || '' : '';
 			const ref = filename ? `[[${filename}#${text}]]` : `#${text}`;
 			copyRefItem = [
-				{ label: t('menu.copyReference', uiLanguage), onClick: () => invoke('clipboard_write_text', { text: ref }) },
+				{
+					label: t('menu.copyReference', uiLanguage),
+					onClick: () => tauriCommands.writeClipboardText(ref),
+				},
 				{ separator: true },
 			];
 		}
@@ -1701,7 +1867,7 @@ import { t } from './utils/i18n.js';
 					: []),
 				...(hasSelection ? [{ label: t('menu.copy', uiLanguage), onClick: () => {
 					const selection = window.getSelection()?.toString();
-					if (selection) invoke('clipboard_write_text', { text: selection });
+					if (selection) tauriCommands.writeClipboardText(selection);
 				} }] : []),
 				{ label: t('menu.selectAll', uiLanguage), onClick: () => {
 					if (!markdownBody) return;
@@ -1829,7 +1995,7 @@ import { t } from './utils/i18n.js';
 
 			clearTimeout(debounceTimer);
 			debounceTimer = setTimeout(() => {
-				invoke('render_markdown', { content: tab.rawContent })
+				tauriCommands.renderMarkdown(tab.rawContent)
 					.then((html) => {
 						const processed = processMarkdownHtml(html as string, tab.path, collapsedHeaders);
 						tabManager.updateTabContent(tab.id, processed);
@@ -1855,7 +2021,7 @@ import { t } from './utils/i18n.js';
 		if (!tab.isSplit) {
 			if (!tab.isEditing && !tab.rawContent && tab.path) {
 				try {
-					const content = (await invoke('read_file_content', { path: tab.path })) as string;
+					const content = await tauriCommands.readFile(tab.path);
 					tab.rawContent = content;
 					tab.originalContent = content;
 				} catch (e) {
@@ -2145,86 +2311,34 @@ import { t } from './utils/i18n.js';
 		loadRecentFiles();
 		refreshRecoverySnapshots();
 		showRecovery = recoverySnapshots.length > 0;
-		const recoveryInterval = window.setInterval(persistRecoverySnapshots, 1500);
+		const recoveryInterval = window.setInterval(persistRecoverySnapshots, 5000);
 
-		Promise.all([
-			import('highlight.js/lib/core'),
-			import('highlight.js/lib/languages/javascript'),
-			import('highlight.js/lib/languages/typescript'),
-			import('highlight.js/lib/languages/json'),
-			import('highlight.js/lib/languages/xml'),
-			import('highlight.js/lib/languages/css'),
-			import('highlight.js/lib/languages/markdown'),
-			import('highlight.js/lib/languages/bash'),
-			import('highlight.js/lib/languages/python'),
-			import('highlight.js/lib/languages/rust'),
-			import('highlight.js/lib/languages/sql'),
-			import('katex'),
-		]).then(async ([
-			hljsModule,
-			javascript,
-			typescript,
-			json,
-			xml,
-			css,
-			markdown,
-			bash,
-			python,
-			rust,
-			sql,
-			katexMainModule,
-		]) => {
-			hljs = hljsModule.default;
-			hljs.registerLanguage('javascript', javascript.default);
-			hljs.registerLanguage('typescript', typescript.default);
-			hljs.registerLanguage('json', json.default);
-			hljs.registerLanguage('html', xml.default);
-			hljs.registerLanguage('xml', xml.default);
-			hljs.registerLanguage('css', css.default);
-			hljs.registerLanguage('markdown', markdown.default);
-			hljs.registerLanguage('bash', bash.default);
-			hljs.registerLanguage('shell', bash.default);
-			hljs.registerLanguage('python', python.default);
-			hljs.registerLanguage('rust', rust.default);
-			hljs.registerLanguage('sql', sql.default);
-			
-			katex = katexMainModule.default;
-			// some extensions bind to window.katex
-			(window as any).katex = katex;
-			
-			// @ts-ignore
-			const [autoRenderModule] = await Promise.all([
-				import('katex/dist/contrib/auto-render.js'),
-				import('katex/dist/contrib/mhchem.js'),
-				import('katex/dist/contrib/copy-tex.js')
-			]);
-			
-			renderMathInElement = autoRenderModule.default;
-		});
+			// Defer loading of highlight.js and KaTeX until needed by the content.
 
 		let unlisteners: (() => void)[] = [];
 
-		invoke('show_window').catch(console.error);
+		tauriCommands.showWindow().catch(console.error);
 
 		const init = async () => {
-			const appMode = (await invoke('get_app_mode')) as any;
+			const appMode = await tauriCommands.getAppMode();
 
-			if (settings.restoreStateOnReopen) {
-				const savedData = localStorage.getItem('savedTabsData');
-				if (savedData) {
-					tabManager.restoreState(savedData);
-					for (const tab of tabManager.tabs) {
-						if (!tab.content && tab.rawContent) {
-							invoke('render_markdown', { content: tab.rawContent })
-								.then((html) => {
-									const processed = processMarkdownHtml(html as string, tab.path, collapsedHeaders);
-									tabManager.updateTabContent(tab.id, processed);
-									if (tabManager.activeTabId === tab.id) {
-										tick().then(renderRichContent);
-									}
-								})
-								.catch(console.error);
-						}
+			const restoredSession = restoreWindowSession(
+				settings.restoreStateOnReopen,
+				localStorage,
+				(value) => tabManager.restoreState(value),
+			);
+			if (restoredSession) {
+				for (const tab of tabManager.tabs) {
+					if (!tab.content && tab.rawContent) {
+						tauriCommands.renderMarkdown(tab.rawContent)
+							.then((html) => {
+								const processed = processMarkdownHtml(html, tab.path, collapsedHeaders);
+								tabManager.updateTabContent(tab.id, processed);
+								if (tabManager.activeTabId === tab.id) {
+									tick().then(renderRichContent);
+								}
+							})
+							.catch(console.error);
 					}
 				}
 			}
@@ -2242,34 +2356,8 @@ import { t } from './utils/i18n.js';
 				}),
 			);
 			unlisteners.push(
-				await listen('file-changed', async () => {
-					if (!liveMode || !currentFile) return;
-					// Skip events caused by our own auto-save / save invocations,
-					// otherwise the reload would clobber any keystrokes that landed
-					// between fs::write and this listener firing.
-					const until = selfWriteUntilByPath.get(currentFile);
-					if (until !== undefined) {
-						if (Date.now() < until) return;
-						selfWriteUntilByPath.delete(currentFile);
-					}
-					const tab = tabManager.activeTab;
-					if (tab?.isDirty) {
-						try {
-							const externalContent = await tauriCommands.readFile(currentFile);
-							if (externalContent !== tab.originalContent) {
-								externalConflict = {
-									path: currentFile,
-									content: externalContent,
-								};
-								saveStatus = 'conflict';
-								return;
-							}
-						} catch (error) {
-							console.error('Failed to inspect external file change', error);
-							return;
-						}
-					}
-					await loadMarkdown(currentFile);
+				await listen<string>('file-changed', async (event) => {
+					await handleExternalFileChange(event.payload);
 				}),
 			);
 
@@ -2300,11 +2388,9 @@ import { t } from './utils/i18n.js';
 						const oldPath = tab.path;
 						const newPath = oldPath.replace(/[/\\][^/\\]+$/, (m) => m.charAt(0) + newName);
 						try {
-							await invoke('rename_file', { oldPath, newPath });
+							await tauriCommands.renameFile(oldPath, newPath);
 							tabManager.renameTab(tabId, newPath);
-							// Update recent files if needed
-							recentFiles = recentFiles.map((f) => (f === oldPath ? newPath : f));
-							localStorage.setItem('recent-files', JSON.stringify(recentFiles));
+							recentFiles = recentFilesStore.rename(oldPath, newPath);
 						} catch (e) {
 							console.error('Failed to rename file', e);
 							await askCustom(`Failed to rename file: ${e}`, { title: 'Error', kind: 'error' });
@@ -2330,19 +2416,19 @@ import { t } from './utils/i18n.js';
 				}),
 			);
 			unlisteners.push(
-				await listen('menu-tab-close-others', (event) => {
+				await listen('menu-tab-close-others', async (event) => {
 					const tabId = event.payload as string;
 					const tabsToClose = tabManager.tabs.filter((t) => t.id !== tabId).map((t) => t.id);
-					tabsToClose.forEach((id) => tabManager.closeTab(id));
+					await closeTabBatch(tabsToClose);
 				}),
 			);
 			unlisteners.push(
-				await listen('menu-tab-close-right', (event) => {
+				await listen('menu-tab-close-right', async (event) => {
 					const tabId = event.payload as string;
 					const index = tabManager.tabs.findIndex((t) => t.id === tabId);
 					if (index !== -1) {
 						const tabsToClose = tabManager.tabs.slice(index + 1).map((t) => t.id);
-						tabsToClose.forEach((id) => tabManager.closeTab(id));
+						await closeTabBatch(tabsToClose);
 					}
 				}),
 			);
@@ -2359,8 +2445,8 @@ import { t } from './utils/i18n.js';
 				if (isEditing || tabManager.activeTab?.isSplit) saveContent();
 			}));
 			unlisteners.push(await listen('menu-file-save-as',     () => saveContentAs()));
-			unlisteners.push(await listen('menu-file-export-html', () => exportAsHtml()));
-			unlisteners.push(await listen('menu-file-export-pdf', () => exportAsPdf()));
+			unlisteners.push(await listen('menu-file-export-html', () => openExportPreview()));
+			unlisteners.push(await listen('menu-file-export-pdf', () => openExportPreview()));
 			unlisteners.push(
 				await appWindow.onCloseRequested(async (event) => {
 					console.log('onCloseRequested triggered');
@@ -2373,23 +2459,22 @@ import { t } from './utils/i18n.js';
 					// confirmBeforeSave off would silently put unsaved edits
 					// in localStorage only and never persist them to file.
 					if (settings.autoSave && !settings.confirmBeforeSave) {
-						const dirtyWithPath = tabManager.tabs.filter(
-							(t) => t.isDirty && t.path !== '',
-						);
-						for (const tab of dirtyWithPath) {
-							cancelPendingAutoSave(tab.id);
-							try {
-								await saveContent(tab.id);
-							} catch (e) {
-								console.error('Flush-on-close save failed for tab', tab.id, e);
-							}
-						}
+						await flushDirtyFileTabs(tabManager.tabs, {
+							save: saveContent,
+							cancelPending: cancelPendingAutoSave,
+							onError: (tabId, error) => {
+								console.error('Flush-on-close save failed for tab', tabId, error);
+							},
+						});
 					}
 
 					if (settings.restoreStateOnReopen) {
 						try {
-							const stateStr = tabManager.serializeState();
-							localStorage.setItem('savedTabsData', stateStr);
+							persistWindowSession(
+								true,
+								localStorage,
+								() => tabManager.serializeState(),
+							);
 						} catch (e) {
 							console.error('Failed to save state on close:', e);
 						}
@@ -2413,12 +2498,10 @@ import { t } from './utils/i18n.js';
 					const tabsWithPath = dirtyTabs.filter((t) => t.path !== '');
 					const hasUntitled = dirtyTabs.some((t) => t.path === '');
 					if (!hasUntitled) {
-						let allOk = true;
-						for (const tab of tabsWithPath) {
-							cancelPendingAutoSave(tab.id);
-							const ok = await saveContent(tab.id);
-							if (!ok) { allOk = false; break; }
-						}
+						const allOk = await saveTabsSequentially(tabsWithPath, {
+							beforeSave: cancelPendingAutoSave,
+							save: saveContent,
+						});
 						if (allOk) {
 							appWindow.close();
 							return;
@@ -2436,15 +2519,15 @@ import { t } from './utils/i18n.js';
 				});
 
 						if (response === 'save') {
-							// Attempt to save all dirty tabs
-							for (const tab of dirtyTabs) {
-								tabManager.setActive(tab.id);
-								await tick();
-								cancelPendingAutoSave(tab.id);
-								const saved = await saveContent(tab.id);
-								if (!saved) return; // Cancelled or failed
-							}
-							// If all saved successfully, close the app
+							const saved = await saveTabsSequentially(dirtyTabs, {
+								beforeSave: async (tabId) => {
+									tabManager.setActive(tabId);
+									await tick();
+									cancelPendingAutoSave(tabId);
+								},
+								save: saveContent,
+							});
+							if (!saved) return;
 							appWindow.close();
 						} else if (response === 'discard') {
 							// Force close by removing this listener or skipping check?
@@ -2520,7 +2603,7 @@ import { t } from './utils/i18n.js';
 			);
 
 			try {
-				const args: string[] = await invoke('send_markdown_path');
+				const args = await tauriCommands.getStartupFiles();
 				if (args?.length > 0) {
 					await loadMarkdown(args[0]);
 				}
@@ -2536,6 +2619,7 @@ import { t } from './utils/i18n.js';
 		return () => {
 			window.clearInterval(recoveryInterval);
 			persistRecoverySnapshots();
+			void fileWatcher.sync([]);
 			unlisteners.forEach((u) => u());
 		};
 	});
@@ -2562,8 +2646,8 @@ import { t } from './utils/i18n.js';
 		onopenFile={selectFile}
 		onsaveFile={saveContent}
 		onsaveFileAs={saveContentAs}
-		onexportHtml={exportAsHtml}
-		onexportPdf={exportAsPdf}
+		onexportHtml={openExportPreview}
+		onexportPdf={openExportPreview}
 		onexit={appExit}
 		ontoggleHome={toggleHome}
 		onopenFileLocation={openFileLocation}
@@ -2598,8 +2682,8 @@ import { t } from './utils/i18n.js';
 		onopenFile={selectFile}
 		onsaveFile={saveContent}
 		onsaveFileAs={saveContentAs}
-		onexportHtml={exportAsHtml}
-		onexportPdf={exportAsPdf}
+		onexportHtml={openExportPreview}
+		onexportPdf={openExportPreview}
 		onexit={appExit}
 		ontoggleHome={toggleHome}
 		onopenFileLocation={openFileLocation}
@@ -2621,6 +2705,13 @@ import { t } from './utils/i18n.js';
 		show={showCommandPalette}
 		items={commandPaletteItems}
 		onclose={() => (showCommandPalette = false)} />
+
+	<ExportPreviewModal
+		bind:open={showExportPreview}
+		htmlContent={exportPreviewContent}
+		tabTitle={exportPreviewTitle}
+		tabPath={exportPreviewPath}
+		language={settings.language} />
 
 	<RecoveryDialog
 		show={showRecovery}
@@ -2645,7 +2736,7 @@ import { t } from './utils/i18n.js';
 	{#if tabManager.activeTab && (tabManager.activeTab.path !== '' || tabManager.activeTab.title !== 'Recents') && !showHome}
 			<div
 				class="markdown-container"
-				style="zoom: {zoomLevel / 100}; --code-font: {settings.codeFont}, monospace; --code-font-size: {settings.codeFontSize}px; --highlight-color: {highlightColorMap[settings.highlightColor] || highlightColorMap.yellow};"
+				style="zoom: {zoomLevel / 100}; --code-font: {settings.previewFont}, monospace; --code-font-size: {Math.max(10, settings.previewFontSize - 1)}px; --highlight-color: {highlightColorMap[settings.highlightColor] || highlightColorMap.yellow};"
 				onwheel={handleWheel}
 				role="presentation">
 				<div class="layout-container" 
@@ -2656,6 +2747,16 @@ import { t } from './utils/i18n.js';
 					class:toc-on-right={settings.tocSide === 'right'}>
 					{#if !showHome}
 						<div class="toc-rail" class:on-right={settings.tocSide === 'right'}>
+							<button
+								class="toc-rail-button"
+								onclick={() => (showHome = true)}>
+								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<path d="M3 10.5L12 3l9 7.5"></path>
+									<path d="M5 10v10h14V10"></path>
+									<path d="M9 20v-6h6v6"></path>
+								</svg>
+								<span class="visually-hidden">{t('common.home', settings.language)}</span>
+							</button>
 							<button
 								class="toc-rail-button"
 								class:active={findOpen}
@@ -2672,36 +2773,20 @@ import { t } from './utils/i18n.js';
 									class="toc-rail-button"
 									class:active={settings.showToc}
 									onclick={() => settings.toggleToc()}>
-									{#if settings.showToc}
-										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-											<polyline points="15 18 9 12 15 6"></polyline>
-										</svg>
-									{:else if settings.tocSide === 'left'}
-										<svg width="16" height="16" viewBox="0 0 100 90" fill="none" aria-hidden="true">
-											<path d="M10 0C4.485 0 0 4.485 0 10V80C0 85.515 4.485 90 10 90H90C95.515 90 100 85.515 100 80V10C100 4.485 95.515 0 90 0H10ZM45 80H10V10H45V80ZM80 40C82.7614 40 85 42.2386 85 45C85 47.7614 82.7614 50 80 50H65C62.2386 50 60 47.7614 60 45C60 42.2386 62.2386 40 65 40H80ZM80 20C82.7614 20 85 22.2386 85 25C85 27.7614 82.7614 30 80 30H65C62.2386 30 60 27.7614 60 25C60 22.2386 62.2386 20 65 20H80Z" fill="currentColor"/>
-										</svg>
-									{:else}
-										<svg width="16" height="16" viewBox="0 0 100 90" fill="none" aria-hidden="true">
-											<path d="M90 0C95.515 0 100 4.485 100 10V80C100 85.515 95.515 90 90 90H10C4.485 90 0 85.515 0 80V10C0 4.485 4.485 0 10 0H90ZM55 80H90V10H55V80ZM20 40C17.2386 40 15 42.2386 15 45C15 47.7614 17.2386 50 20 50H35C37.7614 50 40 47.7614 40 45C40 42.2386 37.7614 40 35 40H20ZM20 20C17.2386 20 15 22.2386 15 25C15 27.7614 17.2386 30 20 30H35C37.7614 30 40 27.7614 40 25C40 22.2386 37.7614 20 35 20H20Z" fill="currentColor"/>
-										</svg>
-									{/if}
+									<svg width="16" height="16" viewBox="0 0 100 90" fill="none" aria-hidden="true">
+										<path d="M10 0C4.485 0 0 4.485 0 10V80C0 85.515 4.485 90 10 90H90C95.515 90 100 85.515 100 80V10C100 4.485 95.515 0 90 0H10ZM45 80H10V10H45V80ZM80 40C82.7614 40 85 42.2386 85 45C85 47.7614 82.7614 50 80 50H65C62.2386 50 60 47.7614 60 45C60 42.2386 62.2386 40 65 40H80ZM80 20C82.7614 20 85 22.2386 85 25C85 27.7614 82.7614 30 80 30H65C62.2386 30 60 27.7614 60 25C60 22.2386 62.2386 20 65 20H80Z" fill="currentColor"/>
+									</svg>
 									<span class="visually-hidden">{t('tooltip.showTableOfContents', settings.language)}</span>
 								</button>
-							{/if}
-							{#if !isPlainText}
 								<button
 									class="toc-rail-button"
-									class:active={settings.lineNumbers === 'on'}
-									onclick={() => settings.toggleLineNumbers()}>
-									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-										<line x1="10" y1="6" x2="21" y2="6"></line>
-										<line x1="10" y1="12" x2="21" y2="12"></line>
-										<line x1="10" y1="18" x2="21" y2="18"></line>
-										<path d="M4 6h1v4"></path>
-										<path d="M4 10h2"></path>
-										<path d="M6 18H4c0-2 2-2 2-4 0-1.1-.9-2-2-2"></path>
+									class:active={settings.showMarkdownToolbar}
+									onclick={() => settings.toggleMarkdownToolbar()}>
+									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+										<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"></circle>
+										<circle cx="12" cy="12" r="3.2" fill="currentColor"></circle>
 									</svg>
-									<span class="visually-hidden">{t('settings.lineNumbers', settings.language)}</span>
+									<span class="visually-hidden">{t('settings.markdownToolbar', settings.language)}</span>
 								</button>
 							{/if}
 						</div>
@@ -2719,6 +2804,7 @@ import { t } from './utils/i18n.js';
 										plainTextMode={isPlainText}
 										{theme}
 										onsave={saveContent}
+										ontoast={addToast}
 										bind:zoomLevel
 										onnew={handleNewFile}
 										onopen={selectFile}
@@ -2786,7 +2872,7 @@ import { t } from './utils/i18n.js';
 										onBeforeJump={pushScrollHistory} 
 										{collapsedHeaders} 
 										ontoggleFold={toggleFold} 
-										oncopyref={(text: string) => { const tab = tabManager.activeTab; const fn = tab?.path ? tab.path.split(/[/\\]/).pop()?.replace(/\.[^.]+$/, '') || '' : ''; invoke('clipboard_write_text', { text: fn ? `[[${fn}#${text}]]` : `#${text}` }); }}
+										oncopyref={(text: string) => { const tab = tabManager.activeTab; const fn = tab?.path ? tab.path.split(/[/\\]/).pop()?.replace(/\.[^.]+$/, '') || '' : ''; tauriCommands.writeClipboardText(fn ? `[[${fn}#${text}]]` : `#${text}`); }}
 										onjump={(id: string, text: string) => {
 											if (isEditing && editorPane) {
 												editorPane.revealHeader(text);
@@ -2803,7 +2889,7 @@ import { t } from './utils/i18n.js';
 														onClick: () => {
 															const tab = tabManager.activeTab;
 															const fn = tab?.path ? tab.path.split(/[/\\]/).pop()?.replace(/\.[^.]+$/, '') || '' : '';
-															invoke('clipboard_write_text', { text: fn ? `[[${fn}#${item.text}]]` : `#${item.text}` });
+															tauriCommands.writeClipboardText(fn ? `[[${fn}#${item.text}]]` : `#${item.text}`);
 															docContextMenu.show = false;
 														} 
 													}
@@ -3432,13 +3518,15 @@ import { t } from './utils/i18n.js';
 	}
 
 	.editor-surface {
+		display: flex;
 		flex: 1;
 		min-width: 0;
 		min-height: 0;
+		height: 100%;
 	}
 
 	.toc-rail {
-		width: 40px;
+		width: 48px;
 		position: absolute;
 		top: 36px;
 		bottom: 0;
@@ -3448,7 +3536,7 @@ import { t } from './utils/i18n.js';
 		flex-direction: column;
 		align-items: flex-start;
 		gap: 4px;
-		padding-top: 8px;
+		padding: 8px 0 0 7px;
 		justify-content: flex-start;
 		background: linear-gradient(to right, color-mix(in srgb, var(--color-canvas-default) 96%, transparent), color-mix(in srgb, var(--color-canvas-default) 84%, transparent));
 		border-right: 1px solid var(--color-border-muted);
@@ -3458,6 +3546,8 @@ import { t } from './utils/i18n.js';
 	.toc-rail.on-right {
 		left: auto;
 		right: 0;
+		align-items: flex-end;
+		padding: 8px 7px 0 0;
 		background: linear-gradient(to left, color-mix(in srgb, var(--color-canvas-default) 96%, transparent), color-mix(in srgb, var(--color-canvas-default) 84%, transparent));
 		border-right: none;
 		border-left: 1px solid var(--color-border-muted);
@@ -3488,12 +3578,19 @@ import { t } from './utils/i18n.js';
 		height: 16px;
 	}
 
-	.toc-rail-button:hover,
-	.toc-rail-button.active {
+	.toc-rail-button:hover {
 		opacity: 1;
 		background-color: var(--color-canvas-subtle);
 		color: var(--color-fg-default);
 		border-color: var(--color-border-muted);
+	}
+
+	.toc-rail-button.active {
+		opacity: 1;
+		background: color-mix(in srgb, var(--color-accent-fg) 14%, transparent);
+		color: var(--color-accent-fg);
+		border-color: color-mix(in srgb, var(--color-accent-fg) 42%, transparent);
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent-fg) 18%, transparent);
 	}
 
 	.toc-rail-button:disabled {

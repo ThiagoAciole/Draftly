@@ -97,37 +97,32 @@ function detectSystemLanguage(): LanguageCode {
 export interface DefaultFonts {
 	editorFont: string;
 	previewFont: string;
-	codeFont: string;
 }
 
 export const DEFAULT_FONTS: Record<OSType, DefaultFonts> = {
 	macos: {
 		editorFont: 'Menlo',
 		previewFont: 'Helvetica Neue',
-		codeFont: 'Menlo',
 	},
 	windows: {
 		editorFont: 'Consolas',
 		previewFont: 'Segoe UI',
-		codeFont: 'Consolas',
 	},
 	linux: {
 		editorFont: 'Monospace',
 		previewFont: 'system-ui',
-		codeFont: 'Monospace',
 	},
 	unknown: {
 		editorFont: 'Consolas',
 		previewFont: 'Segoe UI',
-		codeFont: 'Consolas',
 	},
 };
 
 export class SettingsStore {
 	minimap = $state(false);
 	wordWrap = $state('on');
+	textWordWrap = $state('on');
 	lineNumbers = $state('on');
-	vimMode = $state(false);
 	statusBar = $state(true);
 	wordCount = $state(false);
 	renderLineHighlight = $state('line');
@@ -135,11 +130,13 @@ export class SettingsStore {
 	showTabs = $state(true);
 	restoreStateOnReopen = $state(true);
 	showToc = $state(false);
+	showMarkdownToolbar = $state(true);
 	occurrencesHighlight = $state(false);
 	showWhitespace = $state(false);
 	startInEditor = $state(false);
 	showRecentFiles = $state(true);
 	editorMaxWidth = $state(80);
+	textMaxWidth = $state(120);
 	tocSide = $state<'left' | 'right'>('left');
 	osType = $state<OSType>('unknown');
 	imageDirectory = $state('img');
@@ -150,8 +147,6 @@ export class SettingsStore {
 	editorFontSize = $state(14);
 	previewFont = $state('Segoe UI');
 	previewFontSize = $state(16);
-	codeFont = $state('Consolas');
-	codeFontSize = $state(14);
 
 	// File-save behavior. autoSave = silently persist edits without Cmd+S.
 	// confirmBeforeSave = if true, keep the unsaved-changes modals on close/toggle
@@ -163,8 +158,8 @@ export class SettingsStore {
 		if (typeof localStorage !== 'undefined') {
 			const savedMinimap = localStorage.getItem('editor.minimap');
 			const savedWordWrap = localStorage.getItem('editor.wordWrap');
+			const savedTextWordWrap = localStorage.getItem('editor.textWordWrap');
 			const savedLineNumbers = localStorage.getItem('editor.lineNumbers');
-			const savedVimMode = localStorage.getItem('editor.vimMode');
 			const savedStatusBar = localStorage.getItem('editor.statusBar');
 
 			const savedWordCount = localStorage.getItem('editor.wordCount');
@@ -174,10 +169,12 @@ export class SettingsStore {
 			const savedOccurrencesHighlight = localStorage.getItem('editor.occurrencesHighlight');
 			const savedShowWhitespace = localStorage.getItem('editor.showWhitespace');
 			const savedShowToc = localStorage.getItem('editor.showToc');
+			const savedShowMarkdownToolbar = localStorage.getItem('editor.showMarkdownToolbar');
 			const savedHighlightColor = localStorage.getItem('editor.highlightColor');
 			const savedStartInEditor = localStorage.getItem('editor.startInEditor');
 			const savedShowRecentFiles = localStorage.getItem('editor.showRecentFiles');
 			const savedEditorMaxWidth = localStorage.getItem('editor.maxWidth');
+			const savedTextMaxWidth = localStorage.getItem('editor.textMaxWidth');
 			const savedTocSide = localStorage.getItem('editor.tocSide');
 			const savedImageDirectory = localStorage.getItem('editor.imageDirectory');
 			const savedMacosImageScaling = localStorage.getItem('editor.macosImageScaling');
@@ -187,8 +184,8 @@ export class SettingsStore {
 			const savedEditorFontSize = localStorage.getItem('editor.fontSize');
 			const savedPreviewFont = localStorage.getItem('preview.font');
 			const savedPreviewFontSize = localStorage.getItem('preview.fontSize');
-			const savedCodeFont = localStorage.getItem('preview.codeFont');
-			const savedCodeFontSize = localStorage.getItem('preview.codeFontSize');
+			localStorage.removeItem('preview.codeFont');
+			localStorage.removeItem('preview.codeFontSize');
 
 			const savedAutoSave = localStorage.getItem('editor.autoSave');
 			const savedConfirmBeforeSave = localStorage.getItem('editor.confirmBeforeSave');
@@ -204,8 +201,8 @@ export class SettingsStore {
 
 			if (savedMinimap !== null) this.minimap = savedMinimap === 'true';
 			if (savedWordWrap !== null) this.wordWrap = savedWordWrap;
+			if (savedTextWordWrap !== null) this.textWordWrap = savedTextWordWrap;
 			if (savedLineNumbers !== null) this.lineNumbers = savedLineNumbers;
-			if (savedVimMode !== null) this.vimMode = savedVimMode === 'true';
 			if (savedStatusBar !== null) this.statusBar = savedStatusBar === 'true';
 
 			if (savedWordCount !== null) this.wordCount = savedWordCount === 'true';
@@ -215,10 +212,12 @@ export class SettingsStore {
 			if (savedOccurrencesHighlight !== null) this.occurrencesHighlight = savedOccurrencesHighlight === 'true';
 			if (savedShowWhitespace !== null) this.showWhitespace = savedShowWhitespace === 'true';
 			if (savedShowToc !== null) this.showToc = savedShowToc === 'true';
+			if (savedShowMarkdownToolbar !== null) this.showMarkdownToolbar = savedShowMarkdownToolbar === 'true';
 			if (savedHighlightColor !== null) this.highlightColor = savedHighlightColor;
 			if (savedStartInEditor !== null) this.startInEditor = savedStartInEditor === 'true';
 			if (savedShowRecentFiles !== null) this.showRecentFiles = savedShowRecentFiles === 'true';
 			if (savedEditorMaxWidth !== null) this.editorMaxWidth = parseFontSize(savedEditorMaxWidth, 80, 20, 500);
+			if (savedTextMaxWidth !== null) this.textMaxWidth = parseFontSize(savedTextMaxWidth, 120, 20, 500);
 			if (savedTocSide !== null) this.tocSide = savedTocSide as 'left' | 'right';
 			localStorage.removeItem('editor.pinnedToc');
 			if (savedImageDirectory !== null) this.imageDirectory = savedImageDirectory;
@@ -249,20 +248,14 @@ export class SettingsStore {
 				}
 				this.previewFontSize = parseFontSize(savedPreviewFontSize, 16, 12, 28);
 
-				if (savedCodeFont !== null) {
-					this.codeFont = savedCodeFont;
-				} else {
-					this.codeFont = defaults.codeFont;
-				}
-				this.codeFontSize = parseFontSize(savedCodeFontSize, 14, 10, 24);
 			});
 
 			$effect.root(() => {
 				$effect(() => {
 					localStorage.setItem('editor.minimap', String(this.minimap));
 					localStorage.setItem('editor.wordWrap', this.wordWrap);
+					localStorage.setItem('editor.textWordWrap', this.textWordWrap);
 					localStorage.setItem('editor.lineNumbers', this.lineNumbers);
-					localStorage.setItem('editor.vimMode', String(this.vimMode));
 					localStorage.setItem('editor.statusBar', String(this.statusBar));
 
 					localStorage.setItem('editor.wordCount', String(this.wordCount));
@@ -272,10 +265,12 @@ export class SettingsStore {
 					localStorage.setItem('editor.occurrencesHighlight', String(this.occurrencesHighlight));
 					localStorage.setItem('editor.showWhitespace', String(this.showWhitespace));
 					localStorage.setItem('editor.showToc', String(this.showToc));
+					localStorage.setItem('editor.showMarkdownToolbar', String(this.showMarkdownToolbar));
 					localStorage.setItem('editor.highlightColor', this.highlightColor);
 					localStorage.setItem('editor.startInEditor', String(this.startInEditor));
 					localStorage.setItem('editor.showRecentFiles', String(this.showRecentFiles));
 					localStorage.setItem('editor.maxWidth', String(this.editorMaxWidth));
+					localStorage.setItem('editor.textMaxWidth', String(this.textMaxWidth));
 				  localStorage.setItem('editor.tocSide', this.tocSide);
 				  localStorage.setItem('editor.imageDirectory', this.imageDirectory);
 				  localStorage.setItem('editor.macosImageScaling', String(this.macosImageScaling));
@@ -284,8 +279,6 @@ export class SettingsStore {
 					localStorage.setItem('editor.fontSize', String(this.editorFontSize));
 					localStorage.setItem('preview.font', this.previewFont);
 					localStorage.setItem('preview.fontSize', String(this.previewFontSize));
-					localStorage.setItem('preview.codeFont', this.codeFont);
-					localStorage.setItem('preview.codeFontSize', String(this.codeFontSize));
 					localStorage.setItem('editor.autoSave', String(this.autoSave));
 					localStorage.setItem('editor.confirmBeforeSave', String(this.confirmBeforeSave));
 				});
@@ -307,12 +300,18 @@ export class SettingsStore {
 		}
 	}
 
-	toggleLineNumbers() {
-		this.lineNumbers = this.lineNumbers === 'on' ? 'off' : 'on';
+	toggleTextWordWrap() {
+		if (this.textWordWrap === 'off') {
+			this.textWordWrap = 'on';
+		} else if (this.textWordWrap === 'on') {
+			this.textWordWrap = 'wordWrapColumn';
+		} else {
+			this.textWordWrap = 'off';
+		}
 	}
 
-	toggleVimMode() {
-		this.vimMode = !this.vimMode;
+	toggleLineNumbers() {
+		this.lineNumbers = this.lineNumbers === 'on' ? 'off' : 'on';
 	}
 
 	toggleStatusBar() {
@@ -341,6 +340,10 @@ export class SettingsStore {
 
 	toggleToc() {
 		this.showToc = !this.showToc;
+	}
+
+	toggleMarkdownToolbar() {
+		this.showMarkdownToolbar = !this.showMarkdownToolbar;
 	}
 
 	toggleOccurrencesHighlight() {
@@ -379,6 +382,42 @@ export class SettingsStore {
 		this.editorMaxWidth = 80;
 	}
 
+	resetTextMaxWidth() {
+		this.textMaxWidth = 120;
+	}
+
+	resetAllSettings() {
+		const defaults = DEFAULT_FONTS[this.osType] || DEFAULT_FONTS.unknown;
+
+		this.minimap = false;
+		this.wordWrap = 'on';
+		this.textWordWrap = 'on';
+		this.lineNumbers = 'on';
+		this.statusBar = true;
+		this.wordCount = false;
+		this.renderLineHighlight = 'line';
+		this.highlightColor = 'yellow';
+		this.showTabs = true;
+		this.restoreStateOnReopen = true;
+		this.showToc = false;
+		this.showMarkdownToolbar = true;
+		this.occurrencesHighlight = false;
+		this.showWhitespace = false;
+		this.startInEditor = false;
+		this.showRecentFiles = true;
+		this.editorMaxWidth = 80;
+		this.textMaxWidth = 120;
+		this.tocSide = 'left';
+		this.imageDirectory = 'img';
+		this.macosImageScaling = true;
+		this.editorFont = defaults.editorFont;
+		this.editorFontSize = 14;
+		this.previewFont = defaults.previewFont;
+		this.previewFontSize = 16;
+		this.autoSave = true;
+		this.confirmBeforeSave = false;
+	}
+
 	async initOSType() {
 		try {
 			const osType = await invoke<string>('get_os_type');
@@ -399,8 +438,6 @@ export class SettingsStore {
 		const defaults = DEFAULT_FONTS[this.osType];
 		this.previewFont = defaults.previewFont;
 		this.previewFontSize = 16;
-		this.codeFont = defaults.codeFont;
-		this.codeFontSize = 14;
 	}
 }
 

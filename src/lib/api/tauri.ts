@@ -58,7 +58,8 @@ export const tauriCommands = {
 	renderMarkdown: (content: string) => command<string>('render_markdown', { content }),
 
 	watchFile: (path: string) => command<void>('watch_file', { path }),
-	unwatchFile: () => command<void>('unwatch_file'),
+	unwatchFile: (path?: string) =>
+		command<void>('unwatch_file', path === undefined ? undefined : { path }),
 
 	writeClipboardText: (text: string) =>
 		command<void>('clipboard_write_text', { text }),

@@ -1,6 +1,7 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import DOMPurify from "dompurify";
 import { getLanguage } from "../files/file-types.js";
+import { resolveMarkdownTarget } from "./markdown-navigation.js";
 
 export const highlightColorMap: Record<string, string> = {
 	default: "color-mix(in srgb, var(--color-accent-fg) 40%, transparent)",
@@ -27,18 +28,7 @@ const alertIcons: Record<string, string> = {
 	example: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-list"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>',
 };
 
-export function resolvePath(basePath: string, relativePath: string): string {
-	if (relativePath.match(/^[a-zA-Z]:/) || relativePath.startsWith("/"))
-		return relativePath;
-	const parts = basePath.split(/[/\\]/);
-	parts.pop();
-	for (const p of relativePath.split(/[/\\]/)) {
-		if (p === ".") continue;
-		if (p === "..") parts.pop();
-		else parts.push(p);
-	}
-	return parts.join("/");
-}
+export const resolvePath = resolveMarkdownTarget;
 
 export function isYoutubeLink(url: string): boolean {
 	return url.includes("youtube.com/watch") || url.includes("youtu.be/");
@@ -731,7 +721,7 @@ export async function renderRichContent(
 	renderMathInElement: any,
 	mermaid: any,
 	theme: string,
-	invoke: (cmd: string, args?: any) => Promise<any>,
+	writeClipboardText: (text: string) => Promise<void>,
 ) {
 	if (!hljs || !renderMathInElement || !mermaid) return;
 
@@ -808,7 +798,7 @@ export async function renderRichContent(
 
 			const copyCode = () => {
 				const codeToCopy = codeContent.replace(/\n$/, "");
-				invoke("clipboard_write_text", { text: codeToCopy })
+				writeClipboardText(codeToCopy)
 					.then(() => {
 						const originalContent = label.innerHTML;
 						label.innerHTML = "Copied!";

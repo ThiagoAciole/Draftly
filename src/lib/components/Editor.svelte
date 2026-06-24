@@ -5,6 +5,7 @@
 	import { settings } from "../stores/settings.svelte.js";
 	import { t } from '../utils/i18n.js';
 	import type { MarkdownToolbarAction } from '../utils/markdown-toolbar.js';
+	import { jsonUtils } from '../utils/json.js';
 
 	import * as monaco from "monaco-editor/esm/vs/editor/editor.api.js";
 	import editorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
@@ -41,6 +42,7 @@
 		onprevTab,
 		onundoClose,
 		onscrollsync,
+		ontoast,
 		zoomLevel = $bindable(100),
 		theme = "system",
 		plainTextMode = false,
@@ -60,20 +62,26 @@
 		onprevTab?: () => void;
 		onundoClose?: () => void;
 		onscrollsync?: (line: number, ratio?: number) => void;
+		ontoast?: (message: string, type: 'info' | 'error' | 'warning') => void;
 		zoomLevel?: number;
 		isSplit?: boolean;
 		theme?: string;
 		plainTextMode?: boolean;
 	}>();
 
+	let isMarkdownLanguage = $derived(language === "markdown");
+	let isTextLanguage = $derived(plainTextMode || language === "plaintext");
+	let isCodeLikeLanguage = $derived(!plainTextMode && !isMarkdownLanguage && language !== "plaintext");
+	let effectiveMinimap = $derived(isCodeLikeLanguage && settings.minimap);
+	let effectiveWordWrap = $derived(isMarkdownLanguage ? settings.wordWrap : isTextLanguage ? settings.textWordWrap : "off");
+	let effectiveWordWrapColumn = $derived(isTextLanguage ? settings.textMaxWidth : settings.editorMaxWidth);
+	let effectiveRenderWhitespace = $derived(isCodeLikeLanguage && settings.showWhitespace ? "trailing" as const : "none" as const);
 	let effectiveLineNumbers = $derived(plainTextMode ? "off" : settings.lineNumbers);
 	let effectiveFontFamily = $derived(plainTextMode ? settings.previewFont : settings.editorFont);
 
 	let container: HTMLDivElement;
-	let vimStatusNode = $state<HTMLDivElement>();
 	let editor: monaco.editor.IStandaloneCodeEditor;
 	let isApplyingExternalScroll = false;
-	let disposeVimMode: (() => void) | null = null;
 	const managedImages: {
 		embed: string;
 		filename: string;
@@ -87,6 +95,72 @@
 	let currentLanguage = $state("markdown");
 	let currentTabId = tabManager.activeTabId;
 	let uiLanguage = $state(settings.language);
+	let jsonValidationTimer: number | undefined;
+	let lastJsonValidationMessage = $state('');
+
+function clearJsonValidationMarkers(model?: monaco.editor.ITextModel | null) {
+	const target = model || editor?.getModel();
+	if (!target) return;
+	monaco.editor.setModelMarkers(target, 'jsonValidation', []);
+}
+
+function scheduleJsonValidation() {
+	const model = editor?.getModel();
+	if (!model || model.getLanguageId() !== 'json') {
+		clearJsonValidationMarkers(model);
+		lastJsonValidationMessage = '';
+		return;
+	}
+
+	if (jsonValidationTimer) {
+		clearTimeout(jsonValidationTimer);
+	}
+
+	jsonValidationTimer = window.setTimeout(async () => {
+		const content = model.getValue();
+		if (!content.trim()) {
+			clearJsonValidationMarkers(model);
+			lastJsonValidationMessage = '';
+			return;
+		}
+
+		try {
+			const result = await jsonUtils.validate(content);
+			if (result.valid) {
+				clearJsonValidationMarkers(model);
+				lastJsonValidationMessage = '';
+				return;
+			}
+
+			const error = result.error;
+			if (!error) {
+				clearJsonValidationMarkers(model);
+				lastJsonValidationMessage = '';
+				return;
+			}
+
+			const line = Math.max(1, error.line);
+			const column = Math.max(1, error.column);
+			const marker: monaco.editor.IMarkerData = {
+				severity: monaco.MarkerSeverity.Error,
+				message: error.message,
+				startLineNumber: line,
+				startColumn: column,
+				endLineNumber: line,
+				endColumn: Math.min(column + 1, model.getLineMaxColumn(line)),
+			};
+			monaco.editor.setModelMarkers(model, 'jsonValidation', [marker]);
+			const message = `JSON: ${error.message} (line ${line}, col ${column})`;
+			if (message !== lastJsonValidationMessage) {
+				ontoast?.(message, 'error');
+				lastJsonValidationMessage = message;
+			}
+		} catch (validationError) {
+			clearJsonValidationMarkers(model);
+			ontoast?.(`JSON validation failed: ${String(validationError)}`, 'error');
+		}
+	}, 500);
+}
 
 	function applyMarkdownToolbarAction(action: MarkdownToolbarAction) {
 		if (!editor) return;
@@ -273,6 +347,10 @@
 
 		editor.pushUndoStop();
 		editor.focus();
+
+		if (editor.getModel()?.getLanguageId() === 'json') {
+			scheduleJsonValidation();
+		}
 	}
 
 	$effect(() => {
@@ -348,14 +426,14 @@
 			theme: getTheme(),
 			dragAndDrop: true,
 			automaticLayout: true,
-			minimap: { enabled: settings.minimap },
+			minimap: { enabled: effectiveMinimap },
 			scrollBeyondLastLine: true,
-			wordWrap: settings.wordWrap as
+			wordWrap: effectiveWordWrap as
 				| "on"
 				| "off"
 				| "wordWrapColumn"
 				| "bounded",
-			wordWrapColumn: settings.editorMaxWidth,
+			wordWrapColumn: effectiveWordWrapColumn,
 			lineNumbers: effectiveLineNumbers as
 				| "on"
 				| "off"
@@ -372,7 +450,7 @@
 			fontFamily: effectiveFontFamily,
 			wordBasedSuggestions: "off",
 			quickSuggestions: false,
-			renderWhitespace: settings.showWhitespace ? "trailing" : "none",
+			renderWhitespace: effectiveRenderWhitespace,
 			padding: { top: 20 },
 			scrollbar: {
 				vertical: "visible",
@@ -437,14 +515,6 @@
 		});
 
 		editor.addAction({
-			id: "toggle-vim-mode",
-			label: t('settings.vimMode', uiLanguage),
-			run: () => {
-				settings.toggleVimMode();
-			},
-		});
-
-		editor.addAction({
 			id: "toggle-status-bar",
 			label: t('settings.statusBar', uiLanguage),
 			run: () => {
@@ -498,15 +568,15 @@
 		$effect(() => {
 			if (editor) {
 				editor.updateOptions({
-					minimap: { enabled: settings.minimap },
-					wordWrap: settings.wordWrap as any,
-					wordWrapColumn: settings.editorMaxWidth,
+					minimap: { enabled: effectiveMinimap },
+					wordWrap: effectiveWordWrap as any,
+					wordWrapColumn: effectiveWordWrapColumn,
 					lineNumbers: effectiveLineNumbers as any,
 					renderLineHighlight: settings.renderLineHighlight as any,
 					occurrencesHighlight: settings.occurrencesHighlight ? "singleFile" : "off",
 					fontSize: settings.editorFontSize,
 					fontFamily: effectiveFontFamily,
-					renderWhitespace: settings.showWhitespace ? "trailing" : "none",
+					renderWhitespace: effectiveRenderWhitespace,
 				});
 			}
 		});
@@ -766,6 +836,45 @@
 			},
 		});
 
+		// JSON utilities
+		editor.addAction({
+			id: "json-format",
+			label: "Format JSON",
+			keybindings: [monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyF],
+			contextMenuOrder: 1,
+			contextMenuGroupId: "1_modification",
+			precondition: "editorLangId == json",
+			run: async () => {
+				const content = editor.getValue();
+				try {
+					const formatted = await jsonUtils.format(content);
+					editor.setValue(formatted);
+					ontoast?.("JSON formatted", "info");
+				} catch (e) {
+					ontoast?.(String(e), "error");
+				}
+			},
+		});
+
+		editor.addAction({
+			id: "json-minify",
+			label: "Minify JSON",
+			keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyM],
+			contextMenuOrder: 2,
+			contextMenuGroupId: "1_modification",
+			precondition: "editorLangId == json",
+			run: async () => {
+				const content = editor.getValue();
+				try {
+					const minified = await jsonUtils.minify(content);
+					editor.setValue(minified);
+					ontoast?.("JSON minified", "info");
+				} catch (e) {
+					ontoast?.(String(e), "error");
+				}
+			},
+		});
+
 		const wheelListener = (e: WheelEvent) => {
 			if (e.ctrlKey || e.metaKey) {
 				e.preventDefault();
@@ -786,15 +895,17 @@
 				const last = managedImages[managedImages.length - 1];
 				if (!currentContent.includes(last.embed)) {
 					managedImages.pop();
-						const imgDirName = settings.imageDirectory || "img";
-						const imgPath = `${last.parentDir}/${imgDirName}/${last.filename}`;
-						tauriCommands.deleteFile(imgPath)
-							.then(() => {
-								tauriCommands.cleanupEmptyImageDirectory(last.parentDir, imgDirName);
-							})
-							.catch(console.error);
+					const imgDirName = settings.imageDirectory || "img";
+					const imgPath = `${last.parentDir}/${imgDirName}/${last.filename}`;
+					tauriCommands.deleteFile(imgPath)
+						.then(() => {
+							tauriCommands.cleanupEmptyImageDirectory(last.parentDir, imgDirName);
+						})
+						.catch(console.error);
 				}
 			}
+
+			scheduleJsonValidation();
 		});
 
 		const completionProvider = monaco.languages.registerCompletionItemProvider(
@@ -1021,6 +1132,9 @@
 			mediaQuery.removeEventListener("change", updateTheme);
 			container.removeEventListener("wheel", wheelListener, { capture: true });
 			contentChangeListener.dispose();
+			if (jsonValidationTimer) {
+				clearTimeout(jsonValidationTimer);
+			}
 			completionProvider.dispose();
 
 			if (editor && currentTabId) {
@@ -1134,12 +1248,13 @@
 	$effect(() => {
 		if (editor) {
 			editor.updateOptions({
-				minimap: { enabled: settings.minimap },
-				wordWrap: settings.wordWrap as
+				minimap: { enabled: effectiveMinimap },
+				wordWrap: effectiveWordWrap as
 					| "on"
 					| "off"
 					| "wordWrapColumn"
 					| "bounded",
+				wordWrapColumn: effectiveWordWrapColumn,
 				lineNumbers: effectiveLineNumbers as
 					| "on"
 					| "off"
@@ -1151,7 +1266,7 @@
 					: "off",
 				fontSize: settings.editorFontSize,
 				fontFamily: effectiveFontFamily,
-				renderWhitespace: settings.showWhitespace ? "trailing" : "none",
+				renderWhitespace: effectiveRenderWhitespace,
 			});
 		}
 	});
@@ -1163,32 +1278,6 @@
 		}
 	});
 
-	$effect(() => {
-		if (!editor || !settings.vimMode || !vimStatusNode) {
-			disposeVimMode?.();
-			disposeVimMode = null;
-			return;
-		}
-
-		let cancelled = false;
-
-		(async () => {
-			const { initVimMode } = await import('monaco-vim');
-			if (cancelled) return;
-
-			disposeVimMode?.();
-			const vim = initVimMode(editor, vimStatusNode);
-			disposeVimMode = () => vim.dispose();
-		})().catch((error) => {
-			console.error('Failed to initialize Vim mode:', error);
-		});
-
-		return () => {
-			cancelled = true;
-			disposeVimMode?.();
-			disposeVimMode = null;
-		};
-	});
 	export async function handleDroppedFile(path: string, x: number, y: number) {
 		if (!editor || !tabManager.activeTab?.path) return;
 
@@ -1327,48 +1416,44 @@
 </script>
 
 <div class="editor-outer">
-	{#if language === 'markdown'}
+	{#if language === 'markdown' && settings.showMarkdownToolbar}
 		<MarkdownToolbar onaction={applyMarkdownToolbarAction} />
 	{/if}
 	<div
 		class="editor-container"
 		bind:this={container}
 	></div>
+
+	{#if settings.statusBar}
+		<div class="status-bar">
+			<div class="status-item">
+				{t('editor.status.lineCol', settings.language).replace('{{line}}', (cursorPosition?.lineNumber ?? 1).toString()).replace('{{col}}', (cursorPosition?.column ?? 1).toString())}
+			</div>
+			{#if selectionCount > 0}
+				<div class="status-item">
+					{t('editor.status.selected', settings.language).replace('{{count}}', selectionCount.toString())}
+				</div>
+			{:else if cursorCount > 1}
+				<div class="status-item">
+					{t('editor.status.selections', settings.language).replace('{{count}}', cursorCount.toString())}
+				</div>
+			{/if}
+			{#if isMarkdownLanguage && settings.wordCount}
+				<div class="status-item">
+					{t('editor.status.words', settings.language).replace('{{count}}', wordCount.toString())}
+				</div>
+			{/if}
+			<div class="status-item">
+				{zoomLevel}%
+			</div>
+			<div class="status-item">
+				{currentLanguage}
+			</div>
+			<div class="status-item">{t('editor.status.crlf')}</div>
+			<div class="status-item">{t('editor.status.utf8')}</div>
+		</div>
+	{/if}
 </div>
-
-{#if settings.vimMode}
-	<div class="vim-status-bar" bind:this={vimStatusNode}></div>
-{/if}
-
-{#if settings.statusBar}
-	<div class="status-bar">
-		<div class="status-item">
-								{t('editor.status.lineCol', settings.language).replace('{{line}}', (cursorPosition?.lineNumber ?? 1).toString()).replace('{{col}}', (cursorPosition?.column ?? 1).toString())}
-							</div>
-		{#if selectionCount > 0}
-			<div class="status-item">
-				{t('editor.status.selected', settings.language).replace('{{count}}', selectionCount.toString())}
-			</div>
-		{:else if cursorCount > 1}
-			<div class="status-item">
-				{t('editor.status.selections', settings.language).replace('{{count}}', cursorCount.toString())}
-			</div>
-		{/if}
-		{#if settings.wordCount}
-			<div class="status-item">
-				{t('editor.status.words', settings.language).replace('{{count}}', wordCount.toString())}
-			</div>
-		{/if}
-		<div class="status-item">
-			{zoomLevel}%
-		</div>
-		<div class="status-item">
-			{currentLanguage}
-		</div>
-		<div class="status-item">{t('editor.status.crlf')}</div>
-		<div class="status-item">{t('editor.status.utf8')}</div>
-	</div>
-{/if}
 
 <style>
 	.editor-outer {
@@ -1456,18 +1541,6 @@
 			var(--color-fg-muted) 48%,
 			transparent
 		) !important;
-	}
-
-	.vim-status-bar {
-		padding: 0 10px;
-		font-family: monospace;
-		font-size: 12px;
-		background: var(--bg-tertiary);
-		border-top: 1px solid var(--color-border-muted);
-		color: var(--text-primary);
-		display: flex;
-		align-items: center;
-		min-height: 20px;
 	}
 
 	.status-bar {

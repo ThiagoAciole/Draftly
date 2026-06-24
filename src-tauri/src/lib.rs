@@ -2,6 +2,7 @@ use comrak::{markdown_to_html, ComrakExtensionOptions, ComrakOptions};
 use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 use regex::{Captures, Regex};
 use std::borrow::Cow;
+use std::collections::HashMap;
 use std::fs;
 use std::io::Write;
 use std::path::{Component, Path, PathBuf};
@@ -114,15 +115,32 @@ fn atomic_write(target: &Path, bytes: &[u8]) -> std::io::Result<()> {
 }
 
 struct WatcherState {
-    watcher: Mutex<Option<RecommendedWatcher>>,
+    watchers: Mutex<HashMap<String, RecommendedWatcher>>,
+}
+
+fn create_file_watcher<F>(path: &Path, mut on_change: F) -> Result<RecommendedWatcher, String>
+where
+    F: FnMut() + Send + 'static,
+{
+    let mut watcher = RecommendedWatcher::new(
+        move |res: Result<notify::Event, notify::Error>| {
+            if res.is_ok() {
+                on_change();
+            }
+        },
+        Config::default(),
+    )
+    .map_err(|e| e.to_string())?;
+
+    watcher
+        .watch(path, RecursiveMode::NonRecursive)
+        .map_err(|e| e.to_string())?;
+
+    Ok(watcher)
 }
 
 fn validate_file_name(value: &str) -> Result<(), String> {
-    if value.is_empty()
-        || value.contains(['/', '\\'])
-        || value == "."
-        || value == ".."
-    {
+    if value.is_empty() || value.contains(['/', '\\']) || value == "." || value == ".." {
         return Err("Invalid file name".to_string());
     }
     Ok(())
@@ -149,8 +167,7 @@ static WIKILINK_RE: LazyLock<Regex> = LazyLock::new(|| {
         .expect("valid wikilink regex")
 });
 static BLOCK_ID_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?s)```.*?```|`.*?`|(?m)\s+\^([a-zA-Z0-9_-]+)$")
-        .expect("valid block id regex")
+    Regex::new(r"(?s)```.*?```|`.*?`|(?m)\s+\^([a-zA-Z0-9_-]+)$").expect("valid block id regex")
 });
 static HIGHLIGHT_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?s)```.*?```|`.*?`|==([^=\n]+)==").expect("valid highlight regex")
@@ -309,11 +326,14 @@ async fn open_markdown(path: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-async fn open_markdown_preview(path: String, max_bytes: usize) -> Result<(String, String, bool), String> {
+async fn open_markdown_preview(
+    path: String,
+    max_bytes: usize,
+) -> Result<(String, String, bool), String> {
     tauri::async_runtime::spawn_blocking(move || {
         use std::io::Read;
         let mut f = fs::File::open(&path).map_err(|e| e.to_string())?;
-        
+
         let metadata = f.metadata().map_err(|e| e.to_string())?;
         if metadata.len() <= max_bytes as u64 {
             let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
@@ -336,11 +356,9 @@ async fn open_markdown_preview(path: String, max_bytes: usize) -> Result<(String
 
 #[tauri::command]
 async fn render_markdown(content: String) -> Result<String, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        Ok(convert_markdown(&content))
-    })
-    .await
-    .unwrap_or_else(|e| Err(e.to_string()))
+    tauri::async_runtime::spawn_blocking(move || Ok(convert_markdown(&content)))
+        .await
+        .unwrap_or_else(|e| Err(e.to_string()))
 }
 
 #[tauri::command]
@@ -374,36 +392,30 @@ fn watch_file(
     state: State<'_, WatcherState>,
     path: String,
 ) -> Result<(), String> {
-    let mut watcher_lock = state.watcher.lock().unwrap();
+    let mut watchers = state.watchers.lock().map_err(|e| e.to_string())?;
+    if watchers.contains_key(&path) {
+        return Ok(());
+    }
 
-    *watcher_lock = None;
-
-    let path_to_watch = path.clone();
+    let event_path = path.clone();
     let app_handle = handle.clone();
+    let watcher = create_file_watcher(Path::new(&path), move || {
+        let _ = app_handle.emit("file-changed", event_path.clone());
+    })?;
 
-    let mut watcher = RecommendedWatcher::new(
-        move |res: Result<notify::Event, notify::Error>| {
-            if res.is_ok() {
-                let _ = app_handle.emit("file-changed", ());
-            }
-        },
-        Config::default(),
-    )
-    .map_err(|e| e.to_string())?;
-
-    watcher
-        .watch(Path::new(&path_to_watch), RecursiveMode::NonRecursive)
-        .map_err(|e| e.to_string())?;
-
-    *watcher_lock = Some(watcher);
+    watchers.insert(path, watcher);
 
     Ok(())
 }
 
 #[tauri::command]
-fn unwatch_file(state: State<'_, WatcherState>) -> Result<(), String> {
-    let mut watcher_lock = state.watcher.lock().unwrap();
-    *watcher_lock = None;
+fn unwatch_file(state: State<'_, WatcherState>, path: Option<String>) -> Result<(), String> {
+    let mut watchers = state.watchers.lock().map_err(|e| e.to_string())?;
+    if let Some(path) = path {
+        watchers.remove(&path);
+    } else {
+        watchers.clear();
+    }
     Ok(())
 }
 
@@ -653,7 +665,6 @@ fn get_os_type() -> String {
     }
 }
 
-
 #[tauri::command]
 fn clipboard_write_text(text: String) -> Result<(), String> {
     let mut clipboard = arboard::Clipboard::new().map_err(|e| e.to_string())?;
@@ -667,7 +678,7 @@ fn clipboard_read_text() -> Result<String, String> {
 }
 
 #[tauri::command]
- fn clipboard_read_image(_macos_image_scaling: bool) -> Result<String, String> {
+fn clipboard_read_image(_macos_image_scaling: bool) -> Result<String, String> {
     let mut clipboard = arboard::Clipboard::new().map_err(|e| e.to_string())?;
     let image = clipboard.get_image().map_err(|e| e.to_string())?;
 
@@ -676,14 +687,14 @@ fn clipboard_read_text() -> Result<String, String> {
     {
         let encoder = image::codecs::png::PngEncoder::new(&mut png_data);
         use image::ImageEncoder;
-        
+
         // Check if running on macOS and scale image if needed
         #[cfg(target_os = "macos")]
         {
             if _macos_image_scaling {
                 // Use image crate for high-quality scaling
                 use image::{DynamicImage, ImageBuffer, Rgba};
-                
+
                 // Convert arboard Image to ImageBuffer
                 let mut img_buffer = ImageBuffer::new(image.width as u32, image.height as u32);
                 for (x, y, pixel) in img_buffer.enumerate_pixels_mut() {
@@ -693,21 +704,21 @@ fn clipboard_read_text() -> Result<String, String> {
                             image.bytes[idx],
                             image.bytes[idx + 1],
                             image.bytes[idx + 2],
-                            image.bytes[idx + 3]
+                            image.bytes[idx + 3],
                         ]);
                     }
                 }
-                
+
                 // Create DynamicImage
                 let dynamic_image = DynamicImage::ImageRgba8(img_buffer);
-                
+
                 // Resize with high-quality Lanczos3 filter
                 let resized = dynamic_image.resize(
                     (image.width / 2) as u32,
                     (image.height / 2) as u32,
-                    image::imageops::FilterType::Lanczos3
+                    image::imageops::FilterType::Lanczos3,
                 );
-                
+
                 // Write the resized image
                 let resized_rgba = resized.to_rgba8();
                 encoder
@@ -730,7 +741,7 @@ fn clipboard_read_text() -> Result<String, String> {
                     .map_err(|e| e.to_string())?;
             }
         }
-        
+
         #[cfg(not(target_os = "macos"))]
         {
             // For other platforms, use the original image
@@ -750,7 +761,12 @@ fn clipboard_read_text() -> Result<String, String> {
 }
 
 #[tauri::command]
-fn save_image(parent_dir: String, filename: String, base64_data: String, image_directory: String) -> Result<String, String> {
+fn save_image(
+    parent_dir: String,
+    filename: String,
+    base64_data: String,
+    image_directory: String,
+) -> Result<String, String> {
     validate_file_name(&filename)?;
     validate_relative_directory(&image_directory)?;
     let img_dir = Path::new(&parent_dir).join(&image_directory);
@@ -784,7 +800,11 @@ fn save_image(parent_dir: String, filename: String, base64_data: String, image_d
 }
 
 #[tauri::command]
-fn copy_file_to_img(src_path: String, parent_dir: String, image_directory: String) -> Result<String, String> {
+fn copy_file_to_img(
+    src_path: String,
+    parent_dir: String,
+    image_directory: String,
+) -> Result<String, String> {
     validate_relative_directory(&image_directory)?;
     let img_dir = Path::new(&parent_dir).join(&image_directory);
     if !img_dir.exists() {
@@ -874,6 +894,61 @@ fn list_directory_contents(path: String) -> Result<Vec<String>, String> {
     Ok(entries)
 }
 
+// JSON utilities
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct JsonValidationError {
+    line: usize,
+    column: usize,
+    message: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct JsonValidationResult {
+    valid: bool,
+    error: Option<JsonValidationError>,
+}
+
+#[tauri::command]
+fn format_json(content: String) -> Result<String, String> {
+    let json_value: serde_json::Value =
+        serde_json::from_str(&content).map_err(|e| format!("JSON parse error: {}", e))?;
+
+    serde_json::to_string_pretty(&json_value).map_err(|e| format!("JSON format error: {}", e))
+}
+
+#[tauri::command]
+fn minify_json(content: String) -> Result<String, String> {
+    let json_value: serde_json::Value =
+        serde_json::from_str(&content).map_err(|e| format!("JSON parse error: {}", e))?;
+
+    serde_json::to_string(&json_value).map_err(|e| format!("JSON minify error: {}", e))
+}
+
+#[tauri::command]
+fn validate_json(content: String) -> Result<JsonValidationResult, String> {
+    match serde_json::from_str::<serde_json::Value>(&content) {
+        Ok(_) => Ok(JsonValidationResult {
+            valid: true,
+            error: None,
+        }),
+        Err(e) => {
+            let line = e.line();
+            let column = e.column();
+            let message = e.to_string();
+            Ok(JsonValidationResult {
+                valid: false,
+                error: Some(JsonValidationError {
+                    line,
+                    column,
+                    message,
+                }),
+            })
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     #[cfg(target_os = "linux")]
@@ -895,7 +970,7 @@ pub fn run() {
             startup_file: Mutex::new(None),
         })
         .manage(WatcherState {
-            watcher: Mutex::new(None),
+            watchers: Mutex::new(HashMap::new()),
         })
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
@@ -989,7 +1064,9 @@ pub fn run() {
 
             #[cfg(target_os = "macos")]
             {
-                use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder};
+                use tauri::menu::{
+                    MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder,
+                };
 
                 let app_name = app.package_info().name.clone();
 
@@ -1007,12 +1084,9 @@ pub fn run() {
                     .item(&PredefinedMenuItem::show_all(app, None)?)
                     .separator()
                     .item(
-                        &MenuItemBuilder::with_id(
-                            "menu-app-quit",
-                            format!("Quit {}", app_name),
-                        )
-                        .accelerator("CmdOrCtrl+Q")
-                        .build(app)?,
+                        &MenuItemBuilder::with_id("menu-app-quit", format!("Quit {}", app_name))
+                            .accelerator("CmdOrCtrl+Q")
+                            .build(app)?,
                     )
                     .build()?;
 
@@ -1154,7 +1228,10 @@ pub fn run() {
             delete_file,
             copy_file,
             cleanup_empty_img_dir,
-            list_directory_contents
+            list_directory_contents,
+            format_json,
+            minify_json,
+            validate_json
         ])
         .on_menu_event(|app, event| {
             let id = event.id().as_ref();
@@ -1171,9 +1248,7 @@ pub fn run() {
                 .or_else(|| app.get_webview_window("main"));
             let Some(window) = target else { return };
 
-            if id == "menu-app-quit"
-                || id.starts_with("menu-file-")
-                || id.starts_with("menu-edit-")
+            if id == "menu-app-quit" || id.starts_with("menu-file-") || id.starts_with("menu-edit-")
             {
                 let _ = window.emit(id, ());
             }
@@ -1252,5 +1327,70 @@ mod tests {
         assert!(validate_file_name("theme/name").is_err());
         assert!(validate_relative_directory("../images").is_err());
         assert!(validate_relative_directory("images/nested").is_ok());
+    }
+
+    #[test]
+    fn watches_multiple_files_independently() {
+        use std::sync::mpsc;
+        use std::time::Duration;
+
+        let first_path = test_path("watch-first.md");
+        let second_path = test_path("watch-second.md");
+        fs::write(&first_path, "first").expect("create first watched file");
+        fs::write(&second_path, "second").expect("create second watched file");
+
+        let (first_tx, first_rx) = mpsc::channel();
+        let (second_tx, second_rx) = mpsc::channel();
+
+        let _first_watcher = create_file_watcher(&first_path, move || {
+            let _ = first_tx.send(());
+        })
+        .expect("watch first file");
+        let _second_watcher = create_file_watcher(&second_path, move || {
+            let _ = second_tx.send(());
+        })
+        .expect("watch second file");
+
+        fs::write(&first_path, "first changed").expect("change first watched file");
+        fs::write(&second_path, "second changed").expect("change second watched file");
+
+        first_rx
+            .recv_timeout(Duration::from_secs(5))
+            .expect("receive first file event");
+        second_rx
+            .recv_timeout(Duration::from_secs(5))
+            .expect("receive second file event");
+
+        fs::remove_file(first_path).expect("remove first watched file");
+        fs::remove_file(second_path).expect("remove second watched file");
+    }
+
+    #[test]
+    fn detects_when_a_watched_file_is_renamed() {
+        use std::sync::mpsc;
+        use std::time::Duration;
+
+        let original_path = test_path("watch-rename-original.md");
+        let renamed_path = test_path("watch-rename-destination.md");
+        fs::write(&original_path, "content").expect("create watched file");
+
+        let (event_tx, event_rx) = mpsc::channel();
+        let _watcher = create_file_watcher(&original_path, move || {
+            let _ = event_tx.send(());
+        })
+        .expect("watch file before rename");
+
+        fs::rename(&original_path, &renamed_path).expect("rename watched file");
+
+        event_rx
+            .recv_timeout(Duration::from_secs(5))
+            .expect("receive rename event");
+
+        assert!(!original_path.exists());
+        assert_eq!(
+            fs::read_to_string(&renamed_path).expect("read renamed file"),
+            "content"
+        );
+        fs::remove_file(renamed_path).expect("remove renamed file");
     }
 }
