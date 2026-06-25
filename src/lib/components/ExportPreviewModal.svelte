@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SvgIcon from "../icons/SvgIcon.svelte";
   import { exportAsHtml } from "../utils/export.js";
   import { t } from "../utils/i18n.js";
   import type { LanguageCode } from "../utils/i18n.js";
@@ -156,20 +157,7 @@ ${contentOnly ? '<div style="max-width: 900px; margin: 0 auto;">' + htmlContent 
           aria-label="Close"
           onclick={() => (open = false)}
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
+          <SvgIcon name="export-preview-modal-1" />
         </button>
       </div>
 

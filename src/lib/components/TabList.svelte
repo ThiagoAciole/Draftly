@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SvgIcon from "../icons/SvgIcon.svelte";
   import {
     type NewFileType,
     type Tab as TabData,
@@ -275,22 +276,7 @@
     onmousedown={(e) => e.preventDefault()}
     title={t("tooltip.newTab", settings.language)}
   >
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      ><line x1="12" y1="5" x2="12" y2="19"></line><line
-        x1="5"
-        y1="12"
-        x2="19"
-        y2="12"
-      ></line></svg
-    >
+    <SvgIcon name="tab-list-1" />
   </button>
 
   <div class="tab-list-spacer" data-tauri-drag-region></div>

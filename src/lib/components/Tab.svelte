@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SvgIcon from "../icons/SvgIcon.svelte";
   import type { Tab } from "../stores/tabs.svelte.js";
   import ContextMenu, { type ContextMenuItem } from "./ContextMenu.svelte";
   import { emit } from "@tauri-apps/api/event";
@@ -123,12 +124,7 @@
       {#if tab.isDirty}
         <span class="dirty-dot"></span>
       {/if}
-      <svg class="close-icon" width="12" height="12" viewBox="0 0 12 12"
-        ><path
-          fill="currentColor"
-          d="M11 1.7L10.3 1 6 5.3 1.7 1 1 1.7 5.3 6 1 10.3 1.7 11 6 6.7 10.3 11 11 10.3 6.7 6z"
-        /></svg
-      >
+      <SvgIcon name="tab-1" />
     </button>
   </div>
 </div>
@@ -231,11 +227,11 @@
     position: relative;
   }
 
-  .close-icon {
+  :global(.close-icon) {
     display: none;
   }
 
-  .tab:hover .close-icon {
+  .tab:hover :global(.close-icon) {
     display: block;
   }
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SvgIcon from "./icons/SvgIcon.svelte";
   import { convertFileSrc } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
   import { LogicalSize } from "@tauri-apps/api/dpi";
@@ -3116,10 +3117,7 @@
     oncloseTab={closeTabAndWindowIfLast}
   />
   <div class="loading-screen">
-    <svg class="spinner" viewBox="0 0 50 50">
-      <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="4"
-      ></circle>
-    </svg>
+    <SvgIcon name="markdown-viewer-1" />
   </div>
 {:else if mode === "installer"}
   <Installer />
@@ -3223,21 +3221,7 @@
           class:on-right={settings.tocSide === "right"}
         >
           <button class="toc-rail-button" onclick={toggleHome}>
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M3 10.5L12 3l9 7.5"></path>
-              <path d="M5 10v10h14V10"></path>
-              <path d="M9 20v-6h6v6"></path>
-            </svg>
+            <SvgIcon name="markdown-viewer-2" />
             <span class="visually-hidden"
               >{t("common.home", settings.language)}</span
             >
@@ -3248,20 +3232,7 @@
             data-find-toggle="true"
             onclick={triggerFindAction}
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <circle cx="11" cy="11" r="7"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
+            <SvgIcon name="markdown-viewer-3" />
             <span class="visually-hidden"
               >{t("tooltip.find", settings.language)}</span
             >
@@ -3271,22 +3242,7 @@
             class:active={isZenCompactMode}
             onclick={() => void toggleZenCompactMode()}
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <rect x="5" y="4" width="14" height="16" rx="2"></rect>
-              <path d="M9 8h6"></path>
-              <path d="M9 12h6"></path>
-              <path d="M9 16h4"></path>
-            </svg>
+            <SvgIcon name="markdown-viewer-4" />
             <span class="visually-hidden">Modo compacto</span>
           </button>
           <button
@@ -3294,22 +3250,7 @@
             class:active={settings.showMarkdownToolbar}
             onclick={() => settings.toggleMarkdownToolbar()}
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              aria-hidden="true"
-            >
-              <circle
-                cx="12"
-                cy="12"
-                r="9"
-                stroke="currentColor"
-                stroke-width="2"
-              ></circle>
-              <circle cx="12" cy="12" r="3.2" fill="currentColor"></circle>
-            </svg>
+            <SvgIcon name="markdown-viewer-5" />
             <span class="visually-hidden"
               >{t("settings.markdownToolbar", settings.language)}</span
             >
@@ -3341,21 +3282,7 @@
         {#if !showHome && settings.showSidebar}
           <div class="toc-rail" class:on-right={settings.tocSide === "right"}>
             <button class="toc-rail-button" onclick={() => (showHome = true)}>
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M3 10.5L12 3l9 7.5"></path>
-                <path d="M5 10v10h14V10"></path>
-                <path d="M9 20v-6h6v6"></path>
-              </svg>
+              <SvgIcon name="markdown-viewer-6" />
               <span class="visually-hidden"
                 >{t("common.home", settings.language)}</span
               >
@@ -3366,20 +3293,7 @@
               data-find-toggle="true"
               onclick={triggerFindAction}
             >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <circle cx="11" cy="11" r="7"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
+              <SvgIcon name="markdown-viewer-7" />
               <span class="visually-hidden"
                 >{t("tooltip.find", settings.language)}</span
               >
@@ -3390,18 +3304,7 @@
                 class:active={settings.showToc}
                 onclick={() => settings.toggleToc()}
               >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 100 90"
-                  fill="none"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M10 0C4.485 0 0 4.485 0 10V80C0 85.515 4.485 90 10 90H90C95.515 90 100 85.515 100 80V10C100 4.485 95.515 0 90 0H10ZM45 80H10V10H45V80ZM80 40C82.7614 40 85 42.2386 85 45C85 47.7614 82.7614 50 80 50H65C62.2386 50 60 47.7614 60 45C60 42.2386 62.2386 40 65 40H80ZM80 20C82.7614 20 85 22.2386 85 25C85 27.7614 82.7614 30 80 30H65C62.2386 30 60 27.7614 60 25C60 22.2386 62.2386 20 65 20H80Z"
-                    fill="currentColor"
-                  />
-                </svg>
+                <SvgIcon name="markdown-viewer-8" />
                 <span class="visually-hidden"
                   >{t("tooltip.showTableOfContents", settings.language)}</span
                 >
@@ -3411,22 +3314,7 @@
                 class:active={settings.showMarkdownToolbar}
                 onclick={() => settings.toggleMarkdownToolbar()}
               >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  aria-hidden="true"
-                >
-                  <circle
-                    cx="12"
-                    cy="12"
-                    r="9"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  ></circle>
-                  <circle cx="12" cy="12" r="3.2" fill="currentColor"></circle>
-                </svg>
+                <SvgIcon name="markdown-viewer-9" />
                 <span class="visually-hidden"
                   >{t("settings.markdownToolbar", settings.language)}</span
                 >
@@ -4072,7 +3960,7 @@
     height: 50px;
   }
 
-  .spinner .path {
+  :global(.spinner .path) {
     stroke: var(--color-accent-fg);
     stroke-linecap: round;
     animation: dash 1.5s ease-in-out infinite;
@@ -4329,7 +4217,7 @@
       border-color 0.2s ease;
   }
 
-  .toc-rail-button svg {
+  .toc-rail-button :global(svg) {
     width: 16px;
     height: 16px;
   }

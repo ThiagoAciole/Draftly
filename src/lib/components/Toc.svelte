@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SvgIcon from "../icons/SvgIcon.svelte";
   import { settings } from "../stores/settings.svelte.js";
   import { t } from "../utils/i18n.js";
 
@@ -267,20 +268,7 @@
         onmouseleave={() => onhideTooltip?.()}
         aria-label={t("tooltip.switchSide", settings.language)}
       >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="m18 8 4 4-4 4"></path>
-          <path d="M2 12h20"></path>
-          <path d="m6 8-4 4 4 4"></path>
-        </svg>
+        <SvgIcon name="toc-1" />
       </button>
     </div>
   </div>
@@ -300,20 +288,7 @@
               onclick={() => jumpTo(item.id)}
               use:checkTruncation
             >
-              <svg
-                class="block-icon"
-                viewBox="0 0 24 24"
-                width="12"
-                height="12"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-              </svg>
+              <SvgIcon name="toc-2" />
               {item.text}
             </button>
           {:else}
@@ -331,17 +306,7 @@
                   ontoggleFold?.(item.id || item.text || "");
                 }}
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  width="12"
-                  height="12"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="3"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  ><polyline points="6 9 12 15 18 9"></polyline></svg
-                >
+                <SvgIcon name="toc-3" />
               </button>
               <button
                 class="toc-link {activeId === item.id ? 'active' : ''}"

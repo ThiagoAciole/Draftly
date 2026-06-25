@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SvgIcon from "./icons/SvgIcon.svelte";
   import { getVersion } from "@tauri-apps/api/app";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { onMount } from "svelte";
@@ -100,12 +101,7 @@
       onclick={closeApp}
       aria-label={t("common.close")}
     >
-      <svg width="12" height="12" viewBox="0 0 12 12"
-        ><path
-          fill="currentColor"
-          d="M11 1.7L10.3 1 6 5.3 1.7 1 1 1.7 5.3 6 1 10.3 1.7 11 6 6.7 10.3 11 11 10.3 6.7 6z"
-        /></svg
-      >
+      <SvgIcon name="installer-1" />
     </button>
   </div>
 

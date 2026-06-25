@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SvgIcon from "../icons/SvgIcon.svelte";
   import { fly } from "svelte/transition";
   import { tick } from "svelte";
   import { t } from "../utils/i18n.js";
@@ -426,21 +427,7 @@
   >
     <div class="find-bar-column">
       <div class="find-input-wrap">
-        <svg
-          class="find-icon"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <circle cx="11" cy="11" r="7"></circle>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-        </svg>
+        <SvgIcon name="find-bar-1" />
         <input
           bind:this={inputEl}
           bind:value={query}
@@ -480,20 +467,7 @@
 
       {#if showReplace}
         <div class="find-input-wrap">
-          <svg
-            class="find-icon"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <polygon points="12 3 20 7 20 17 12 21 4 17 4 7 12 3"></polygon>
-          </svg>
+          <SvgIcon name="find-bar-2" />
           <input
             bind:this={replaceEl}
             bind:value={replaceText}
@@ -542,19 +516,7 @@
           disabled={matchCount === 0}
           onclick={prev}
         >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <polyline points="18 15 12 9 6 15"></polyline>
-          </svg>
+          <SvgIcon name="find-bar-3" />
         </button>
         <button
           type="button"
@@ -564,19 +526,7 @@
           disabled={matchCount === 0}
           onclick={next}
         >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
+          <SvgIcon name="find-bar-4" />
         </button>
 
         <div class="find-divider"></div>
@@ -589,23 +539,7 @@
           aria-label="Toggle Replace"
           onclick={() => (showReplace = !showReplace)}
         >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M17 1H5c-1.1 0-2 .9-2 2v2h2V3h12v10h2V3c0-1.1-.9-2-2-2z"
-            ></path>
-            <path
-              d="M3 15h10c1.1 0 2 .9 2 2v2c0 1.1-.9 2-2 2H3c-1.1 0-2-.9-2-2v-2c0-1.1.9-2 2-2z"
-            ></path>
-          </svg>
+          <SvgIcon name="find-bar-5" />
         </button>
 
         {#if showReplace}
@@ -617,21 +551,7 @@
             disabled={matchCount === 0}
             onclick={replaceOne}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M3 5v14h16V5H3z"></path>
-              <line x1="7" y1="9" x2="17" y2="9"></line>
-              <line x1="7" y1="13" x2="17" y2="13"></line>
-            </svg>
+            <SvgIcon name="find-bar-6" />
           </button>
           <button
             type="button"
@@ -641,19 +561,7 @@
             disabled={matchCount === 0}
             onclick={replaceAll}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M3 5v14h16V5H3z M3 12h16"></path>
-            </svg>
+            <SvgIcon name="find-bar-7" />
           </button>
         {/if}
 
@@ -664,20 +572,7 @@
           aria-label={t("find.close", language)}
           onclick={close}
         >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
+          <SvgIcon name="find-bar-8" />
         </button>
       </div>
     </div>
@@ -771,7 +666,7 @@
     background: var(--color-neutral-muted, rgba(128, 128, 128, 0.15));
   }
 
-  .find-icon {
+  :global(.find-icon) {
     flex-shrink: 0;
     opacity: 0.6;
   }

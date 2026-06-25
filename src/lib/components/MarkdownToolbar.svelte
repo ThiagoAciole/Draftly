@@ -1,18 +1,8 @@
 <script lang="ts">
+  import MarkdownActionIcon, {
+    type MarkdownActionIconName,
+  } from "../icons/MarkdownActionIcon.svelte";
   import type { MarkdownToolbarAction } from "../utils/markdown-toolbar.js";
-
-  type ToolbarIcon =
-    | "heading"
-    | "bold"
-    | "italic"
-    | "inline-code"
-    | "code-block"
-    | "quote"
-    | "unordered-list"
-    | "ordered-list"
-    | "link"
-    | "table"
-    | "horizontal-rule";
 
   let { onaction } = $props<{
     onaction: (action: MarkdownToolbarAction) => void;
@@ -72,7 +62,7 @@
 
   const items: {
     action: MarkdownToolbarAction;
-    icon: ToolbarIcon;
+    icon: MarkdownActionIconName;
     title: string;
   }[] = [
     {
@@ -124,55 +114,7 @@
       onmousedown={(event) => event.preventDefault()}
       onclick={() => handleAction(item.action)}
     >
-      <svg
-        viewBox="0 0 24 24"
-        width="18"
-        height="18"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        aria-hidden="true"
-      >
-        {#if item.icon === "heading"}
-          <path d="M5 5v14M19 5v14M5 12h14"></path>
-          <path d="M15.5 5h3.5" opacity="0.55"></path>
-        {:else if item.icon === "bold"}
-          <path d="M7 4h7a4 4 0 0 1 0 8H7z"></path>
-          <path d="M7 12h8a4 4 0 0 1 0 8H7z"></path>
-        {:else if item.icon === "italic"}
-          <path d="M14 4h5M5 20h5M15 4 9 20"></path>
-        {:else if item.icon === "inline-code"}
-          <path d="m8 7-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"></path>
-        {:else if item.icon === "code-block"}
-          <path d="M4 5h5M4 5v14M4 19h5M20 5h-5M20 5v14M20 19h-5"></path>
-          <path d="m10 9-3 3 3 3M14 9l3 3-3 3"></path>
-        {:else if item.icon === "quote"}
-          <path d="M7 17h4V9H5v5h3c0 2-1 3-3 4"></path>
-          <path d="M17 17h4V9h-6v5h3c0 2-1 3-3 4"></path>
-        {:else if item.icon === "unordered-list"}
-          <circle cx="4" cy="6" r="1" fill="currentColor" stroke="none"
-          ></circle>
-          <circle cx="4" cy="12" r="1" fill="currentColor" stroke="none"
-          ></circle>
-          <circle cx="4" cy="18" r="1" fill="currentColor" stroke="none"
-          ></circle>
-          <path d="M9 6h11M9 12h11M9 18h11"></path>
-        {:else if item.icon === "ordered-list"}
-          <path d="M3 5h1v3M3 8h2M3 12h2l-2 3h2M3 18h2v3H3"></path>
-          <path d="M9 6h11M9 13h11M9 20h11"></path>
-        {:else if item.icon === "link"}
-          <path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.2 1.2"></path>
-          <path d="M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.2-1.2"></path>
-        {:else if item.icon === "table"}
-          <rect x="3" y="4" width="18" height="16" rx="1"></rect>
-          <path d="M3 10h18M3 15h18M9 4v16M15 4v16"></path>
-        {:else if item.icon === "horizontal-rule"}
-          <path d="M4 12h16"></path>
-          <path d="m7 9-3 3 3 3M17 9l3 3-3 3" opacity="0.65"></path>
-        {/if}
-      </svg>
+      <MarkdownActionIcon name={item.icon} />
     </button>
   {/each}
 </div>
@@ -255,7 +197,7 @@
     outline-offset: -2px;
   }
 
-  svg {
+  :global(.markdown-toolbar svg) {
     pointer-events: none;
   }
 </style>

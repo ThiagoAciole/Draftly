@@ -1,0 +1,656 @@
+[
+  {
+    "name": "export-preview-modal-1",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/export-preview-modal-1.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "find-bar-1",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/find-bar-1.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "find-bar-2",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/find-bar-2.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "find-bar-3",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/find-bar-3.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "find-bar-4",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/find-bar-4.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "find-bar-5",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/find-bar-5.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "find-bar-6",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/find-bar-6.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "find-bar-7",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/find-bar-7.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "find-bar-8",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/find-bar-8.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "home-page-1",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/home-page-1.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "home-page-2",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/home-page-2.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "home-page-3",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/home-page-3.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "home-page-4",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/home-page-4.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "installer-1",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/installer-1.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "markdown-viewer-1",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/markdown-viewer-1.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "markdown-viewer-2",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/markdown-viewer-2.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "markdown-viewer-3",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/markdown-viewer-3.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "markdown-viewer-4",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/markdown-viewer-4.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "markdown-viewer-5",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/markdown-viewer-5.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "markdown-viewer-6",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/markdown-viewer-6.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "markdown-viewer-7",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/markdown-viewer-7.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "markdown-viewer-8",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/markdown-viewer-8.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "markdown-viewer-9",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/markdown-viewer-9.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "settings-1",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/settings-1.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "settings-10",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/settings-10.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "settings-11",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/settings-11.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "settings-12",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/settings-12.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "settings-13",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/settings-13.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "settings-14",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/settings-14.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "settings-15",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/settings-15.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "settings-16",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/settings-16.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "settings-17",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/settings-17.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "settings-18",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/settings-18.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "settings-19",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/settings-19.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "settings-2",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/settings-2.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "settings-20",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/settings-20.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "settings-3",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/settings-3.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "settings-4",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/settings-4.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "settings-5",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/settings-5.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "settings-6",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/settings-6.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "settings-7",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/settings-7.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "settings-8",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/settings-8.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "settings-9",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/settings-9.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "tab-1",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/tab-1.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "tab-list-1",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/tab-list-1.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "title-bar-1",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/title-bar-1.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "title-bar-10",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/title-bar-10.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "title-bar-11",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/title-bar-11.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "title-bar-12",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/title-bar-12.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "title-bar-13",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/title-bar-13.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "title-bar-14",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/title-bar-14.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "title-bar-15",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/title-bar-15.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "title-bar-16",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/title-bar-16.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "title-bar-17",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/title-bar-17.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "title-bar-18",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/title-bar-18.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "title-bar-19",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/title-bar-19.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "title-bar-2",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/title-bar-2.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "title-bar-20",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/title-bar-20.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "title-bar-21",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/title-bar-21.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "title-bar-22",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/title-bar-22.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "title-bar-23",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/title-bar-23.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "title-bar-24",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/title-bar-24.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "title-bar-25",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/title-bar-25.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "title-bar-26",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/title-bar-26.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "title-bar-3",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/title-bar-3.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "title-bar-4",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/title-bar-4.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "title-bar-5",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/title-bar-5.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "title-bar-6",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/title-bar-6.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "title-bar-7",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/title-bar-7.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "title-bar-8",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/title-bar-8.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "title-bar-9",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/title-bar-9.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "toast-1",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/toast-1.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "toast-2",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/toast-2.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "toast-3",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/toast-3.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "toast-4",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/toast-4.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "toc-1",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/toc-1.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "toc-2",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/toc-2.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "toc-3",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/toc-3.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "uninstaller-1",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/uninstaller-1.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "zen-notes-1",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/zen-notes-1.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "zoom-overlay-1",
+    "category": "ui",
+    "output": "src/lib/icons/svg/ui/zoom-overlay-1.svg",
+    "source": "icon-definitions.ts"
+  },
+  {
+    "name": "heading",
+    "category": "markdown-actions",
+    "output": "src/lib/icons/svg/markdown-actions/heading.svg",
+    "source": "MarkdownActionIcon.svelte"
+  },
+  {
+    "name": "bold",
+    "category": "markdown-actions",
+    "output": "src/lib/icons/svg/markdown-actions/bold.svg",
+    "source": "MarkdownActionIcon.svelte"
+  },
+  {
+    "name": "italic",
+    "category": "markdown-actions",
+    "output": "src/lib/icons/svg/markdown-actions/italic.svg",
+    "source": "MarkdownActionIcon.svelte"
+  },
+  {
+    "name": "inline-code",
+    "category": "markdown-actions",
+    "output": "src/lib/icons/svg/markdown-actions/inline-code.svg",
+    "source": "MarkdownActionIcon.svelte"
+  },
+  {
+    "name": "code-block",
+    "category": "markdown-actions",
+    "output": "src/lib/icons/svg/markdown-actions/code-block.svg",
+    "source": "MarkdownActionIcon.svelte"
+  },
+  {
+    "name": "quote",
+    "category": "markdown-actions",
+    "output": "src/lib/icons/svg/markdown-actions/quote.svg",
+    "source": "MarkdownActionIcon.svelte"
+  },
+  {
+    "name": "unordered-list",
+    "category": "markdown-actions",
+    "output": "src/lib/icons/svg/markdown-actions/unordered-list.svg",
+    "source": "MarkdownActionIcon.svelte"
+  },
+  {
+    "name": "ordered-list",
+    "category": "markdown-actions",
+    "output": "src/lib/icons/svg/markdown-actions/ordered-list.svg",
+    "source": "MarkdownActionIcon.svelte"
+  },
+  {
+    "name": "link",
+    "category": "markdown-actions",
+    "output": "src/lib/icons/svg/markdown-actions/link.svg",
+    "source": "MarkdownActionIcon.svelte"
+  },
+  {
+    "name": "table",
+    "category": "markdown-actions",
+    "output": "src/lib/icons/svg/markdown-actions/table.svg",
+    "source": "MarkdownActionIcon.svelte"
+  },
+  {
+    "name": "horizontal-rule",
+    "category": "markdown-actions",
+    "output": "src/lib/icons/svg/markdown-actions/horizontal-rule.svg",
+    "source": "MarkdownActionIcon.svelte"
+  },
+  {
+    "name": "checklist",
+    "category": "markdown-actions",
+    "output": "src/lib/icons/svg/markdown-actions/checklist.svg",
+    "source": "MarkdownActionIcon.svelte"
+  },
+  {
+    "name": "alert-note",
+    "category": "markdown-html",
+    "output": "src/lib/icons/svg/markdown-html/alert-note.svg",
+    "source": "markdown-html-icons.ts"
+  },
+  {
+    "name": "alert-info",
+    "category": "markdown-html",
+    "output": "src/lib/icons/svg/markdown-html/alert-info.svg",
+    "source": "markdown-html-icons.ts"
+  },
+  {
+    "name": "alert-todo",
+    "category": "markdown-html",
+    "output": "src/lib/icons/svg/markdown-html/alert-todo.svg",
+    "source": "markdown-html-icons.ts"
+  },
+  {
+    "name": "alert-tip",
+    "category": "markdown-html",
+    "output": "src/lib/icons/svg/markdown-html/alert-tip.svg",
+    "source": "markdown-html-icons.ts"
+  },
+  {
+    "name": "alert-important",
+    "category": "markdown-html",
+    "output": "src/lib/icons/svg/markdown-html/alert-important.svg",
+    "source": "markdown-html-icons.ts"
+  },
+  {
+    "name": "alert-warning",
+    "category": "markdown-html",
+    "output": "src/lib/icons/svg/markdown-html/alert-warning.svg",
+    "source": "markdown-html-icons.ts"
+  },
+  {
+    "name": "alert-caution",
+    "category": "markdown-html",
+    "output": "src/lib/icons/svg/markdown-html/alert-caution.svg",
+    "source": "markdown-html-icons.ts"
+  },
+  {
+    "name": "alert-faq",
+    "category": "markdown-html",
+    "output": "src/lib/icons/svg/markdown-html/alert-faq.svg",
+    "source": "markdown-html-icons.ts"
+  },
+  {
+    "name": "alert-question",
+    "category": "markdown-html",
+    "output": "src/lib/icons/svg/markdown-html/alert-question.svg",
+    "source": "markdown-html-icons.ts"
+  },
+  {
+    "name": "alert-example",
+    "category": "markdown-html",
+    "output": "src/lib/icons/svg/markdown-html/alert-example.svg",
+    "source": "markdown-html-icons.ts"
+  },
+  {
+    "name": "chevron-down",
+    "category": "markdown-html",
+    "output": "src/lib/icons/svg/markdown-html/chevron-down.svg",
+    "source": "markdown-html-icons.ts"
+  },
+  {
+    "name": "header-chevron",
+    "category": "markdown-html",
+    "output": "src/lib/icons/svg/markdown-html/header-chevron.svg",
+    "source": "markdown-html-icons.ts"
+  },
+  {
+    "name": "copy",
+    "category": "markdown-html",
+    "output": "src/lib/icons/svg/markdown-html/copy.svg",
+    "source": "markdown-html-icons.ts"
+  },
+  {
+    "name": "anchor-link",
+    "category": "masks",
+    "output": "src/lib/icons/svg/masks/anchor-link.svg",
+    "source": "masks/anchor-link.svg"
+  },
+  {
+    "name": "block-id",
+    "category": "masks",
+    "output": "src/lib/icons/svg/masks/block-id.svg",
+    "source": "masks/block-id.svg"
+  },
+  {
+    "name": "footnote-back",
+    "category": "masks",
+    "output": "src/lib/icons/svg/masks/footnote-back.svg",
+    "source": "masks/footnote-back.svg"
+  }
+]

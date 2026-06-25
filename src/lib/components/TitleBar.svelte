@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SvgIcon from "../icons/SvgIcon.svelte";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { tauriCommands } from "../api/tauri.js";
   import { fly, slide } from "svelte/transition";
@@ -262,42 +263,21 @@
           onclick={() => appWindow.close()}
           aria-label={t("common.close")}
         >
-          <svg width="6" height="6" viewBox="0 0 6 6" class="mac-icon"
-            ><path
-              d="M0.5 0.5L5.5 5.5M5.5 0.5L0.5 5.5"
-              stroke="currentColor"
-              stroke-width="1.2"
-              stroke-linecap="round"
-            /></svg
-          >
+          <SvgIcon name="title-bar-6" />
         </button>
         <button
           class="mac-btn mac-minimize"
           onclick={() => appWindow.minimize()}
           aria-label={t("common.minimize")}
         >
-          <svg width="6" height="6" viewBox="0 0 6 6" class="mac-icon"
-            ><path
-              d="M0.5 3H5.5"
-              stroke="currentColor"
-              stroke-width="1.2"
-              stroke-linecap="round"
-            /></svg
-          >
+          <SvgIcon name="title-bar-7" />
         </button>
         <button
           class="mac-btn mac-maximize"
           onclick={() => appWindow.toggleMaximize()}
           aria-label={t("common.maximize")}
         >
-          <svg width="6" height="6" viewBox="0 0 6 6" class="mac-icon"
-            ><path
-              d="M0.5 3H5.5M3 0.5V5.5"
-              stroke="currentColor"
-              stroke-width="1.2"
-              stroke-linecap="round"
-            /></svg
-          >
+          <SvgIcon name="title-bar-8" />
         </button>
       </div>
     {/if}
@@ -320,32 +300,7 @@
         onmousedown={(e) => e.preventDefault()}
         onmouseleave={hideTooltip}
       >
-        <svg
-          class="window-icon"
-          width="15"
-          height="15"
-          viewBox="0 0 288 283"
-          fill="none"
-          aria-hidden="true"
-        >
-          <path
-            d="M229.174 211.242L0 27.4131V207.715C0 249.294 33.7061 283 75.2846 283H287.565V75.2846C287.565 33.7061 253.858 0 212.28 0H24.6719L92.6566 47.5698H194.042C213.445 47.5698 229.174 63.2993 229.174 82.7026V211.242Z"
-            fill="url(#draftly-title-icon-gradient)"
-          />
-          <defs>
-            <linearGradient
-              id="draftly-title-icon-gradient"
-              x1="288"
-              y1="0"
-              x2="-197"
-              y2="562"
-              gradientUnits="userSpaceOnUse"
-            >
-              <stop stop-color="white" />
-              <stop offset="1" stop-color="#C4C4C4" />
-            </linearGradient>
-          </defs>
-        </svg>
+        <SvgIcon name="title-bar-9" />
       </button>
       {#if homeMenuOpen}
         <div
@@ -360,18 +315,7 @@
               ontoggleHome();
             }}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              ><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
-              ></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg
-            >
+            <SvgIcon name="title-bar-10" />
             {t("menu.home", currentLanguage)}
           </button>
           <button
@@ -381,24 +325,7 @@
               onopenFile?.();
             }}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              ><path
-                d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
-              ></path><polyline points="15 13 18 13 18 10"></polyline><line
-                x1="14"
-                y1="14"
-                x2="18"
-                y2="10"
-              ></line></svg
-            >
+            <SvgIcon name="title-bar-11" />
             {t("menu.openFile", currentLanguage)}
             <span class="menu-shortcut">{modifier}+O</span>
           </button>
@@ -410,20 +337,7 @@
                 onsaveFile?.();
               }}
             >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                ><path
-                  d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
-                ></path><polyline points="17 21 17 13 7 13 7 21"
-                ></polyline><polyline points="7 3 7 8 15 8"></polyline></svg
-              >
+              <SvgIcon name="title-bar-12" />
               {t("menu.save", currentLanguage)}
               <span class="menu-shortcut">{modifier}+S</span>
             </button>
@@ -434,20 +348,7 @@
                 onsaveFileAs?.();
               }}
             >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                ><path
-                  d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
-                ></path><polyline points="17 21 17 13 7 13 7 21"
-                ></polyline><polyline points="7 3 7 8 15 8"></polyline></svg
-              >
+              <SvgIcon name="title-bar-13" />
               {t("menu.saveAs", currentLanguage)}
               <span class="menu-shortcut">{modifier}+Shift+S</span>
             </button>
@@ -461,26 +362,7 @@
                 onexportHtml?.();
               }}
             >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                ><path
-                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-                ></path><polyline points="14 2 14 8 20 8"></polyline><line
-                  x1="16"
-                  y1="13"
-                  x2="8"
-                  y2="13"
-                ></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline
-                  points="10 9 9 9 8 9"
-                ></polyline></svg
-              >
+              <SvgIcon name="title-bar-14" />
               {t("menu.exportHtml", currentLanguage)}
             </button>
             <button
@@ -490,24 +372,7 @@
                 onexportPdf?.();
               }}
             >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                ><path
-                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-                ></path><polyline points="14 2 14 8 20 8"></polyline><line
-                  x1="9"
-                  y1="15"
-                  x2="15"
-                  y2="15"
-                ></line></svg
-              >
+              <SvgIcon name="title-bar-15" />
               {t("menu.exportPdf", currentLanguage)}
             </button>
           {/if}
@@ -519,23 +384,7 @@
               onexit?.();
             }}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              ><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
-              ></path><polyline points="16 17 21 12 16 7"></polyline><line
-                x1="21"
-                y1="12"
-                x2="9"
-                y2="12"
-              ></line></svg
-            >
+            <SvgIcon name="title-bar-16" />
             {t("menu.exit", currentLanguage)}
             <span class="menu-shortcut">{modifier}+Q</span>
           </button>
@@ -590,20 +439,7 @@
         onmouseleave={hideTooltip}
         aria-label={t("tooltip.moreActions", currentLanguage)}
       >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <circle cx="12" cy="12" r="1"></circle>
-          <circle cx="12" cy="5" r="1"></circle>
-          <circle cx="12" cy="19" r="1"></circle>
-        </svg>
+        <SvgIcon name="title-bar-17" />
       </button>
     {/snippet}
 
@@ -619,22 +455,7 @@
             onmouseleave={hideTooltip}
             transition:fly={{ x: 10, duration: 200 }}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <rect x="3" y="4" width="18" height="16" rx="2"></rect>
-              <line x1="9" y1="4" x2="9" y2="20"></line>
-              <path d="M6 8h1"></path>
-              <path d="M6 12h1"></path>
-              <path d="M6 16h1"></path>
-            </svg>
+            <SvgIcon name="title-bar-1" />
             <span class="action-label">Sidebar</span>
           </button>
         {:else if id === "zen"}
@@ -651,24 +472,7 @@
             onmouseleave={hideTooltip}
             transition:fly={{ x: 10, duration: 200 }}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M12 3v3"></path>
-              <path d="M12 18v3"></path>
-              <path d="M3 12h3"></path>
-              <path d="M18 12h3"></path>
-              <circle cx="12" cy="12" r="5"></circle>
-              <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"
-              ></circle>
-            </svg>
+            <SvgIcon name="title-bar-2" />
             <span class="action-label"
               >{t("menu.zenMode", currentLanguage)}</span
             >
@@ -688,21 +492,7 @@
             onmouseleave={hideTooltip}
             transition:fly={{ x: 10, duration: 200 }}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <circle cx="12" cy="12" r="3"></circle>
-              <path
-                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
-              ></path>
-            </svg>
+            <SvgIcon name="title-bar-3" />
             <span class="action-label"
               >{t("menu.settings", currentLanguage)}</span
             >
@@ -718,21 +508,7 @@
             transition:fly={{ y: -10, duration: 150 }}
             aria-label={t("tooltip.resetZoom", currentLanguage)}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              <line x1="11" y1="8" x2="11" y2="14"></line>
-              <line x1="8" y1="11" x2="14" y2="11"></line>
-            </svg>
+            <SvgIcon name="title-bar-4" />
             <span class="zoom-value">{zoomLevel}%</span>
             <span class="menu-shortcut"
               >{t("tooltip.reset", currentLanguage)}</span
@@ -763,20 +539,7 @@
             onmouseleave={hideTooltip}
             transition:fly={{ x: 10, duration: 200 }}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="3" y1="9" x2="21" y2="9"></line>
-              <line x1="9" y1="21" x2="9" y2="9"></line>
-            </svg>
+            <SvgIcon name="title-bar-5" />
             <span class="action-label"
               >{t("menu.tabs", currentLanguage).replace(
                 "{{action}}",
@@ -798,24 +561,7 @@
             onmouseleave={hideTooltip}
             transition:fly={{ x: 10, duration: 200 }}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              ><path
-                d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
-              ></path><polyline points="15 13 18 13 18 10"></polyline><line
-                x1="14"
-                y1="14"
-                x2="18"
-                y2="10"
-              ></line></svg
-            >
+            <SvgIcon name="title-bar-18" />
             <span class="action-label"
               >{t("menu.openLocation", currentLanguage)}</span
             >
@@ -831,21 +577,7 @@
             onmouseleave={hideTooltip}
             transition:fly={{ x: 10, duration: 200 }}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              ><path
-                d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
-              ></path><path
-                d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
-              ></path></svg
-            >
+            <SvgIcon name="title-bar-19" />
             <span class="action-label"
               >{t("menu.syncScroll", currentLanguage)}</span
             >
@@ -860,21 +592,7 @@
             onmousedown={(e) => e.preventDefault()}
             onmouseleave={hideTooltip}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              ><polyline points="23 4 23 10 17 10"></polyline><polyline
-                points="1 20 1 14 7 14"
-              ></polyline><path
-                d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
-              ></path></svg
-            >
+            <SvgIcon name="title-bar-20" />
             <span class="action-label"
               >{t("menu.autoReload", currentLanguage)}</span
             >
@@ -898,66 +616,11 @@
               transition:fly={{ x: 10, duration: 200 }}
             >
               {#if theme === "light"}
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  ><circle cx="12" cy="12" r="5"></circle><line
-                    x1="12"
-                    y1="1"
-                    x2="12"
-                    y2="3"
-                  ></line><line x1="12" y1="21" x2="12" y2="23"></line><line
-                    x1="4.22"
-                    y1="4.22"
-                    x2="5.64"
-                    y2="5.64"
-                  ></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"
-                  ></line><line x1="1" y1="12" x2="3" y2="12"></line><line
-                    x1="21"
-                    y1="12"
-                    x2="23"
-                    y2="12"
-                  ></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"
-                  ></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"
-                  ></line></svg
-                >
+                <SvgIcon name="title-bar-21" />
               {:else if theme === "dark"}
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  ><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
-                  ></path></svg
-                >
+                <SvgIcon name="title-bar-22" />
               {:else}
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  ><rect x="2" y="3" width="20" height="14" rx="2" ry="2"
-                  ></rect><line x1="8" y1="21" x2="16" y2="21"></line><line
-                    x1="12"
-                    y1="17"
-                    x2="12"
-                    y2="21"
-                  ></line></svg
-                >
+                <SvgIcon name="title-bar-23" />
               {/if}
               <span class="action-label"
                 >{t("menu.changeTheme", currentLanguage)}</span
@@ -1037,38 +700,21 @@
         onclick={() => appWindow.minimize()}
         aria-label={t("common.minimize")}
       >
-        <svg width="12" height="12" viewBox="0 0 12 12"
-          ><rect fill="currentColor" width="10" height="1" x="1" y="6" /></svg
-        >
+        <SvgIcon name="title-bar-24" />
       </button>
       <button
         class="control-btn"
         onclick={() => appWindow.toggleMaximize()}
         aria-label={t("common.maximize")}
       >
-        <svg width="12" height="12" viewBox="0 0 12 12"
-          ><rect
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1"
-            width="9"
-            height="9"
-            x="1.5"
-            y="1.5"
-          /></svg
-        >
+        <SvgIcon name="title-bar-25" />
       </button>
       <button
         class="control-btn close-btn"
         onclick={() => appWindow.close()}
         aria-label={t("common.close")}
       >
-        <svg width="12" height="12" viewBox="0 0 12 12"
-          ><path
-            fill="currentColor"
-            d="M11 1.7L10.3 1 6 5.3 1.7 1 1 1.7 5.3 6 1 10.3 1.7 11 6 6.7 10.3 11 11 10.3 6.7 6z"
-          /></svg
-        >
+        <SvgIcon name="title-bar-26" />
       </button>
     {/if}
   </div>
@@ -1212,7 +858,7 @@
     gap: 8px;
   }
 
-  .title-actions.show-dropdown .title-action-btn svg {
+  .title-actions.show-dropdown .title-action-btn :global(svg) {
     width: 14px;
     min-width: 14px;
     height: 14px;
@@ -1226,7 +872,7 @@
     color: var(--color-accent-fg);
   }
 
-  .title-actions.show-dropdown .title-action-btn.active svg {
+  .title-actions.show-dropdown .title-action-btn.active :global(svg) {
     color: var(--color-accent-fg);
   }
 
@@ -1264,8 +910,8 @@
     transition: all 0.1s;
   }
 
-  .title-actions.inline .title-action-btn svg,
-  .kebab-btn svg {
+  .title-actions.inline .title-action-btn :global(svg),
+  .kebab-btn :global(svg) {
     width: 16px;
     height: 16px;
   }
@@ -1291,7 +937,7 @@
     background: var(--color-canvas-subtle);
   }
 
-  .title-actions.show-dropdown .menu-zoom-item svg {
+  .title-actions.show-dropdown .menu-zoom-item :global(svg) {
     width: 14px;
     min-width: 14px;
     height: 14px;
@@ -1480,21 +1126,21 @@
     border-color: #1ca431;
   }
 
-  .mac-icon {
+  :global(.mac-icon) {
     opacity: 0;
     color: #4d0000;
     transition: opacity 0.1s;
   }
 
-  .mac-minimize .mac-icon {
+  .mac-minimize :global(.mac-icon) {
     color: #995700;
   }
 
-  .mac-maximize .mac-icon {
+  .mac-maximize :global(.mac-icon) {
     color: #006500;
   }
 
-  .macos-traffic-lights:hover .mac-icon {
+  .macos-traffic-lights:hover :global(.mac-icon) {
     opacity: 0.6;
   }
 
@@ -1666,7 +1312,7 @@
     background-color: var(--color-canvas-subtle);
   }
 
-  .home-menu-item svg {
+  .home-menu-item :global(svg) {
     color: var(--color-fg-muted);
   }
 

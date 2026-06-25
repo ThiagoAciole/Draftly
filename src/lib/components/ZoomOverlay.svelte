@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SvgIcon from "../icons/SvgIcon.svelte";
   import { fade } from "svelte/transition";
   import { onMount } from "svelte";
   import { t } from "../utils/i18n.js";
@@ -78,19 +79,7 @@
     onclick={onclose}
     aria-label={t("common.close", settings.language)}
   >
-    <svg
-      viewBox="0 0 24 24"
-      width="24"
-      height="24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    >
-      <line x1="18" y1="6" x2="6" y2="18"></line>
-      <line x1="6" y1="6" x2="18" y2="18"></line>
-    </svg>
+    <SvgIcon name="zoom-overlay-1" />
   </button>
 
   <!-- svelte-ignore a11y_no_static_element_interactions -->
