@@ -40,6 +40,7 @@
     getLanguage,
     isMarkdownPath,
     isPlainTextPath,
+    isHtmlPath,
     MARKDOWN_EXTENSIONS,
   } from "./features/files/file-types.js";
   import { recoveryStore } from "./services/recovery.js";
@@ -194,7 +195,7 @@
     revealHeader: (text: string) => void;
     triggerFind: () => void;
   } | null>(null);
-  let liveMode = $state(false);
+  let liveMode = $state(true);
   const fileWatcher = createFileWatcherSync({
     watch: tauriCommands.watchFile,
     unwatch: tauriCommands.unwatchFile,
@@ -335,6 +336,7 @@
       ? newFileType === "markdown"
       : isMarkdownPath(currentFile),
   );
+  let isHtml = $derived(currentFile !== "" && isHtmlPath(currentFile));
   let isPlainText = $derived(
     currentFile === "" ? newFileType === "text" : isPlainTextPath(currentFile),
   );
@@ -384,14 +386,6 @@
     exportPreviewPath = tab.path || "";
     showExportPreview = true;
   };
-
-  $effect(() => {
-    const tab = tabManager.activeTab;
-    if (tab && isMarkdown && !tab.isSplit) {
-      tab.splitRatio = 0.6;
-      tabManager.setSplitEnabled(tab.id, true);
-    }
-  });
 
   import { parseAndApplyVscodeTheme, clearVscodeTheme } from "./utils/theme";
 
@@ -592,20 +586,25 @@
       const tab = tabManager.tabs.find((t) => t.id === activeId);
       const loaded = await loadDocument(filePath, tauriCommands);
 
-      if (loaded.kind === "markdown") {
-        if (tab && !tab.isSplit) {
+      if (loaded.kind === "markdown" || loaded.kind === "html") {
+        if (tab && !tab.isSplit && !options.preserveEditState && !settings.startInViewMode) {
           tab.splitRatio = 0.6;
           tabManager.setSplitEnabled(tab.id, true);
         }
-        const processedInfo = processMarkdownHtml(
-          loaded.initial.html,
-          filePath,
-          collapsedHeaders,
-        );
-        tabManager.updateTabContent(activeId, processedInfo);
+        
+        if (loaded.kind === "markdown") {
+          const processedInfo = processMarkdownHtml(
+            loaded.initial.html,
+            filePath,
+            collapsedHeaders,
+          );
+          tabManager.updateTabContent(activeId, processedInfo);
+        } else {
+          tabManager.updateTabContent(activeId, loaded.initial.html);
+        }
         tabManager.setTabRawContent(activeId, loaded.initial.content);
 
-        if (loaded.full) {
+        if (loaded.kind === "markdown" && loaded.full) {
           loadingTabs = [...loadingTabs, activeId];
           tick().then(() => {
             if (markdownBody)
@@ -670,7 +669,7 @@
       } else {
         if (tab) {
           tabManager.setSplitEnabled(tab.id, false);
-          tab.isEditing = true;
+          tabManager.setEditing(tab.id, true);
         }
         tabManager.setTabRawContent(activeId, loaded.content);
       }
@@ -1419,6 +1418,12 @@
           await tick();
           await renderRichContent();
         }
+      } else if (isHtmlPath(filePath)) {
+        tabManager.updateTabContent(tab.id, change.content);
+        if (tabManager.activeTabId === tab.id) {
+          await tick();
+          await renderRichContent();
+        }
       }
     } catch (error) {
       console.error("Failed to process external file change", error);
@@ -1519,9 +1524,10 @@
   async function toggleEdit(silentSave = false) {
     const tab = tabManager.activeTab;
     if (!tab || tab.path === undefined) return;
-    if (isMarkdown && tab.isSplit) return;
 
-    if (isEditing) {
+    const currentlyEditing = isEditing || ((isMarkdown || isHtml) && tab.isSplit);
+
+    if (currentlyEditing) {
       // Switch back to view
       if (tab.isDirty && tab.path !== "") {
         // `confirmBeforeSave` always wins: when the user has asked
@@ -1570,7 +1576,9 @@
         return;
       }
 
-      tab.isEditing = false;
+      tabManager.setEditing(tab.id, false);
+      if (tab.isSplit) tabManager.setSplitEnabled(tab.id, false);
+      
       if (tab.path !== "") {
         await loadMarkdown(tab.path, { preserveEditState: true });
       } else {
@@ -1587,23 +1595,34 @@
       // Switch to edit
       if (tab.path !== "") {
         if (tab.isDirty) {
-          // Already have unsaved in-memory edits (e.g. from an
-          // earlier session restored from localStorage, or from
-          // post-save TOCTOU). Reading from disk would clobber
-          // them, so just flip into edit mode without a reload.
-          tab.isEditing = true;
+          if (isMarkdown || isHtml) {
+            tab.splitRatio = tab.splitRatio || 0.6;
+            tabManager.setSplitEnabled(tab.id, true);
+          } else {
+            tabManager.setEditing(tab.id, true);
+          }
         } else {
           try {
             const content = await tauriCommands.readFile(tab.path);
             tab.rawContent = content;
-            tab.isEditing = true;
+            if (isMarkdown || isHtml) {
+              tab.splitRatio = tab.splitRatio || 0.6;
+              tabManager.setSplitEnabled(tab.id, true);
+            } else {
+              tabManager.setEditing(tab.id, true);
+            }
             tab.isDirty = false;
           } catch (e) {
             console.error("Failed to read file for editing", e);
           }
         }
       } else {
-        tab.isEditing = true;
+        if (isMarkdown || isHtml) {
+          tab.splitRatio = tab.splitRatio || 0.6;
+          tabManager.setSplitEnabled(tab.id, true);
+        } else {
+          tabManager.setEditing(tab.id, true);
+        }
       }
     }
   }
@@ -2351,19 +2370,25 @@
 
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
-        tauriCommands
-          .renderMarkdown(tab.rawContent)
-          .then((html) => {
-            const processed = processMarkdownHtml(
-              html as string,
-              tab.path,
-              collapsedHeaders,
-            );
-            tabManager.updateTabContent(tab.id, processed);
-            (tab as any)._lastRenderedRawContent = tab.rawContent;
-            tick().then(renderRichContent);
-          })
-          .catch(console.error);
+        if (isHtml) {
+          tabManager.updateTabContent(tab.id, tab.rawContent);
+          (tab as any)._lastRenderedRawContent = tab.rawContent;
+          tick().then(renderRichContent);
+        } else {
+          tauriCommands
+            .renderMarkdown(tab.rawContent)
+            .then((html) => {
+              const processed = processMarkdownHtml(
+                html as string,
+                tab.path,
+                collapsedHeaders,
+              );
+              tabManager.updateTabContent(tab.id, processed);
+              (tab as any)._lastRenderedRawContent = tab.rawContent;
+              tick().then(renderRichContent);
+            })
+            .catch(console.error);
+        }
       }, 16);
     }
   });
@@ -2371,7 +2396,7 @@
   async function toggleSplitView(tabId: string, silentSave = false) {
     const tab = tabManager.tabs.find((t) => t.id === tabId);
     if (!tab) return;
-    if (tab.path === "" || isMarkdownPath(tab.path)) {
+    if (tab.path === "" || isMarkdownPath(tab.path) || isHtmlPath(tab.path)) {
       if (!tab.isSplit) {
         tab.splitRatio = 0.6;
         tabManager.setSplitEnabled(tab.id, true);
@@ -3108,6 +3133,7 @@
     onopenFileLocation={openFileLocation}
     ontoggleLiveMode={toggleLiveMode}
     {isEditing}
+    ontoggleEdit={toggleEdit}
     ondetach={handleDetach}
     ontabclick={() => (showHome = false)}
     onresetZoom={() => (zoomLevel = 100)}
@@ -3148,6 +3174,7 @@
     onopenFileLocation={openFileLocation}
     ontoggleLiveMode={toggleLiveMode}
     {isEditing}
+    ontoggleEdit={toggleEdit}
     ondetach={handleDetach}
     ontabclick={() => {
       showHome = false;

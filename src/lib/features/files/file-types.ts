@@ -213,6 +213,13 @@ export function isPlainTextPath(path: string): boolean {
   return type.kind === "text";
 }
 
+export function isHtmlPath(path: string): boolean {
+  if (path === "") return false;
+  const ext = path.split(".").pop()?.toLowerCase() || "";
+  const type = getFileTypeByExtension(ext);
+  return type.kind === "web" && type.language === "html";
+}
+
 export function getLanguage(path: string): string {
   if (!path) return "markdown";
   return getFileType(path).language;

@@ -35,8 +35,8 @@
     ontoggleZenMode,
     onopenFileLocation,
     ontoggleLiveMode,
-
     isEditing,
+    ontoggleEdit,
     ondetach,
     ontabclick,
     zoomLevel,
@@ -69,6 +69,7 @@
     ontoggleLiveMode: () => void;
 
     isEditing: boolean;
+    ontoggleEdit?: () => void;
     ondetach: (tabId: string) => void;
     ontabclick?: () => void;
     zoomLevel?: number;
@@ -182,7 +183,7 @@
     }
   });
 
-  const inlineIds = ["sidebar", "zen", "live"];
+  const inlineIds = ["sidebar", "zen", "live", "edit_mode"];
   let displayWindowTitle = $derived.by(() => {
     if (showZenMode && !currentFile) return "Draftly";
     return windowTitle;
@@ -205,9 +206,7 @@
       );
 
       if (isMarkdown) {
-        if (!tabManager.activeTab?.isSplit && !isEditing && currentFile) {
-          list.push("live");
-        }
+        list.push("edit_mode");
       }
       list.push("tabs");
     }
@@ -595,6 +594,26 @@
             <SvgIcon name="title-bar-20" />
             <span class="action-label"
               >{t("menu.autoReload", currentLanguage)}</span
+            >
+          </button>
+        {:else if id === "edit_mode"}
+          {@const isViewMode = !isEditing && !tabManager.activeTab?.isSplit}
+          <button
+            class="title-action-btn {isViewMode ? 'active' : ''}"
+            onclick={() => ontoggleEdit?.()}
+            aria-label={isViewMode ? "Modo Editor" : "Modo Visualização"}
+            onmouseenter={(e) =>
+              showTooltip(e, isViewMode ? "Modo Editor" : "Modo Visualização")}
+            onmousedown={(e) => e.preventDefault()}
+            onmouseleave={hideTooltip}
+          >
+            <!-- Eye Icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <span class="action-label"
+              >{isViewMode ? "Modo Editor" : "Modo Visualização"}</span
             >
           </button>
         {:else if id === "theme"}

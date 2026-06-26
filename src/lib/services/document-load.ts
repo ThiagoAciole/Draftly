@@ -1,4 +1,4 @@
-import { isMarkdownPath } from "../features/files/file-types.js";
+import { isMarkdownPath, isHtmlPath } from "../features/files/file-types.js";
 import type { MarkdownPreview } from "../api/tauri.js";
 
 export interface DocumentLoadCommands {
@@ -14,6 +14,10 @@ export type LoadedDocument =
       full?: Promise<{ html: string; content: string }>;
     }
   | {
+      kind: "html";
+      initial: { html: string; content: string };
+    }
+  | {
       kind: "text";
       content: string;
     };
@@ -23,6 +27,14 @@ export async function loadDocument(
   commands: DocumentLoadCommands,
   maxPreviewBytes = 50000,
 ): Promise<LoadedDocument> {
+  if (isHtmlPath(path)) {
+    const content = await commands.readFile(path);
+    return {
+      kind: "html",
+      initial: { html: content, content },
+    };
+  }
+
   if (!isMarkdownPath(path)) {
     return {
       kind: "text",

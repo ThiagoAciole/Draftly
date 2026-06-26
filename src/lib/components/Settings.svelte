@@ -255,6 +255,21 @@
               </div>
 
               <div class="setting-item">
+                <label for="general-start-view-mode"
+                  >Iniciar arquivos Markdown no Modo Visualização</label
+                >
+                <label class="toggle">
+                  <input
+                    id="general-start-view-mode"
+                    type="checkbox"
+                    checked={settings.startInViewMode}
+                    onchange={() => settings.toggleStartInViewMode()}
+                  />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+
+              <div class="setting-item">
                 <label for="general-restore-state"
                   >{t(
                     "settings.restoreStateOnReopen",

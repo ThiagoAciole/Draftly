@@ -147,6 +147,7 @@ export class SettingsStore {
   occurrencesHighlight = $state(false);
   showWhitespace = $state(false);
   startInEditor = $state(false);
+  startInViewMode = $state(false);
   showRecentFiles = $state(true);
   editorMaxWidth = $state(80);
   textMaxWidth = $state(120);
@@ -194,6 +195,7 @@ export class SettingsStore {
       );
       const savedHighlightColor = localStorage.getItem("editor.highlightColor");
       const savedStartInEditor = localStorage.getItem("editor.startInEditor");
+      const savedStartInViewMode = localStorage.getItem("editor.startInViewMode");
       const savedShowRecentFiles = localStorage.getItem(
         "editor.showRecentFiles",
       );
@@ -258,6 +260,8 @@ export class SettingsStore {
         this.highlightColor = savedHighlightColor;
       if (savedStartInEditor !== null)
         this.startInEditor = savedStartInEditor === "true";
+      if (savedStartInViewMode !== null)
+        this.startInViewMode = savedStartInViewMode === "true";
       if (savedShowRecentFiles !== null)
         this.showRecentFiles = savedShowRecentFiles === "true";
       if (savedEditorMaxWidth !== null)
@@ -361,6 +365,10 @@ export class SettingsStore {
           localStorage.setItem(
             "editor.startInEditor",
             String(this.startInEditor),
+          );
+          localStorage.setItem(
+            "editor.startInViewMode",
+            String(this.startInViewMode),
           );
           localStorage.setItem(
             "editor.showRecentFiles",
@@ -472,6 +480,10 @@ export class SettingsStore {
     this.startInEditor = !this.startInEditor;
   }
 
+  toggleStartInViewMode() {
+    this.startInViewMode = !this.startInViewMode;
+  }
+
   toggleTocSide() {
     this.tocSide = this.tocSide === "left" ? "right" : "left";
   }
@@ -519,6 +531,7 @@ export class SettingsStore {
     this.occurrencesHighlight = false;
     this.showWhitespace = false;
     this.startInEditor = false;
+    this.startInViewMode = false;
     this.showRecentFiles = true;
     this.editorMaxWidth = 80;
     this.textMaxWidth = 120;

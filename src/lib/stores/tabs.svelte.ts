@@ -4,6 +4,7 @@ import type { DocumentSnapshot } from "../services/document-session.js";
 import {
   isMarkdownPath,
   isPlainTextPath,
+  isHtmlPath,
 } from "../features/files/file-types.js";
 
 export interface Tab {
@@ -91,11 +92,12 @@ class TabManager {
               isEditing: true,
             };
           }
-          if (!isMarkdownPath(tab.path)) return tab;
+          if (!isMarkdownPath(tab.path) && !isHtmlPath(tab.path)) return tab;
 
           return {
             ...tab,
-            isSplit: true,
+            isSplit: settings.startInViewMode ? false : (tab.isSplit ?? true),
+            isEditing: settings.startInViewMode ? false : tab.isEditing,
             splitRatio:
               !tab.isSplit || tab.splitRatio === 0.5 ? 0.6 : tab.splitRatio,
           };
@@ -112,7 +114,7 @@ class TabManager {
     const filename =
       path.split("\\").pop()?.split("/").pop() ||
       t("tabs.untitled", settings.language);
-    const opensInSplit = isMarkdownPath(path);
+    const opensInSplit = (isMarkdownPath(path) || isHtmlPath(path)) && !settings.startInViewMode;
 
     this.tabs.push({
       id,
@@ -171,6 +173,7 @@ class TabManager {
   addRecoveredTab(snapshot: DocumentSnapshot) {
     const id = crypto.randomUUID();
     const isMarkdown = isMarkdownPath(snapshot.path);
+    const opensInSplit = isMarkdown || isHtmlPath(snapshot.path);
     this.tabs.push({
       id,
       path: "",
@@ -186,8 +189,8 @@ class TabManager {
       editorViewState: null,
       scrollPercentage: 0,
       anchorLine: 0,
-      isSplit: isMarkdown,
-      splitRatio: isMarkdown ? 0.6 : 0.5,
+      isSplit: opensInSplit,
+      splitRatio: opensInSplit ? 0.6 : 0.5,
       isScrollSynced: false,
       newFileType: isMarkdown ? "markdown" : "text",
     });
@@ -309,6 +312,13 @@ class TabManager {
     }
   }
 
+  setEditing(id: string, isEditing: boolean) {
+    const tab = this.tabs.find((t) => t.id === id);
+    if (tab) {
+      tab.isEditing = isEditing;
+    }
+  }
+
   setSplitEnabled(id: string, enabled: boolean) {
     const tab = this.tabs.find((t) => t.id === id);
     if (!tab) return;
@@ -365,7 +375,7 @@ class TabManager {
       tab.title = path.split(/[/\\]/).pop() || "Untitled";
       tab.isDirty = false;
       tab.newFileType = undefined;
-      if (isMarkdownPath(path)) {
+      if (isMarkdownPath(path) || isHtmlPath(path)) {
         tab.isSplit = true;
         if (tab.splitRatio === 0.5) tab.splitRatio = 0.6;
       } else {
