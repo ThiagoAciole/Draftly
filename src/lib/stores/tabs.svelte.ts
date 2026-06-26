@@ -114,7 +114,7 @@ class TabManager {
     const filename =
       path.split("\\").pop()?.split("/").pop() ||
       t("tabs.untitled", settings.language);
-    const opensInSplit = (isMarkdownPath(path) || isHtmlPath(path)) && !settings.startInViewMode;
+    const opensInSplit = isHtmlPath(path) || (isMarkdownPath(path) && !settings.startInViewMode);
 
     this.tabs.push({
       id,

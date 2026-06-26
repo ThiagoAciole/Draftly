@@ -33,6 +33,7 @@
   import { tauriCommands } from "./api/tauri.js";
   import {
     processMarkdownHtml,
+    processHtmlPreview,
     highlightColorMap,
     renderRichContent as _renderRichContent,
   } from "./features/preview/markdown.processor.js";
@@ -587,7 +588,12 @@
       const loaded = await loadDocument(filePath, tauriCommands);
 
       if (loaded.kind === "markdown" || loaded.kind === "html") {
-        if (tab && !tab.isSplit && !options.preserveEditState && !settings.startInViewMode) {
+        if (
+          tab &&
+          !tab.isSplit &&
+          (!options.preserveEditState || loaded.kind === "html") &&
+          (!settings.startInViewMode || loaded.kind === "html")
+        ) {
           tab.splitRatio = 0.6;
           tabManager.setSplitEnabled(tab.id, true);
         }
@@ -600,7 +606,8 @@
           );
           tabManager.updateTabContent(activeId, processedInfo);
         } else {
-          tabManager.updateTabContent(activeId, loaded.initial.html);
+          const processedHtml = processHtmlPreview(loaded.initial.html, filePath);
+          tabManager.updateTabContent(activeId, processedHtml);
         }
         tabManager.setTabRawContent(activeId, loaded.initial.content);
 
@@ -1577,7 +1584,7 @@
       }
 
       tabManager.setEditing(tab.id, false);
-      if (tab.isSplit) tabManager.setSplitEnabled(tab.id, false);
+      if (tab.isSplit && !isHtml) tabManager.setSplitEnabled(tab.id, false);
       
       if (tab.path !== "") {
         await loadMarkdown(tab.path, { preserveEditState: true });

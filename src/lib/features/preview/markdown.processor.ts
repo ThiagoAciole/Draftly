@@ -456,6 +456,72 @@ export function processHighlights(root: Element) {
   }
 }
 
+export function processHtmlPreview(html: string, filePath: string): string {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+
+  for (const img of Array.from(doc.querySelectorAll("img"))) {
+    const src = img.getAttribute("src");
+    let finalSrc = src;
+    if (src && !src.startsWith("http") && !src.startsWith("data:")) {
+      try {
+        const decodedSrc = decodeURIComponent(src);
+        finalSrc = convertFileSrc(resolvePath(filePath, decodedSrc));
+        img.setAttribute("src", finalSrc);
+      } catch (e) {
+        console.error("Failed to decode/resolve image src:", src, e);
+      }
+    }
+
+    if (src) {
+      const ext = src.split(".").pop()?.toLowerCase();
+      const isVideo = ["mp4", "webm", "ogg", "mov"].includes(ext || "");
+      const isAudio = ["mp3", "wav", "aac", "flac", "m4a"].includes(ext || "");
+
+      if (isVideo || isAudio) {
+        const media = doc.createElement(isVideo ? "video" : "audio");
+        media.setAttribute("controls", "");
+        media.setAttribute("src", finalSrc || "");
+        media.style.maxWidth = "100%";
+
+        if (img.hasAttribute("width"))
+          media.setAttribute("width", img.getAttribute("width")!);
+        if (img.hasAttribute("height"))
+          media.setAttribute("height", img.getAttribute("height")!);
+        if (img.hasAttribute("alt"))
+          media.setAttribute("aria-label", img.getAttribute("alt")!);
+        if (img.hasAttribute("title"))
+          media.setAttribute("title", img.getAttribute("title")!);
+
+        img.replaceWith(media);
+        continue;
+      }
+
+      if (isYoutubeLink(src)) {
+        const videoId = getYoutubeId(src);
+        if (videoId) replaceWithYoutubeEmbed(img, videoId);
+      }
+    }
+  }
+
+  for (const a of Array.from(doc.querySelectorAll("a"))) {
+    const href = a.getAttribute("href");
+    if (href && isYoutubeLink(href)) {
+      const parent = a.parentElement;
+      if (
+        parent &&
+        (parent.tagName === "P" || parent.tagName === "DIV") &&
+        parent.childNodes.length === 1
+      ) {
+        const videoId = getYoutubeId(href);
+        if (videoId) replaceWithYoutubeEmbed(a, videoId);
+      }
+    }
+  }
+
+  return doc.body.innerHTML;
+}
+
 export function processMarkdownHtml(
   html: string,
   filePath: string,
