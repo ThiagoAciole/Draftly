@@ -13,4 +13,4 @@ test_image.png
 src-tauri/output.txt
 .codex
 .agents
-
+src-tauri/target/
