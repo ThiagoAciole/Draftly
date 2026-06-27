@@ -84,6 +84,11 @@
 
   import DOMPurify from "dompurify";
   import HomePage from "./components/HomePage.svelte";
+  import MarkdownView from "./views/MarkdownView.svelte";
+  import HtmlView from "./views/HtmlView.svelte";
+  import TextView from "./views/TextView.svelte";
+  import JsonView from "./views/JsonView.svelte";
+  import "./views/view-layout.css";
   import { tabManager, type NewFileType } from "./stores/tabs.svelte.js";
   import { settings } from "./stores/settings.svelte.js";
   import { t } from "./utils/i18n.js";
@@ -359,9 +364,15 @@
     "i",
   );
   let sanitizedHtml = $derived(
-    DOMPurify.sanitize(htmlContent, {
-      ALLOWED_URI_REGEXP: allowedMarkdownUriPattern,
-    }),
+    isHtml
+      ? DOMPurify.sanitize(htmlContent, {
+          ADD_TAGS: ["iframe", "video", "audio"],
+          ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "controls"],
+          ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|ftp|tel|file|sms):|[^&:\/?#]*(?:[\/?#]|$)|tauri-protocol:)/i,
+        })
+      : DOMPurify.sanitize(htmlContent, {
+          ALLOWED_URI_REGEXP: allowedMarkdownUriPattern,
+        })
   );
   let scrollTop = $derived(tabManager.activeTab?.scrollTop ?? 0);
   let isScrolled = $derived(scrollTop > 0);
@@ -389,9 +400,11 @@
   };
 
   import { parseAndApplyVscodeTheme, clearVscodeTheme } from "./utils/theme";
+  import { createThemeWatcher } from "./services/theme-watcher";
 
   // Theme State
   let theme = $state<string>("dark");
+  const themeWatcher = createThemeWatcher();
 
   onMount(() => {
     const storedTheme = localStorage.getItem("theme");
@@ -405,21 +418,11 @@
   });
 
   $effect(() => {
-    localStorage.setItem("theme", theme);
-    tauriCommands.saveTheme(theme).catch(console.error);
-
-    if (theme === "light" || theme === "dark") {
-      document.documentElement.dataset.theme = theme;
-      document.documentElement.dataset.themeType = theme;
-      clearVscodeTheme();
-      const monaco = (window as any).monaco;
-      if (monaco && monaco.editor) {
-        monaco.editor.setTheme(theme === "dark" ? "vs-dark" : "vs");
-      }
-    }
+    const monaco = (window as any).monaco;
+    if (monaco) themeWatcher.registerMonaco(monaco);
+    themeWatcher.updateTheme(theme);
 
     // Re-initialize mermaid or trigger update if needed
-    // Note: Mermaid 10+ usually doesn't support dynamic re-init easily but we can try re-rendering rich content
     if (markdownBody && !isEditing) renderRichContent();
   });
 
@@ -588,15 +591,6 @@
       const loaded = await loadDocument(filePath, tauriCommands);
 
       if (loaded.kind === "markdown" || loaded.kind === "html") {
-        if (
-          tab &&
-          !tab.isSplit &&
-          (!options.preserveEditState || loaded.kind === "html") &&
-          (!settings.startInViewMode || loaded.kind === "html")
-        ) {
-          tab.splitRatio = 0.6;
-          tabManager.setSplitEnabled(tab.id, true);
-        }
         
         if (loaded.kind === "markdown") {
           const processedInfo = processMarkdownHtml(
@@ -1426,7 +1420,8 @@
           await renderRichContent();
         }
       } else if (isHtmlPath(filePath)) {
-        tabManager.updateTabContent(tab.id, change.content);
+        const processedHtml = processHtmlPreview(change.content, filePath);
+        tabManager.updateTabContent(tab.id, processedHtml);
         if (tabManager.activeTabId === tab.id) {
           await tick();
           await renderRichContent();
@@ -2378,7 +2373,8 @@
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
         if (isHtml) {
-          tabManager.updateTabContent(tab.id, tab.rawContent);
+          const processedHtml = processHtmlPreview(tab.rawContent, tab.path || "");
+          tabManager.updateTabContent(tab.id, processedHtml);
           (tab as any)._lastRenderedRawContent = tab.rawContent;
           tick().then(renderRichContent);
         } else {
@@ -2396,7 +2392,7 @@
             })
             .catch(console.error);
         }
-      }, 16);
+      }, 300);
     }
   });
 
@@ -3295,266 +3291,146 @@
     </div>
   {:else if tabManager.activeTab && (tabManager.activeTab.path !== "" || tabManager.activeTab.title !== "Recents") && !showHome}
     <div
-      class="markdown-container"
-      style="zoom: {zoomLevel /
-        100}; --code-font: {settings.previewFont}, monospace; --code-font-size: {Math.max(
-        10,
-        settings.previewFontSize - 1,
-      )}px; --highlight-color: {highlightColorMap[settings.highlightColor] ||
-        highlightColorMap.yellow};"
+      class="layout-container-wrapper"
+      ondragover={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (editorPane) editorPane.updateDragCaret(e.clientX, e.clientY);
+      }}
+      ondragleave={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (editorPane) editorPane.hideDragCaret();
+      }}
+      ondrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (editorPane && e.dataTransfer) {
+          const files = Array.from(e.dataTransfer.files);
+          if (files.length > 0) {
+            editorPane.handleDroppedFile((files[0] as any).path, e.clientX, e.clientY);
+          }
+        }
+      }}
       onwheel={handleWheel}
       role="presentation"
+      style="width: 100%; height: 100%; position: relative;"
     >
-      <div
-        class="layout-container"
-        class:split={isSplit}
-        class:editing={isEditing}
-        class:has-open-toc={isMarkdown && settings.showToc}
-        class:toc-on-left={settings.tocSide === "left"}
-        class:toc-on-right={settings.tocSide === "right"}
-      >
-        {#if !showHome && settings.showSidebar}
-          <div class="toc-rail" class:on-right={settings.tocSide === "right"}>
-            <button class="toc-rail-button" onclick={() => (showHome = true)}>
-              <SvgIcon name="markdown-viewer-6" />
-              <span class="visually-hidden"
-                >{t("common.home", settings.language)}</span
-              >
-            </button>
-            <button
-              class="toc-rail-button"
-              class:active={findOpen}
-              data-find-toggle="true"
-              onclick={triggerFindAction}
-            >
-              <SvgIcon name="markdown-viewer-7" />
-              <span class="visually-hidden"
-                >{t("tooltip.find", settings.language)}</span
-              >
-            </button>
-            {#if isMarkdown}
-              <button
-                class="toc-rail-button"
-                class:active={settings.showToc}
-                onclick={() => settings.toggleToc()}
-              >
-                <SvgIcon name="markdown-viewer-8" />
-                <span class="visually-hidden"
-                  >{t("tooltip.showTableOfContents", settings.language)}</span
-                >
-              </button>
-              <button
-                class="toc-rail-button"
-                class:active={settings.showMarkdownToolbar}
-                onclick={() => settings.toggleMarkdownToolbar()}
-              >
-                <SvgIcon name="markdown-viewer-9" />
-                <span class="visually-hidden"
-                  >{t("settings.markdownToolbar", settings.language)}</span
-                >
-              </button>
-            {/if}
-          </div>
-        {/if}
-
-        <!-- Editor Pane -->
-        <div
-          bind:this={editorPaneEl}
-          class="pane editor-pane"
-          class:active={isEditing || isSplit}
-          class:markdown-toolbar-pane={isMarkdown &&
-            settings.showMarkdownToolbar}
-          style="flex: {isSplit
-            ? tabManager.activeTab.splitRatio
-            : isEditing
-              ? 1
-              : 0}"
-        >
-          {#if isEditing || isSplit}
-            <div class="editor-shell">
-              <div class="editor-surface">
-                <Editor
-                  bind:this={editorPane}
-                  bind:value={tabManager.activeTab.rawContent}
-                  language={editorLanguage}
-                  plainTextMode={isPlainText}
-                  {theme}
-                  onsave={saveContent}
-                  ontoast={addToast}
-                  bind:zoomLevel
-                  onnew={handleNewFile}
-                  onopen={selectFile}
-                  onclose={closeFile}
-                  onreveal={openFileLocation}
-                  ontoggleEdit={() => toggleEdit()}
-                  ontoggleLive={toggleLiveMode}
-                  ontoggleSplit={() =>
-                    tabManager.activeTabId &&
-                    toggleSplitView(tabManager.activeTabId)}
-                  onhome={() => (showHome = true)}
-                  onnextTab={() => tabManager.cycleTab("next")}
-                  onprevTab={() => tabManager.cycleTab("prev")}
-                  onundoClose={handleUndoCloseTab}
-                  onscrollsync={handleEditorScrollSync}
-                />
-              </div>
-            </div>
-          {/if}
-        </div>
-
-        <!-- Splitter -->
-        {#if isSplit}
-          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-          <div
-            class="split-bar"
-            onmousedown={(e) => startDrag(e, tabManager.activeTabId)}
-            onkeydown={handleSplitterKeyDown}
-            role="separator"
-            aria-orientation="vertical"
-            tabindex="0"
-          ></div>
-        {/if}
-
-        <!-- Viewer Pane -->
-        <div
-          bind:this={viewerPaneEl}
-          class="pane viewer-pane"
-          class:active={!isEditing || isSplit}
-          style="flex: {isSplit
-            ? 1 - tabManager.activeTab.splitRatio
-            : !isEditing
-              ? 1
-              : 0}"
-        >
-          <div class="viewer-content">
-            <article
-              bind:this={markdownBody}
-              contenteditable="false"
-              class="markdown-body full-width {settings.showToc
-                ? 'toc-active'
-                : ''}"
-              bind:innerHTML={sanitizedHtml}
-              onscroll={handleScroll}
-              onclick={handleLinkClick}
-              onkeydown={(e) => {
-                if (e.key === "Enter" || e.key === " ")
-                  handleLinkClick(e as unknown as MouseEvent);
-              }}
-              tabindex="-1"
-              style="outline: none; font-family: {settings.previewFont}, sans-serif; font-size: {settings.previewFontSize}px; flex: 1;"
-            ></article>
-            {#if tabManager.activeTabId && loadingTabs.includes(tabManager.activeTabId) && isAtBottom}
-              <div
-                class="loading-chip"
-                transition:fly={{ y: 20, duration: 300, easing: cubicOut }}
-              >
-                <div class="loading-spinner"></div>
-                <span>{t("common.loadingFullDocument", settings.language)}</span
-                >
-              </div>
-            {/if}
-          </div>
-        </div>
-
-        <!-- Unified TOC Support -->
-        {#if isMarkdown && !showHome}
-          <div
-            class="top-fade-mask"
-            style={settings.tocSide === "left"
-              ? "left: 0;"
-              : "right: 0; left: auto;"}
-          ></div>
-          {#if settings.showToc}
-            <div
-              transition:fly={{
-                x: settings.tocSide === "left" ? -240 : 240,
-                duration: 300,
-                opacity: 1,
-                easing: cubicOut,
-              }}
-              class="toc-overlay-wrapper"
-              class:on-right={settings.tocSide === "right"}
-            >
-              <Toc
-                {markdownBody}
-                htmlContent={sanitizedHtml}
-                onBeforeJump={pushScrollHistory}
-                {collapsedHeaders}
-                ontoggleFold={toggleFold}
-                oncopyref={(text: string) => {
-                  const tab = tabManager.activeTab;
-                  const fn = tab?.path
-                    ? tab.path
-                        .split(/[/\\]/)
-                        .pop()
-                        ?.replace(/\.[^.]+$/, "") || ""
-                    : "";
-                  tauriCommands.writeClipboardText(
-                    fn ? `[[${fn}#${text}]]` : `#${text}`,
-                  );
-                }}
-                onjump={(id: string, text: string) => {
-                  if (isEditing && editorPane) {
-                    editorPane.revealHeader(text);
-                  }
-                }}
-                oncontext={(e, item) => {
-                  docContextMenu = {
-                    show: true,
-                    x: e.clientX,
-                    y: e.clientY,
-                    items: [
-                      {
-                        label: t("menu.copyReference", uiLanguage),
-                        onClick: () => {
-                          const tab = tabManager.activeTab;
-                          const fn = tab?.path
-                            ? tab.path
-                                .split(/[/\\]/)
-                                .pop()
-                                ?.replace(/\.[^.]+$/, "") || ""
-                            : "";
-                          tauriCommands.writeClipboardText(
-                            fn ? `[[${fn}#${item.text}]]` : `#${item.text}`,
-                          );
-                          docContextMenu.show = false;
-                        },
-                      },
-                    ],
-                  };
-                }}
-                onshowTooltip={(e, text, shortcut, align) => {
-                  const rect = (
-                    e.currentTarget as HTMLElement
-                  ).getBoundingClientRect();
-                  tooltip = {
-                    show: true,
-                    text,
-                    shortcut: shortcut || "",
-                    html: "",
-                    isFootnote: false,
-                    x:
-                      align === "right"
-                        ? rect.right + 8
-                        : (align as any) === "left"
-                          ? rect.left - 8
-                          : rect.left + rect.width / 2,
-                    y:
-                      align === "right" || (align as any) === "left"
-                        ? rect.top + rect.height / 2
-                        : align === "below"
-                          ? rect.bottom + 8
-                          : rect.top - 8,
-                    align: align || "top",
-                  };
-                }}
-                onhideTooltip={() => (tooltip.show = false)}
-              />
-            </div>
-          {/if}
-        {/if}
-      </div>
+      {#if isMarkdown}
+        <MarkdownView
+          tab={tabManager.activeTab}
+          {isSplit}
+          {isEditing}
+          {isMarkdown}
+          {editorLanguage}
+          {isPlainText}
+          {theme}
+          bind:zoomLevel
+          {sanitizedHtml}
+          bind:markdownBody
+          bind:editorPane
+          bind:editorPaneEl
+          bind:viewerPaneEl
+          {loadingTabs}
+          {isAtBottom}
+          {collapsedHeaders}
+          bind:tooltip
+          bind:docContextMenu
+          {findOpen}
+          {saveContent}
+          {addToast}
+          {handleNewFile}
+          {selectFile}
+          {closeFile}
+          {openFileLocation}
+          toggleEdit={() => toggleEdit()}
+          {toggleLiveMode}
+          {toggleSplitView}
+          {handleUndoCloseTab}
+          {handleEditorScrollSync}
+          {handleScroll}
+          {handleLinkClick}
+          {triggerFindAction}
+          {pushScrollHistory}
+          {toggleFold}
+          {startDrag}
+          {handleSplitterKeyDown}
+          {uiLanguage}
+        />
+      {:else if isHtml}
+        <HtmlView
+          tab={tabManager.activeTab}
+          {isSplit}
+          {isEditing}
+          {editorLanguage}
+          {isPlainText}
+          {theme}
+          bind:zoomLevel
+          {sanitizedHtml}
+          bind:markdownBody
+          bind:editorPane
+          bind:editorPaneEl
+          bind:viewerPaneEl
+          {loadingTabs}
+          {isAtBottom}
+          {findOpen}
+          {saveContent}
+          {addToast}
+          {handleNewFile}
+          {selectFile}
+          {closeFile}
+          {openFileLocation}
+          toggleEdit={() => toggleEdit()}
+          {toggleLiveMode}
+          {toggleSplitView}
+          {handleUndoCloseTab}
+          {handleEditorScrollSync}
+          {handleScroll}
+          {handleLinkClick}
+          {triggerFindAction}
+          {startDrag}
+          {handleSplitterKeyDown}
+        />
+      {:else if isPlainText}
+        <TextView
+          tab={tabManager.activeTab}
+          {editorLanguage}
+          {isPlainText}
+          {theme}
+          bind:zoomLevel
+          bind:editorPane
+          bind:editorPaneEl
+          {findOpen}
+          {saveContent}
+          {addToast}
+          {handleNewFile}
+          {selectFile}
+          {closeFile}
+          {openFileLocation}
+          {handleUndoCloseTab}
+          {handleEditorScrollSync}
+          {triggerFindAction}
+        />
+      {:else}
+        <JsonView
+          tab={tabManager.activeTab}
+          {editorLanguage}
+          {theme}
+          bind:zoomLevel
+          bind:editorPane
+          bind:editorPaneEl
+          {findOpen}
+          {saveContent}
+          {addToast}
+          {handleNewFile}
+          {selectFile}
+          {closeFile}
+          {openFileLocation}
+          {handleUndoCloseTab}
+          {handleEditorScrollSync}
+          {triggerFindAction}
+        />
+      {/if}
     </div>
   {:else}
     <HomePage
@@ -3669,14 +3545,10 @@
 
   .markdown-body {
     box-sizing: border-box;
-    min-width: 200px;
-    margin: 0 auto;
-    padding: 50px clamp(24px, 5vw, 50px);
-    height: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-    transform: translate3d(0, 0, 0);
+    width: 100%;
     max-width: 880px;
+    margin: 0 auto;
+    padding: 2.5rem 2rem;
     text-align: left;
     overflow-wrap: anywhere;
   }
@@ -3751,8 +3623,11 @@
   }
 
   .markdown-body.full-width {
-    max-width: 100%;
-    margin: 0;
+    width: 100% !important;
+    max-width: 880px !important;
+    margin: 0 auto !important;
+    padding: 3rem 2rem !important;
+    box-sizing: border-box !important;
   }
 
   @keyframes slideIn {
@@ -4020,333 +3895,5 @@
       stroke-dashoffset: -124;
     }
   }
-  /* Layout System */
-  .layout-container {
-    display: flex;
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-    padding-top: 36px;
-    box-sizing: border-box;
-    overflow: hidden;
-  }
-
-  .pane {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    transition:
-      flex 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-      transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    min-width: 0;
-  }
-
-  .pane.editor-pane {
-    background: var(--color-canvas-default);
-  }
-
-  .layout-container.split .editor-pane.markdown-toolbar-pane {
-    min-width: min(400px, calc(100% - 80px));
-  }
-
-  .pane.viewer-pane {
-    background: var(--color-canvas-default);
-  }
-
-  .viewer-content {
-    display: flex;
-    flex-direction: row;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-  }
-
-  /* View Mode */
-  .layout-container:not(.split):not(.editing) .editor-pane {
-    width: 0 !important;
-    flex: 0 !important;
-    opacity: 0;
-  }
-
-  .layout-container:not(.split):not(.editing) .viewer-pane {
-    width: 100%;
-    flex: 1 !important;
-  }
-
-  /* Edit Mode */
-  .layout-container:not(.split).editing .editor-pane {
-    width: 100%;
-    flex: 1 !important;
-  }
-
-  .layout-container:not(.split).editing .viewer-pane {
-    width: 0 !important;
-    flex: 0 !important;
-    opacity: 0;
-  }
-
-  /* Split Mode Transition Logic */
-  /* Editor slides in from left */
-  /* Viewer slides right */
-
-  .pane {
-    height: 100%;
-    position: relative;
-  }
-
-  .split-bar {
-    width: 4px;
-    background: linear-gradient(
-      to right,
-      transparent 0,
-      transparent 1px,
-      var(--color-border-default) 1px,
-      var(--color-border-default) 2px,
-      transparent 2px
-    );
-    cursor: col-resize;
-    position: relative;
-    z-index: 100;
-    transition: background 0.2s;
-  }
-
-  .split-bar:hover {
-    background: linear-gradient(
-      to right,
-      transparent 0,
-      transparent 4px,
-      var(--color-accent-fg) 1px,
-      var(--color-accent-fg) 2px,
-      transparent 2px
-    );
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-
-  .toast-container {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    z-index: 50000;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    pointer-events: none;
-  }
-  .top-fade-mask {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 60px;
-    height: 52px;
-    background: linear-gradient(
-      to bottom,
-      var(--color-canvas-default) 40%,
-      transparent 100%
-    );
-    pointer-events: none;
-    z-index: 50;
-  }
-
-  .toc-overlay-wrapper {
-    position: absolute;
-    top: 36px;
-    left: 40px;
-    bottom: 0;
-    z-index: 1000;
-    height: calc(100% - 36px);
-    background-color: var(--color-canvas-default);
-    border-right: 1px solid transparent;
-    border-left: 1px solid transparent;
-    box-shadow: 10px 0 30px rgba(0, 0, 0, 0);
-    transition:
-      box-shadow 0.3s ease,
-      border-color 0.3s ease,
-      left 0.3s ease,
-      right 0.3s ease;
-    order: -1;
-  }
-
-  .editor-pane {
-    transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .editor-shell {
-    display: flex;
-    flex: 1;
-    min-width: 0;
-    min-height: 0;
-  }
-
-  .editor-surface {
-    display: flex;
-    flex: 1;
-    min-width: 0;
-    min-height: 0;
-    height: 100%;
-  }
-
-  .toc-rail {
-    width: 48px;
-    position: absolute;
-    top: 36px;
-    bottom: 0;
-    left: 0;
-    z-index: 1100;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-    padding: 8px 0 0 7px;
-    justify-content: flex-start;
-    background: linear-gradient(
-      to right,
-      color-mix(in srgb, var(--color-canvas-default) 96%, transparent),
-      color-mix(in srgb, var(--color-canvas-default) 84%, transparent)
-    );
-    border-right: 1px solid var(--color-border-muted);
-    box-sizing: border-box;
-  }
-
-  .toc-rail.on-right {
-    left: auto;
-    right: 0;
-    align-items: flex-end;
-    padding: 8px 7px 0 0;
-    background: linear-gradient(
-      to left,
-      color-mix(in srgb, var(--color-canvas-default) 96%, transparent),
-      color-mix(in srgb, var(--color-canvas-default) 84%, transparent)
-    );
-    border-right: none;
-    border-left: 1px solid var(--color-border-muted);
-  }
-
-  .toc-rail-button {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: transparent;
-    border: 1px solid transparent;
-    border-radius: 4px;
-    color: var(--color-fg-muted);
-    cursor: pointer;
-    padding: 0;
-    opacity: 0.75;
-    transition:
-      background-color 0.2s ease,
-      color 0.2s ease,
-      opacity 0.2s ease,
-      border-color 0.2s ease;
-  }
-
-  .toc-rail-button :global(svg) {
-    width: 16px;
-    height: 16px;
-  }
-
-  .toc-rail-button:hover {
-    opacity: 1;
-    background-color: var(--color-canvas-subtle);
-    color: var(--color-fg-default);
-    border-color: var(--color-border-muted);
-  }
-
-  .toc-rail-button.active {
-    opacity: 1;
-    background: color-mix(in srgb, var(--color-accent-fg) 14%, transparent);
-    color: var(--color-accent-fg);
-    border-color: color-mix(in srgb, var(--color-accent-fg) 42%, transparent);
-    box-shadow: inset 0 0 0 1px
-      color-mix(in srgb, var(--color-accent-fg) 18%, transparent);
-  }
-
-  .toc-rail-button:disabled {
-    opacity: 0.3;
-    cursor: default;
-    background: transparent;
-    border-color: transparent;
-  }
-
-  .visually-hidden {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-
-  .toc-overlay-wrapper.on-right {
-    left: auto;
-    right: 40px;
-    order: 2;
-  }
-
-  .layout-container {
-    transition: padding 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .layout-container.toc-on-left {
-    padding-left: 40px;
-  }
-
-  .layout-container.toc-on-right {
-    padding-right: 40px;
-  }
-
-  .layout-container.has-open-toc.toc-on-left {
-    padding-left: 280px;
-  }
-
-  .layout-container.has-open-toc.toc-on-right {
-    padding-right: 280px;
-  }
-
-  .zen-mode-shell {
-    position: absolute;
-    inset: 36px 0 0;
-    display: flex;
-    min-width: 0;
-  }
-
-  .zen-mode-shell.rail-on-left {
-    padding-left: 48px;
-  }
-
-  .zen-mode-shell.rail-on-right {
-    padding-right: 48px;
-  }
-
-  .zen-mode-shell .zen-rail {
-    top: 0;
-    z-index: 1200;
-  }
-
-  .toc-overlay-wrapper {
-    width: 240px;
-    box-shadow: none;
-  }
-
-  .toc-overlay-wrapper:not(.on-right) {
-    border-right-color: var(--color-border-default);
-  }
-
-  .toc-overlay-wrapper.on-right {
-    border-left-color: var(--color-border-default);
-  }
 </style>
+

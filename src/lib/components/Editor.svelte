@@ -602,23 +602,6 @@
       },
     });
 
-    $effect(() => {
-      if (editor) {
-        editor.updateOptions({
-          minimap: { enabled: effectiveMinimap },
-          wordWrap: effectiveWordWrap as any,
-          wordWrapColumn: effectiveWordWrapColumn,
-          lineNumbers: effectiveLineNumbers as any,
-          renderLineHighlight: settings.renderLineHighlight as any,
-          occurrencesHighlight: settings.occurrencesHighlight
-            ? "singleFile"
-            : "off",
-          fontSize: settings.editorFontSize,
-          fontFamily: effectiveFontFamily,
-          renderWhitespace: effectiveRenderWhitespace,
-        });
-      }
-    });
 
     const updateTheme = () => {
       monaco.editor.setTheme(getTheme());

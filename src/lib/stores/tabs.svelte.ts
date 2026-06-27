@@ -114,7 +114,7 @@ class TabManager {
     const filename =
       path.split("\\").pop()?.split("/").pop() ||
       t("tabs.untitled", settings.language);
-    const opensInSplit = isHtmlPath(path) || (isMarkdownPath(path) && !settings.startInViewMode);
+    const opensInSplit = false;
 
     this.tabs.push({
       id,
@@ -132,7 +132,7 @@ class TabManager {
       scrollPercentage: 0,
       anchorLine: 0,
       isSplit: opensInSplit,
-      splitRatio: opensInSplit ? 0.6 : 0.5,
+      splitRatio: 0.6,
       isScrollSynced: false,
     });
 
@@ -144,7 +144,6 @@ class TabManager {
     const content = "";
     const extension =
       type === "markdown" ? "md" : type === "json" ? "json" : "txt";
-    const opensInSplit = type === "markdown";
 
     this.tabs.push({
       id,
@@ -161,8 +160,8 @@ class TabManager {
       editorViewState: null,
       scrollPercentage: 0,
       anchorLine: 0,
-      isSplit: opensInSplit,
-      splitRatio: opensInSplit ? 0.6 : 0.5,
+      isSplit: false,
+      splitRatio: 0.5,
       isScrollSynced: false,
       newFileType: type,
     });

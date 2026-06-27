@@ -1,6 +1,6 @@
 <script lang="ts">
-  import MarkdownViewer from "$lib/MarkdownViewer.svelte";
+  import LayoutView from "$lib/LayoutView.svelte";
   import "../styles.css";
 </script>
 
-<MarkdownViewer />
+<LayoutView />
