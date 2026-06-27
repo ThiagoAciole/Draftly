@@ -14,6 +14,7 @@ use winreg::enums::*;
 #[cfg(target_os = "windows")]
 use winreg::RegKey;
 
+#[cfg(target_os = "windows")]
 const APP_NAME: &str = "Draftly";
 #[cfg(target_os = "windows")]
 const EXE_NAME: &str = "Draftly.exe";

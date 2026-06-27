@@ -2488,17 +2488,6 @@
       return;
     }
 
-    // On macOS the native menu accelerators (⌘T, ⌘W, ⌘S, ⌘Q) take priority
-    // via NSMenu; the JS keydown handler should not also fire for them, or
-    // we'd double-handle (e.g. open two new tabs on ⌘T). The !e.shiftKey
-    // guards keep ⌘⇧T (undo close tab) routed through this handler as
-    // before — only the bare combos are claimed by the menu.
-    if (settings.osType === "macos" && cmdOrCtrl && !e.shiftKey) {
-      if (key === "q") return; // → menu-app-quit
-      if (key === "w") return; // → menu-file-close
-      if (key === "s") return; // → menu-file-save
-      if (key === "t") return; // → menu-file-new
-    }
 
     const isSplit = tabManager.activeTab?.isSplit;
 
