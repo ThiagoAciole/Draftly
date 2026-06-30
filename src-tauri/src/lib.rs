@@ -647,20 +647,13 @@ fn get_system_fonts() -> Vec<String> {
 
 #[tauri::command]
 fn get_os_type() -> String {
-    #[cfg(target_os = "macos")]
-    {
+    if cfg!(target_os = "macos") {
         "macos".to_string()
-    }
-    #[cfg(target_os = "windows")]
-    {
+    } else if cfg!(target_os = "windows") {
         "windows".to_string()
-    }
-    #[cfg(target_os = "linux")]
-    {
+    } else if cfg!(target_os = "linux") {
         "linux".to_string()
-    }
-    #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
-    {
+    } else {
         "unknown".to_string()
     }
 }
@@ -1255,24 +1248,7 @@ pub fn run() {
         })
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
-        .run(|_app_handle, _event| {
-            #[cfg(target_os = "macos")]
-            if let tauri::RunEvent::Opened { urls } = _event {
-                if let Some(url) = urls.first() {
-                    if let Ok(path_buf) = url.to_file_path() {
-                        let path_str = path_buf.to_string_lossy().to_string();
-
-                        let state = _app_handle.state::<AppState>();
-                        *state.startup_file.lock().unwrap() = Some(path_str.clone());
-
-                        if let Some(window) = _app_handle.get_webview_window("main") {
-                            let _ = window.emit("file-path", path_str);
-                            let _ = window.set_focus();
-                        }
-                    }
-                }
-            }
-        });
+        .run(|_app_handle, _event| {});
 }
 
 #[cfg(test)]

@@ -9,8 +9,7 @@
 
   let {
     tab,
-    isSplit,
-    isEditing,
+    workspaceMode = "view",
     editorLanguage,
     isPlainText,
     theme,
@@ -31,21 +30,18 @@
     openFileLocation,
     toggleEdit,
     toggleLiveMode,
-    toggleSplitView,
     handleUndoCloseTab,
-    handleEditorScrollSync,
     handleScroll,
     handleLinkClick,
     triggerFindAction,
-    startDrag,
-    handleSplitterKeyDown,
   } = $props();
+
+  let isAdjustMode = $derived(workspaceMode === "adjust");
 </script>
 
 <div
   class="layout-container"
-  class:split={isSplit}
-  class:editing={isEditing}
+  class:editing={isAdjustMode}
   class:has-sidebar={settings.showSidebar}
   class:toc-on-left={settings.tocSide === "left"}
   class:toc-on-right={settings.tocSide === "right"}
@@ -68,10 +64,10 @@
   <div
     bind:this={editorPaneEl}
     class="pane editor-pane"
-    class:active={isEditing || isSplit}
-    style="flex: {isSplit ? tab.splitRatio : isEditing ? 1 : 0}"
+    class:active={isAdjustMode}
+    style="flex: {isAdjustMode ? 1 : 0}"
   >
-    {#if isEditing || isSplit}
+    {#if isAdjustMode}
       <div class="editor-shell">
         <div class="editor-surface">
           <Editor
@@ -89,38 +85,22 @@
             onreveal={openFileLocation}
             ontoggleEdit={() => toggleEdit()}
             ontoggleLive={toggleLiveMode}
-            ontoggleSplit={() => toggleSplitView(tab.id)}
             onhome={() => {}} 
             onnextTab={() => tabManager.cycleTab("next")}
             onprevTab={() => tabManager.cycleTab("prev")}
             onundoClose={handleUndoCloseTab}
-            onscrollsync={handleEditorScrollSync}
           />
         </div>
       </div>
     {/if}
   </div>
 
-  <!-- Splitter -->
-  {#if isSplit}
-    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-    <div
-      class="split-bar"
-      onmousedown={(e) => startDrag(e, tab.id)}
-      onkeydown={handleSplitterKeyDown}
-      role="separator"
-      aria-orientation="vertical"
-      tabindex="0"
-    ></div>
-  {/if}
-
   <!-- Viewer Pane -->
   <div
     bind:this={viewerPaneEl}
     class="pane viewer-pane"
-    class:active={!isEditing || isSplit}
-    style="flex: {isSplit ? 1 - tab.splitRatio : !isEditing ? 1 : 0}"
+    class:active={!isAdjustMode}
+    style="flex: {!isAdjustMode ? 1 : 0}"
   >
     <div class="viewer-content">
       <article

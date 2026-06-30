@@ -96,10 +96,9 @@ class TabManager {
 
           return {
             ...tab,
-            isSplit: settings.startInViewMode ? false : (tab.isSplit ?? true),
-            isEditing: settings.startInViewMode ? false : tab.isEditing,
-            splitRatio:
-              !tab.isSplit || tab.splitRatio === 0.5 ? 0.6 : tab.splitRatio,
+            isSplit: false,
+            isEditing: tab.isEditing ?? false,
+            splitRatio: 0.5,
           };
         });
         this.activeTabId = data.activeTabId;
@@ -154,7 +153,7 @@ class TabManager {
       originalContent: content,
       scrollTop: 0,
       isDirty: false,
-      isEditing: true,
+      isEditing: type !== "markdown",
       navigationHistory: [""],
       navigationIndex: 0,
       editorViewState: null,

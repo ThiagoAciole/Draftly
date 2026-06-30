@@ -20,7 +20,6 @@
     closeFile,
     openFileLocation,
     handleUndoCloseTab,
-    handleEditorScrollSync,
     triggerFindAction,
   } = $props();
 </script>
@@ -66,7 +65,6 @@
           onnextTab={() => tabManager.cycleTab("next")}
           onprevTab={() => tabManager.cycleTab("prev")}
           onundoClose={handleUndoCloseTab}
-          onscrollsync={handleEditorScrollSync}
         />
       </div>
     </div>

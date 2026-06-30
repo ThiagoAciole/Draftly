@@ -299,26 +299,6 @@
     padding-right: 288px;
   }
 
-  .zen-mode-shell {
-    position: absolute;
-    inset: 36px 0 0;
-    display: flex;
-    min-width: 0;
-  }
-
-  .zen-mode-shell.rail-on-left {
-    padding-left: 48px;
-  }
-
-  .zen-mode-shell.rail-on-right {
-    padding-right: 48px;
-  }
-
-  .zen-mode-shell .zen-rail {
-    top: 0;
-    z-index: 1200;
-  }
-
   .toc-overlay-wrapper {
     width: 240px;
     box-shadow: none;

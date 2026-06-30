@@ -23,7 +23,6 @@
 
     windowTitle,
     showHome,
-    showZenMode = false,
     onselectFile,
     onopenFile,
     onsaveFile,
@@ -32,7 +31,6 @@
     onexportPdf,
     onexit,
     ontoggleHome,
-    ontoggleZenMode,
     onopenFileLocation,
     ontoggleLiveMode,
     isEditing,
@@ -42,8 +40,6 @@
     zoomLevel,
     onresetZoom,
     oncloseTab,
-    isScrollSynced,
-    ontoggleSync,
     theme = "system",
     onSetTheme,
     onopenSettings,
@@ -55,7 +51,6 @@
 
     windowTitle: string;
     showHome: boolean;
-    showZenMode?: boolean;
     onselectFile?: () => void;
     onopenFile?: () => void;
     onsaveFile?: () => void;
@@ -64,7 +59,6 @@
     onexportPdf?: () => void;
     onexit?: () => void;
     ontoggleHome: () => void;
-    ontoggleZenMode?: () => void;
     onopenFileLocation: () => void;
     ontoggleLiveMode: () => void;
 
@@ -76,8 +70,6 @@
     onresetZoom?: () => void;
 
     oncloseTab?: (id: string) => void;
-    isScrollSynced?: boolean;
-    ontoggleSync?: () => void;
 
     theme?: string;
     onSetTheme?: (theme: string) => void;
@@ -183,11 +175,8 @@
     }
   });
 
-  const inlineIds = ["sidebar", "zen", "live", "edit_mode"];
-  let displayWindowTitle = $derived.by(() => {
-    if (showZenMode && !currentFile) return "Draftly";
-    return windowTitle;
-  });
+  const inlineIds = ["sidebar", "live", "edit_mode"];
+  let displayWindowTitle = $derived(windowTitle);
   let sidebarToggleLabel = $derived.by(() =>
     settings.showSidebar ? "Ocultar sidebar" : "Exibir sidebar",
   );
@@ -212,7 +201,6 @@
     }
 
     list.push("sidebar");
-    list.push("zen");
     if (zoomLevel && zoomLevel !== 100) list.push("zoom");
     list.push("theme");
     list.push("settings");
@@ -392,7 +380,7 @@
     </div>
   </div>
 
-  {#if tabManager.tabs.length > 0 && settings.showTabs && !showZenMode}
+  {#if tabManager.tabs.length > 0 && settings.showTabs}
     <div class="tab-area">
       <TabList
         onnewTab={(type) => tabManager.addNewTab(type)}
@@ -456,25 +444,6 @@
           >
             <SvgIcon name="title-bar-1" />
             <span class="action-label">Sidebar</span>
-          </button>
-        {:else if id === "zen"}
-          <button
-            class="title-action-btn {showZenMode ? 'active' : ''}"
-            onclick={() => {
-              hideTooltip();
-              ontoggleZenMode?.();
-            }}
-            aria-label={t("menu.zenMode", currentLanguage)}
-            onmouseenter={(e) =>
-              showTooltip(e, t("menu.zenMode", currentLanguage))}
-            onmousedown={(e) => e.preventDefault()}
-            onmouseleave={hideTooltip}
-            transition:fly={{ x: 10, duration: 200 }}
-          >
-            <SvgIcon name="title-bar-2" />
-            <span class="action-label"
-              >{t("menu.zenMode", currentLanguage)}</span
-            >
           </button>
         {:else if id === "settings"}
           <button
@@ -565,22 +534,6 @@
               >{t("menu.openLocation", currentLanguage)}</span
             >
           </button>
-        {:else if id === "sync"}
-          <button
-            class="title-action-btn {isScrollSynced ? 'active' : ''}"
-            onclick={() => ontoggleSync?.()}
-            aria-label={t("tooltip.toggleScrollSync", currentLanguage)}
-            onmouseenter={(e) =>
-              showTooltip(e, t("tooltip.scrollSync", currentLanguage))}
-            onmousedown={(e) => e.preventDefault()}
-            onmouseleave={hideTooltip}
-            transition:fly={{ x: 10, duration: 200 }}
-          >
-            <SvgIcon name="title-bar-19" />
-            <span class="action-label"
-              >{t("menu.syncScroll", currentLanguage)}</span
-            >
-          </button>
         {:else if id === "live"}
           <button
             class="title-action-btn {liveMode ? 'active' : ''}"
@@ -597,13 +550,15 @@
             >
           </button>
         {:else if id === "edit_mode"}
-          {@const isViewMode = !isEditing && !tabManager.activeTab?.isSplit}
+          {@const isViewMode = !isEditing}
+          {@const currentModeLabel = isViewMode ? "Exibição" : "Ajuste"}
+          {@const nextModeLabel = isViewMode ? "Ajuste" : "Exibição"}
           <button
             class="title-action-btn {isViewMode ? 'active' : ''}"
             onclick={() => ontoggleEdit?.()}
-            aria-label={isViewMode ? "Modo Editor" : "Modo Visualização"}
+            aria-label={`Alternar para ${nextModeLabel}`}
             onmouseenter={(e) =>
-              showTooltip(e, isViewMode ? "Modo Editor" : "Modo Visualização")}
+              showTooltip(e, `Alternar para ${nextModeLabel}`)}
             onmousedown={(e) => e.preventDefault()}
             onmouseleave={hideTooltip}
           >
@@ -612,9 +567,7 @@
               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
               <circle cx="12" cy="12" r="3"></circle>
             </svg>
-            <span class="action-label"
-              >{isViewMode ? "Modo Editor" : "Modo Visualização"}</span
-            >
+            <span class="action-label">{currentModeLabel}</span>
           </button>
         {:else if id === "theme"}
           <div class="theme-dropdown-container">

@@ -36,12 +36,10 @@
     onreveal,
     ontoggleEdit,
     ontoggleLive,
-    ontoggleSplit,
     onhome,
     onnextTab,
     onprevTab,
     onundoClose,
-    onscrollsync,
     ontoast,
     zoomLevel = $bindable(100),
     theme = "system",
@@ -56,12 +54,10 @@
     onreveal?: () => void;
     ontoggleEdit?: () => void;
     ontoggleLive?: () => void;
-    ontoggleSplit?: () => void;
     onhome?: () => void;
     onnextTab?: () => void;
     onprevTab?: () => void;
     onundoClose?: () => void;
-    onscrollsync?: (line: number, ratio?: number) => void;
     ontoast?: (message: string, type: "info" | "error" | "warning") => void;
     zoomLevel?: number;
     isSplit?: boolean;
@@ -815,16 +811,6 @@
     });
 
     editor.addAction({
-      id: "view-toggle-split",
-      label: t("menu.toggleSplitView", uiLanguage),
-      keybindings: [
-        monaco.KeyMod.CtrlCmd | monaco.KeyCode.Backslash,
-        monaco.KeyMod.CtrlCmd | monaco.KeyCode.IntlBackslash,
-      ],
-      run: () => ontoggleSplit?.(),
-    });
-
-    editor.addAction({
       id: "tab-next",
       label: t("menu.nextTab", uiLanguage),
       keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Tab],
@@ -1225,36 +1211,6 @@
       isApplyingExternalScroll = false;
     });
   }
-
-  $effect(() => {
-    if (editor && onscrollsync) {
-      const emitSync = () => {
-        if (isApplyingExternalScroll) return;
-
-        const position = editor.getPosition();
-        if (position) {
-          const top = editor.getTopForLineNumber(position.lineNumber);
-          const scrollTop = editor.getScrollTop();
-          const layout = editor.getLayoutInfo();
-          const ratio = (top - scrollTop) / layout.height;
-          onscrollsync?.(position.lineNumber, ratio);
-        }
-      };
-
-      const d1 = editor.onDidChangeCursorPosition((e) => {
-        emitSync();
-      });
-      const d2 = editor.onDidScrollChange((e) => {
-        if (e.scrollTopChanged) {
-          emitSync();
-        }
-      });
-      return () => {
-        d1.dispose();
-        d2.dispose();
-      };
-    }
-  });
 
   $effect(() => {
     const activeTabId = tabManager.activeTabId;

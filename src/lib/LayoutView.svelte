@@ -2,10 +2,8 @@
   import SvgIcon from "./icons/SvgIcon.svelte";
   import { convertFileSrc } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
-  import { LogicalSize } from "@tauri-apps/api/dpi";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { onMount, tick, untrack } from "svelte";
-  import { fly } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
   import { openUrl } from "@tauri-apps/plugin-opener";
   import { open, save } from "@tauri-apps/plugin-dialog";
@@ -29,7 +27,6 @@
   import RecoveryDialog from "./components/RecoveryDialog.svelte";
   import ExternalConflictDialog from "./components/ExternalConflictDialog.svelte";
   import ExportPreviewModal from "./components/ExportPreviewModal.svelte";
-  import ZenNotes from "./components/ZenNotes.svelte";
   import { tauriCommands } from "./api/tauri.js";
   import {
     processMarkdownHtml,
@@ -187,7 +184,6 @@
 
   let containerEl: HTMLElement;
   let markdownBody: HTMLElement | null = $state(null);
-  let zenSearchTarget: HTMLElement | null = $state(null);
   const renderDebounceMs = 50;
   let renderTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -222,21 +218,16 @@
     reapply: () => void;
     clearHighlights: () => void;
   } | null>(null);
-  let isZenCompactMode = $state(false);
 
   // Decide where Cmd/Ctrl+F should land based on what's visible and where
   // focus is. Used by both the JS keydown handler (Win/Linux + macOS in-page
   // shortcut) and the macOS native menu listener (which fires Cmd+F via the
   // Edit menu accelerator and bypasses the JS keydown path).
   function triggerFindAction() {
-    if (showZenMode) {
-      findOpen = !findOpen;
-      return;
-    }
     const active = document.activeElement as Node | null;
     const editorHasFocus =
       !!editorPaneEl && !!active && editorPaneEl.contains(active);
-    const previewVisible = !isEditing || !!tabManager.activeTab?.isSplit;
+    const previewVisible = workspaceMode === "view";
     if (findOpen) {
       findOpen = false;
       return;
@@ -332,7 +323,9 @@
   let activeTab = $derived(tabManager.activeTab);
   let isEditing = $derived(activeTab?.isEditing ?? false);
   let rawContent = $derived(activeTab?.rawContent ?? "");
-  let isSplit = $derived(activeTab?.isSplit ?? false);
+  let workspaceMode = $derived<"view" | "adjust">(
+    isEditing ? "adjust" : "view",
+  );
 
   // derived from tab manager
   let currentFile = $derived(tabManager.activeTab?.path ?? "");
@@ -377,13 +370,10 @@
   let scrollTop = $derived(tabManager.activeTab?.scrollTop ?? 0);
   let isScrolled = $derived(scrollTop > 0);
   let windowTitle = $derived(tabManager.activeTab?.title ?? "Draftly");
-  let isScrollSynced = $derived(tabManager.activeTab?.isScrollSynced ?? false);
-
   let loadingTabs = $state<string[]>([]);
   let isAtBottom = $state(false);
 
   let showHome = $state(false);
-  let showZenMode = $state(false);
   let showExportPreview = $state(false);
   let exportPreviewContent = $state("");
   let exportPreviewTitle = $state("");
@@ -423,7 +413,7 @@
     themeWatcher.updateTheme(theme);
 
     // Re-initialize mermaid or trigger update if needed
-    if (markdownBody && !isEditing) renderRichContent();
+    if (markdownBody && workspaceMode === "view") renderRichContent();
   });
 
   // ui state
@@ -500,23 +490,6 @@
   function handleModalCancel() {
     if (modalState.resolve) modalState.resolve("cancel");
     modalState.show = false;
-  }
-
-  function handleSplitterKeyDown(e: KeyboardEvent) {
-    const activeTab = tabManager.activeTab;
-    if (!activeTab || !tabManager.activeTabId) return;
-
-    if (e.key === "ArrowLeft") {
-      tabManager.setSplitRatio(
-        tabManager.activeTabId,
-        Math.max(0.1, activeTab.splitRatio - 0.05),
-      );
-    } else if (e.key === "ArrowRight") {
-      tabManager.setSplitRatio(
-        tabManager.activeTabId,
-        Math.min(0.9, activeTab.splitRatio + 0.05),
-      );
-    }
   }
 
   let isForceExiting = $state(false);
@@ -694,6 +667,7 @@
 
   async function renderRichContent() {
     if (!markdownBody) return;
+    if (isMarkdown && workspaceMode === "view") return;
 
     const hasMermaid = !!markdownBody.querySelector("code.language-mermaid");
     const hasMath =
@@ -772,7 +746,8 @@
   }
 
   $effect(() => {
-    if (sanitizedHtml && markdownBody && !isEditing) renderRichContent();
+    if (sanitizedHtml && markdownBody && workspaceMode === "view")
+      renderRichContent();
   });
 
   // Re-apply find highlights after the preview HTML is replaced. The
@@ -850,7 +825,7 @@
   });
 
   $effect(() => {
-    if (markdownBody && !isEditing && tabManager.activeTabId) {
+    if (markdownBody && workspaceMode === "view" && tabManager.activeTabId) {
       tick().then(() => {
         markdownBody?.focus({ preventScroll: true });
       });
@@ -889,48 +864,6 @@
             return;
           }
         }
-      }
-    }
-  }
-
-  function handleEditorScrollSync(line: number, ratio: number = 0) {
-    if (tabManager.activeTab?.isScrollSynced) {
-      scrollToLine(line, ratio);
-    }
-  }
-
-  function syncEditorToPreviewScroll(target: HTMLElement) {
-    if (!tabManager.activeTab?.isScrollSynced || !editorPane) return;
-
-    const anchorOffset = target.scrollTop + 60;
-    const viewportRatio =
-      target.clientHeight > 0 ? Math.min(1, 60 / target.clientHeight) : 0;
-    const children = Array.from(markdownBody?.children || []);
-
-    for (const child of children) {
-      const el = child as HTMLElement;
-      if (
-        el.offsetTop <= anchorOffset &&
-        el.offsetTop + el.offsetHeight > anchorOffset
-      ) {
-        const sourcepos = el.dataset.sourcepos;
-        if (!sourcepos) break;
-
-        const [start, end] = sourcepos.split("-");
-        const startLine = parseInt(start.split(":")[0]);
-        const endLine = parseInt(end.split(":")[0]);
-
-        if (!isNaN(startLine) && !isNaN(endLine)) {
-          const relativeOffset = anchorOffset - el.offsetTop;
-          const elementRatio =
-            el.offsetHeight > 0 ? relativeOffset / el.offsetHeight : 0;
-          const totalLines = endLine - startLine;
-          const estimatedLine =
-            startLine + Math.round(totalLines * elementRatio);
-
-          editorPane.syncScrollToLine(estimatedLine, viewportRatio);
-        }
-        break;
       }
     }
   }
@@ -1009,7 +942,6 @@
       }
     }
 
-    syncEditorToPreviewScroll(target);
   }
 
   function toggleFold(key: string) {
@@ -1527,7 +1459,7 @@
     const tab = tabManager.activeTab;
     if (!tab || tab.path === undefined) return;
 
-    const currentlyEditing = isEditing || ((isMarkdown || isHtml) && tab.isSplit);
+    const currentlyEditing = workspaceMode === "adjust";
 
     if (currentlyEditing) {
       // Switch back to view
@@ -1579,7 +1511,7 @@
       }
 
       tabManager.setEditing(tab.id, false);
-      if (tab.isSplit && !isHtml) tabManager.setSplitEnabled(tab.id, false);
+      if (tab.isSplit) tabManager.setSplitEnabled(tab.id, false);
       
       if (tab.path !== "") {
         await loadMarkdown(tab.path, { preserveEditState: true });
@@ -1597,34 +1529,22 @@
       // Switch to edit
       if (tab.path !== "") {
         if (tab.isDirty) {
-          if (isMarkdown || isHtml) {
-            tab.splitRatio = tab.splitRatio || 0.6;
-            tabManager.setSplitEnabled(tab.id, true);
-          } else {
-            tabManager.setEditing(tab.id, true);
-          }
+          if (tab.isSplit) tabManager.setSplitEnabled(tab.id, false);
+          tabManager.setEditing(tab.id, true);
         } else {
           try {
             const content = await tauriCommands.readFile(tab.path);
             tab.rawContent = content;
-            if (isMarkdown || isHtml) {
-              tab.splitRatio = tab.splitRatio || 0.6;
-              tabManager.setSplitEnabled(tab.id, true);
-            } else {
-              tabManager.setEditing(tab.id, true);
-            }
+            if (tab.isSplit) tabManager.setSplitEnabled(tab.id, false);
+            tabManager.setEditing(tab.id, true);
             tab.isDirty = false;
           } catch (e) {
             console.error("Failed to read file for editing", e);
           }
         }
       } else {
-        if (isMarkdown || isHtml) {
-          tab.splitRatio = tab.splitRatio || 0.6;
-          tabManager.setSplitEnabled(tab.id, true);
-        } else {
-          tabManager.setEditing(tab.id, true);
-        }
+        if (tab.isSplit) tabManager.setSplitEnabled(tab.id, false);
+        tabManager.setEditing(tab.id, true);
       }
     }
   }
@@ -1792,7 +1712,7 @@
       id: tab.id,
       path: tab.path,
       isDirty: tab.isDirty,
-      editable: tab.isEditing || tab.isSplit,
+      editable: tab.isEditing || tab.isSplit || isMarkdownPath(tab.path),
       contentRef: tab.rawContent,
     }));
 
@@ -1933,48 +1853,7 @@
   }
 
   function toggleHome() {
-    if (isZenCompactMode) {
-      void setZenCompactMode(false);
-    }
-    showZenMode = false;
     showHome = !showHome;
-  }
-
-  function toggleZenMode() {
-    showHome = false;
-    showZenMode = !showZenMode;
-    if (!showZenMode && isZenCompactMode) {
-      void setZenCompactMode(false);
-    }
-  }
-
-  async function setZenCompactMode(enabled: boolean) {
-    if (!appWindow) return;
-
-    if (enabled) {
-      if (await appWindow.isMaximized()) {
-        await appWindow.unmaximize();
-      }
-      const compactSize = new LogicalSize(450, 600);
-      await appWindow.setResizable(false);
-      await appWindow.setMinSize(compactSize);
-      await appWindow.setMaxSize(compactSize);
-      await appWindow.setSize(compactSize);
-      await appWindow.center();
-      isZenCompactMode = true;
-      return;
-    }
-
-    await appWindow.setResizable(true);
-    await appWindow.setMinSize(null);
-    await appWindow.setMaxSize(null);
-    await appWindow.setSize(new LogicalSize(1280, 800));
-    await appWindow.center();
-    isZenCompactMode = false;
-  }
-
-  async function toggleZenCompactMode() {
-    await setZenCompactMode(!isZenCompactMode);
   }
 
   async function closeFile() {
@@ -2365,7 +2244,8 @@
     const tab = tabManager.activeTab;
     if (
       tab &&
-      (tab.isSplit || (isEditing && settings.showToc)) &&
+      workspaceMode === "adjust" &&
+      (isMarkdown || isHtml) &&
       tab.rawContent !== undefined
     ) {
       if ((tab as any)._lastRenderedRawContent === tab.rawContent) return;
@@ -2396,85 +2276,6 @@
     }
   });
 
-  async function toggleSplitView(tabId: string, silentSave = false) {
-    const tab = tabManager.tabs.find((t) => t.id === tabId);
-    if (!tab) return;
-    if (tab.path === "" || isMarkdownPath(tab.path) || isHtmlPath(tab.path)) {
-      if (!tab.isSplit) {
-        tab.splitRatio = 0.6;
-        tabManager.setSplitEnabled(tab.id, true);
-      }
-      return;
-    }
-
-    if (!tab.isSplit) {
-      if (!tab.isEditing && !tab.rawContent && tab.path) {
-        try {
-          const content = await tauriCommands.readFile(tab.path);
-          tab.rawContent = content;
-          tab.originalContent = content;
-        } catch (e) {
-          console.error("Failed to load raw content for split view", e);
-        }
-      }
-      tabManager.setSplitEnabled(tab.id, true);
-      if (liveMode) toggleLiveMode();
-    } else {
-      if (tab.isDirty && tab.path !== "") {
-        // `confirmBeforeSave` always wins: when the user has asked
-        // for confirmation, every dirty toggle must show the modal,
-        // even if the caller passed `silentSave=true` (hotkey path).
-        const shouldSilent =
-          !settings.confirmBeforeSave && (silentSave || settings.autoSave);
-        if (shouldSilent) {
-          cancelPendingAutoSave(tab.id);
-          const success = await saveContent(tab.id);
-          if (!success) {
-            addToast(t("toast.autoSaveFailed", settings.language), "error");
-            return;
-          }
-        } else {
-          const response = await askCustom(
-            t(
-              "modal.youHaveUnsavedChangesBeforeClosingSplitView",
-              settings.language,
-            ),
-            {
-              title: t("modal.unsavedChanges", settings.language),
-              kind: "warning",
-              showSave: true,
-            },
-          );
-
-          // Cancel keeps the pending auto-save timer alive.
-          if (response === "cancel") return;
-          if (response === "save") {
-            cancelPendingAutoSave(tab.id);
-            const success = await saveContent(tab.id);
-            if (!success) return;
-          } else if (response === "discard") {
-            cancelPendingAutoSave(tab.id);
-            tab.rawContent = tab.originalContent;
-            tab.isDirty = false;
-          }
-        }
-      }
-      // Same TOCTOU guard as toggleEdit: if the user typed during
-      // the save, the tab is still dirty. Keep it in split mode so
-      // auto-save keeps firing and Cmd+S still works on it; flipping
-      // it out would make a non-editable dirty tab.
-      if (tab.path !== "" && tab.isDirty) {
-        addToast(t("toast.savedNewerEdits", settings.language), "info");
-        return;
-      }
-
-      tabManager.setSplitEnabled(tab.id, false);
-      if (tab.path !== "") {
-        await loadMarkdown(tab.path);
-      }
-    }
-  }
-
   function handleKeyDown(e: KeyboardEvent) {
     if (mode !== "app") return;
 
@@ -2487,9 +2288,6 @@
       showCommandPalette = !showCommandPalette;
       return;
     }
-
-
-    const isSplit = tabManager.activeTab?.isSplit;
 
     if (cmdOrCtrl && key === "w") {
       e.preventDefault();
@@ -2514,14 +2312,14 @@
       (code === "Backslash" || code === "IntlBackslash")
     ) {
       e.preventDefault();
-      if (tabManager.activeTabId) toggleSplitView(tabManager.activeTabId, true);
+      toggleEdit(true);
     }
     if (cmdOrCtrl && key === "e") {
       e.preventDefault();
-      if (!isSplit) toggleEdit(true);
+      toggleEdit(true);
     }
     if (cmdOrCtrl && key === "s") {
-      if (isEditing || isSplit) {
+      if (tabManager.activeTab?.isDirty || workspaceMode === "adjust") {
         e.preventDefault();
         saveContent();
       }
@@ -2652,58 +2450,6 @@
       width: 1000,
       height: 800,
     });
-  }
-
-  function startDrag(e: MouseEvent, tabId: string | null) {
-    if (!tabId) return;
-    e.preventDefault();
-    const startX = e.clientX;
-    const tab = tabManager.tabs.find((t) => t.id === tabId);
-    if (!tab) return;
-
-    const startRatio = tab.splitRatio ?? 0.5;
-    const containerWidth = window.innerWidth;
-
-    const onMove = (moveEvent: MouseEvent) => {
-      const deltaX = moveEvent.clientX - startX;
-      const deltaRatio = deltaX / containerWidth;
-      tabManager.setSplitRatio(tabId, startRatio + deltaRatio);
-    };
-
-    const onUp = () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-      document.body.style.cursor = "";
-    };
-
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    document.body.style.cursor = "col-resize";
-  }
-
-  function getSplitTransition(
-    node: Element,
-    { isEditing, side }: { isEditing: boolean; side: "left" | "right" },
-  ) {
-    let shouldAnimate = false;
-    let x = 0;
-
-    if (side === "left") {
-      if (!isEditing) {
-        shouldAnimate = true;
-        x = -50;
-      }
-    } else {
-      if (isEditing) {
-        shouldAnimate = true;
-        x = 50;
-      }
-    }
-
-    if (shouldAnimate) {
-      return fly(node, { x, duration: 250 });
-    }
-    return { duration: 0 };
   }
 
   onMount(() => {
@@ -2862,7 +2608,8 @@
       unlisteners.push(await listen("menu-file-close", () => closeFile()));
       unlisteners.push(
         await listen("menu-file-save", () => {
-          if (isEditing || tabManager.activeTab?.isSplit) saveContent();
+          if (tabManager.activeTab?.isDirty || workspaceMode === "adjust")
+            saveContent();
         }),
       );
       unlisteners.push(
@@ -3040,7 +2787,7 @@
                     currentEditor.handleDroppedFile(path, x, y);
                   }
                 });
-              } else if (dragTarget === "preview" || (!isSplit && !isEditing)) {
+              } else if (dragTarget === "preview" || workspaceMode === "view") {
                 paths.forEach((path: string) => {
                   if (isMarkdownPath(path)) {
                     loadMarkdown(path);
@@ -3108,11 +2855,9 @@
     {liveMode}
     windowTitle="Draftly"
     showHome={false}
-    showZenMode={false}
     {zoomLevel}
     onselectFile={selectFile}
     onopenFile={() => {
-      showZenMode = false;
       selectFile();
     }}
     onsaveFile={saveContent}
@@ -3121,7 +2866,6 @@
     onexportPdf={openExportPreview}
     onexit={appExit}
     ontoggleHome={toggleHome}
-    ontoggleZenMode={toggleZenMode}
     onopenFileLocation={openFileLocation}
     ontoggleLiveMode={toggleLiveMode}
     {isEditing}
@@ -3149,11 +2893,9 @@
     {liveMode}
     {windowTitle}
     {showHome}
-    {showZenMode}
     {zoomLevel}
     onselectFile={selectFile}
     onopenFile={() => {
-      showZenMode = false;
       selectFile();
     }}
     onsaveFile={saveContent}
@@ -3162,7 +2904,6 @@
     onexportPdf={openExportPreview}
     onexit={appExit}
     ontoggleHome={toggleHome}
-    ontoggleZenMode={toggleZenMode}
     onopenFileLocation={openFileLocation}
     ontoggleLiveMode={toggleLiveMode}
     {isEditing}
@@ -3170,13 +2911,8 @@
     ondetach={handleDetach}
     ontabclick={() => {
       showHome = false;
-      showZenMode = false;
     }}
     onresetZoom={() => (zoomLevel = 100)}
-    {isScrollSynced}
-    ontoggleSync={() =>
-      tabManager.activeTabId &&
-      tabManager.toggleScrollSync(tabManager.activeTabId)}
     {theme}
     onSetTheme={(nextTheme: string) => (theme = nextTheme)}
     onopenSettings={() => (showSettings = true)}
@@ -3224,61 +2960,11 @@
   <FindBar
     bind:this={findBar}
     bind:open={findOpen}
-    markdownBody={showZenMode ? zenSearchTarget : markdownBody}
+    {markdownBody}
     language={settings.language}
   />
 
-  {#if showZenMode}
-    <div
-      class="zen-mode-shell"
-      class:rail-on-left={settings.showSidebar && settings.tocSide === "left"}
-      class:rail-on-right={settings.showSidebar && settings.tocSide === "right"}
-    >
-      {#if settings.showSidebar}
-        <div
-          class="toc-rail zen-rail"
-          class:on-right={settings.tocSide === "right"}
-        >
-          <button class="toc-rail-button" onclick={toggleHome}>
-            <SvgIcon name="markdown-viewer-2" />
-            <span class="visually-hidden"
-              >{t("common.home", settings.language)}</span
-            >
-          </button>
-          <button
-            class="toc-rail-button"
-            class:active={findOpen}
-            data-find-toggle="true"
-            onclick={triggerFindAction}
-          >
-            <SvgIcon name="markdown-viewer-3" />
-            <span class="visually-hidden"
-              >{t("tooltip.find", settings.language)}</span
-            >
-          </button>
-          <button
-            class="toc-rail-button"
-            class:active={isZenCompactMode}
-            onclick={() => void toggleZenCompactMode()}
-          >
-            <SvgIcon name="markdown-viewer-4" />
-            <span class="visually-hidden">Modo compacto</span>
-          </button>
-          <button
-            class="toc-rail-button"
-            class:active={settings.showMarkdownToolbar}
-            onclick={() => settings.toggleMarkdownToolbar()}
-          >
-            <SvgIcon name="markdown-viewer-5" />
-            <span class="visually-hidden"
-              >{t("settings.markdownToolbar", settings.language)}</span
-            >
-          </button>
-        </div>
-      {/if}
-      <ZenNotes bind:searchTarget={zenSearchTarget} />
-    </div>
-  {:else if tabManager.activeTab && (tabManager.activeTab.path !== "" || tabManager.activeTab.title !== "Recents") && !showHome}
+  {#if tabManager.activeTab && (tabManager.activeTab.path !== "" || tabManager.activeTab.title !== "Recents") && !showHome}
     <div
       class="layout-container-wrapper"
       ondragover={(e) => {
@@ -3308,8 +2994,7 @@
       {#if isMarkdown}
         <MarkdownView
           tab={tabManager.activeTab}
-          {isSplit}
-          {isEditing}
+          {workspaceMode}
           {isMarkdown}
           {editorLanguage}
           {isPlainText}
@@ -3334,23 +3019,18 @@
           {openFileLocation}
           toggleEdit={() => toggleEdit()}
           {toggleLiveMode}
-          {toggleSplitView}
           {handleUndoCloseTab}
-          {handleEditorScrollSync}
           {handleScroll}
           {handleLinkClick}
           {triggerFindAction}
           {pushScrollHistory}
           {toggleFold}
-          {startDrag}
-          {handleSplitterKeyDown}
           {uiLanguage}
         />
       {:else if isHtml}
         <HtmlView
           tab={tabManager.activeTab}
-          {isSplit}
-          {isEditing}
+          {workspaceMode}
           {editorLanguage}
           {isPlainText}
           {theme}
@@ -3371,14 +3051,10 @@
           {openFileLocation}
           toggleEdit={() => toggleEdit()}
           {toggleLiveMode}
-          {toggleSplitView}
           {handleUndoCloseTab}
-          {handleEditorScrollSync}
           {handleScroll}
           {handleLinkClick}
           {triggerFindAction}
-          {startDrag}
-          {handleSplitterKeyDown}
         />
       {:else if isPlainText}
         <TextView
@@ -3397,7 +3073,6 @@
           {closeFile}
           {openFileLocation}
           {handleUndoCloseTab}
-          {handleEditorScrollSync}
           {triggerFindAction}
         />
       {:else}
@@ -3416,7 +3091,6 @@
           {closeFile}
           {openFileLocation}
           {handleUndoCloseTab}
-          {handleEditorScrollSync}
           {triggerFindAction}
         />
       {/if}
@@ -3489,8 +3163,8 @@
 
   {#if isDragging}
     <div class="drag-overlay" role="presentation">
-      <div class="drag-zones" class:split={isSplit}>
-        {#if isSplit || isEditing}
+      <div class="drag-zones">
+        {#if workspaceMode === "adjust"}
           <div
             class="drag-zone editor-zone"
             class:active={dragTarget === "editor"}
@@ -3500,7 +3174,7 @@
             </div>
           </div>
         {/if}
-        {#if isSplit || !isEditing}
+        {#if workspaceMode === "view"}
           <div
             class="drag-zone viewer-zone"
             class:active={dragTarget === "preview"}
