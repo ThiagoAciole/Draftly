@@ -1,10 +1,11 @@
-import { selectActiveTab, useDocumentStore } from "../../state/documentStore";
+import { useTabsContext } from "../../contexts/TabsContext";
 
 export function StatusBar() {
-  const activeTab = useDocumentStore(selectActiveTab);
+  const { activeTab } = useTabsContext();
+  if (!activeTab) return null;
 
   const status = activeTab.isDirty
-    ? "Alteracoes nao salvas"
+    ? "Alterações não salvas"
     : activeTab.lastSavedAt
       ? `Salvo ${activeTab.lastSavedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
       : "Pronto";

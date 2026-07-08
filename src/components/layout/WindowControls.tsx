@@ -1,12 +1,12 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Minus, Square, X } from "lucide-react";
 import { useEffect, useRef } from "react";
-import { useDocumentStore } from "../../state/documentStore";
+import { useFileActions } from "../../contexts/FileActionsContext";
 
 const appWindow = getCurrentWindow();
 
 export function WindowControls() {
-  const canCloseApp = useDocumentStore((state) => state.canCloseApp);
+  const { canCloseApp } = useFileActions();
   const canCloseAppRef = useRef(canCloseApp);
   canCloseAppRef.current = canCloseApp;
 
@@ -14,12 +14,8 @@ export function WindowControls() {
 
   useEffect(() => {
     const unlistenPromise = appWindow.onCloseRequested(async (event) => {
-      if (isClosing.current) {
-        return;
-      }
-
+      if (isClosing.current) return;
       event.preventDefault();
-
       if (await canCloseAppRef.current()) {
         isClosing.current = true;
         void appWindow.close();

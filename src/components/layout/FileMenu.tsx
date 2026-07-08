@@ -1,19 +1,15 @@
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { FilePlus, FileText, FolderOpen, MoreVertical, Save, SaveAll } from "lucide-react";
-import { useDocumentStore, selectActiveTab } from "../../state/documentStore";
+import { useTabsContext } from "../../contexts/TabsContext";
+import { useFileActions } from "../../contexts/FileActionsContext";
 import { exportMarkdownToPdf } from "../../lib/fs";
 
 export function FileMenu() {
-  const createDocument = useDocumentStore((state) => state.createDocument);
-  const openDocument = useDocumentStore((state) => state.openDocument);
-  const saveDocument = useDocumentStore((state) => state.saveDocument);
-  const saveDocumentAs = useDocumentStore((state) => state.saveDocumentAs);
-  const activeTab = useDocumentStore(selectActiveTab);
+  const { activeTab } = useTabsContext();
+  const { createDocument, openDocument, saveDocument, saveDocumentAs } = useFileActions();
 
   const handleExportPdf = () => {
-    if (activeTab) {
-      exportMarkdownToPdf(activeTab.name, activeTab.markdown);
-    }
+    if (activeTab) exportMarkdownToPdf(activeTab.name, activeTab.markdown);
   };
 
   return (

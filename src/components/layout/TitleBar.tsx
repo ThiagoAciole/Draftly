@@ -1,17 +1,24 @@
 import { Plus } from "lucide-react";
+import { useWorkspace } from "../../contexts/WorkspaceContext";
+import { useFileActions } from "../../contexts/FileActionsContext";
 import { FileMenu } from "./FileMenu";
 import { FileTabs } from "./FileTabs";
 import { WindowControls } from "./WindowControls";
-import { useDocumentStore } from "../../state/documentStore";
 
 export function TitleBar() {
-  const goHome = useDocumentStore((state) => state.goHome);
-  const createDocument = useDocumentStore((state) => state.createDocument);
+  const { setView } = useWorkspace();
+  const { createDocument } = useFileActions();
 
   return (
     <header className="title-bar" data-tauri-drag-region>
       <div className="window-brand">
-        <button className="app-home-button" type="button" aria-label="Home" title="Home" onClick={goHome}>
+        <button
+          className="app-home-button"
+          type="button"
+          aria-label="Home"
+          title="Home"
+          onClick={() => setView("home")}
+        >
           <img className="app-mark" src="/src/assets/icon.svg" alt="" aria-hidden="true" />
         </button>
       </div>
