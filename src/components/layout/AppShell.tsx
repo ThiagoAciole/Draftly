@@ -1,31 +1,26 @@
 import { Suspense, useEffect, useRef } from "react";
+import { useWorkspace } from "../../contexts/WorkspaceContext";
+import { useTabsContext } from "../../contexts/TabsContext";
+import { useFileActions } from "../../contexts/FileActionsContext";
 import { EditorLoading } from "../editor/EditorLoading";
-import { MarkdownEditor } from "../editor/Editor.lazy";
+import { MarkdownEditor, StatusBar } from "../editor/Editor.lazy";
 import { Home } from "../home/Home";
-import { selectActiveTab, selectWorkspaceView, useDocumentStore } from "../../state/documentStore";
-import { StatusBar } from "../editor/Editor.lazy";
 import { TitleBar } from "./TitleBar";
 
 export function AppShell() {
   const didInitialize = useRef(false);
-  const activeTab = useDocumentStore(selectActiveTab);
-  const view = useDocumentStore(selectWorkspaceView);
-  const recentFiles = useDocumentStore((state) => state.recentFiles);
-  const isBusy = useDocumentStore((state) => state.isBusy);
-  const initializeWorkspace = useDocumentStore((state) => state.initializeWorkspace);
-  const createDocument = useDocumentStore((state) => state.createDocument);
-  const openDocument = useDocumentStore((state) => state.openDocument);
-  const openDocumentFromPath = useDocumentStore((state) => state.openDocumentFromPath);
-  const updateMarkdown = useDocumentStore((state) => state.updateMarkdown);
-  const saveDocument = useDocumentStore((state) => state.saveDocument);
-  const error = useDocumentStore((state) => state.error);
-  const clearError = useDocumentStore((state) => state.clearError);
+  const { view, isBusy, error, clearError } = useWorkspace();
+  const { activeTab, recentFiles, updateActiveMarkdown } = useTabsContext();
+  const { initializeWorkspace, createDocument, openDocument, openDocumentFromPath, saveDocument } =
+    useFileActions();
 
   useEffect(() => {
     if (didInitialize.current) return;
     didInitialize.current = true;
     void initializeWorkspace();
   }, [initializeWorkspace]);
+
+  const showEditor = view === "editor" && activeTab != null;
 
   return (
     <div className="app-shell">
@@ -35,11 +30,11 @@ export function AppShell() {
           {error}
         </button>
       ) : null}
-      {view === "editor" && activeTab ? (
+      {showEditor ? (
         <Suspense fallback={<EditorLoading />}>
           <MarkdownEditor
             markdown={activeTab.markdown}
-            onChange={updateMarkdown}
+            onChange={updateActiveMarkdown}
             onSave={() => void saveDocument()}
           />
           <StatusBar />
