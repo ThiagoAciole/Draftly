@@ -1,10 +1,10 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code and AI agents when working with this repository.
 
 ## Project Overview
 
-Draftly is a Tauri v2 desktop Markdown editor — minimalist, local-first, dark-themed. The v1 MVP only handles `.md` files. It uses a visual (WYSIWYG) editing approach via BlockNote with a custom titlebar, tab management, and a home screen with recent files.
+Draftly is a Tauri v2 desktop Markdown editor — minimalist, local-first, dark-themed. v1 MVP handles only `.md` files. Uses a visual (WYSIWYG) editing approach via BlockNote with a custom titlebar, tab management, and a home screen with recent files.
 
 ## Commands
 
@@ -23,9 +23,9 @@ There are no tests yet.
 
 - **Frontend**: React 18, TypeScript, Vite 6
 - **Desktop shell**: Tauri v2 (Rust)
-- **State management**: Zustand (single store in `src/state/documentStore.ts`)
+- **State management**: React Context API — 3 domain contexts (see below)
 - **Editor**: BlockNote (`@blocknote/react` + `@blocknote/mantine`) — block-based rich text editing, converts to/from Markdown
-- **UI primitives**: Radix UI (dropdown-menu, dialog, tooltip, separator), Lucide React icons
+- **UI primitives**: Radix UI (dropdown-menu, tooltip), Lucide React icons
 - **Styling**: Custom CSS per component group (`globals.css`, `shell.css`, `titlebar.css`, `home.css`, `editor.css`)
 
 ### File Structure
@@ -33,65 +33,88 @@ There are no tests yet.
 ```
 src/
   main.tsx                  # Entry point, mounts <App />
-  app/App.tsx               # Root component, renders <AppShell />
+  app/App.tsx               # Root component — nests 3 context providers, renders <AppShell />
+  contexts/
+    WorkspaceContext.tsx     # UI state: view ("home"|"editor"), isBusy, error
+    TabsContext.tsx          # Document state: tabs[], activeTabId, recentFiles + tab CRUD
+    FileActionsContext.tsx   # Async operations: open, save, create, close (calls lib/fs.ts)
+    index.ts                 # Re-exports all providers and hooks
   components/
-    layout/AppShell.tsx      # Top-level shell — renders Home or Editor based on state
+    layout/AppShell.tsx      # Top-level shell — consumes all 3 contexts, renders Home or Editor
     layout/TitleBar.tsx      # Custom titlebar (decorations: false) — FileTabs + FileMenu + WindowControls
-    layout/FileTabs.tsx      # Tab bar with active/inactive states and close buttons
-    layout/FileMenu.tsx      # Radix dropdown: New, Open, Save, Save As
+    layout/FileTabs.tsx      # Tab bar — uses useTabsContext + useFileActions
+    layout/FileMenu.tsx      # Radix dropdown: New, Open, Save, Save As, Export PDF — uses useFileActions
     layout/WindowControls.tsx # Min/Max/Close buttons, intercepts close with unsaved-changes check
-    layout/StatusBar.tsx     # Shows save status, file type, encoding, file path
-    home/Home.tsx            # Home screen with "Open file" / "New file" buttons + recent files list
+    layout/StatusBar.tsx     # Shows save status, file type, encoding, file path — uses useTabsContext
+    home/Home.tsx            # Home screen — pure component, receives all data/handlers as props
     editor/MarkdownEditor.tsx # BlockNote visual Markdown editor with custom scrollbar
-    editor/EditorToolbar.tsx  # Formatting toolbar: bold, italic, headings, links, code, etc.
+    editor/EditorToolbar.tsx  # Formatting toolbar: bold, italic, headings, links, code, images, colors, etc.
     editor/Editor.lazy.tsx   # React.lazy() wrappers for MarkdownEditor and StatusBar
     editor/EditorLoading.tsx  # Suspense fallback while editor loads
+    editor/CustomSideMenu.tsx # Custom BlockNote side menu with delete + divider actions
+    editor/slashMenu.ts       # Slash menu items translated to Portuguese
     ui/IconButton.tsx        # Icon button with Radix tooltip
-  state/documentStore.ts     # Single Zustand store: tabs, active tab, recent files, all actions
-  lib/fs.ts                  # File I/O layer — wraps Tauri invoke() calls
+  lib/fs.ts                  # File I/O layer — only file that calls Tauri invoke()
   styles/                    # CSS files
 ```
+
+### Context Architecture
+
+There are exactly **3 contexts**. Use the right hook for each job:
+
+| Context | Hook | Owns |
+|---|---|---|
+| `WorkspaceContext` | `useWorkspace()` | `view`, `isBusy`, `error`, `clearError`, `setView`, `setIsBusy`, `setError` |
+| `TabsContext` | `useTabsContext()` | `tabs[]`, `activeTab`, `tabsMeta`, `activeTabId`, `recentFiles`, `updateActiveMarkdown`, `switchTab`, `replaceTab`, `addTab`, `createBlankTab`, `closeTabById`, `addRecentFile` |
+| `FileActionsContext` | `useFileActions()` | `initializeWorkspace`, `createDocument`, `openDocument`, `openDocumentFromPath`, `saveDocument`, `saveDocumentAs`, `closeDocument`, `canCloseApp` |
+
+**Provider nesting order in `App.tsx`** (outermost first):
+1. `WorkspaceProvider`
+2. `TabsProvider` — consumes WorkspaceContext
+3. `FileActionsProvider` — consumes WorkspaceContext + TabsContext
+
+**Rule:** Components never import from `src/state/`. All state comes from `src/contexts/`.
 
 ### Rust Backend (`src-tauri/src/lib.rs`)
 
 Three Tauri commands:
-- `read_markdown_file(path)` — reads a `.md` file, validates extension is `.md`
-- `write_markdown_file(path, content)` — writes content, validates extension is `.md`
-- `get_initial_markdown_file_path()` — scans CLI args for a `.md` path (for "Open with" OS integration)
+- `read_markdown_file(path)` — reads a `.md` file, validates `.md` extension
+- `write_markdown_file(path, content)` — writes content, validates `.md` extension
+- `get_initial_markdown_file_path()` — scans CLI args for a `.md` path ("Open with" OS integration)
 
-The `.md` extension check is enforced server-side in Rust. Non-md files are rejected with a Portuguese error message.
+The `.md` extension check is enforced server-side in Rust. Non-`.md` files are rejected with a Portuguese error message.
 
-### State Management
+**Rule:** Only `src/lib/fs.ts` calls `invoke()`. Context files import from `lib/fs.ts`, not from `@tauri-apps/api/core` directly.
 
-The Zustand store (`documentStore.ts`) is the central nervous system:
-- `tabs: DocumentTab[]` — all open documents (each has id, path, name, markdown content, isDirty, lastSavedAt)
-- `activeTabId` — currently focused tab
-- `view: "home" | "editor"` — switches between home screen and editor
-- `recentFiles` — persisted to `localStorage` under key `draftly:recent-files`, max 9 entries
-- `isBusy` / `error` — loading and error states
+### File I/O Layer (`src/lib/fs.ts`)
 
-Key behaviors:
-- Opening a file that's already open switches to its existing tab (no duplicates)
-- Closing the last tab returns to the home screen
-- Unsaved changes prompt a confirmation dialog before closing tabs or the app
-- `canCloseApp()` is called by `WindowControls` before allowing the window to close
+All Tauri IPC calls are isolated here. Public API:
+
+| Function | Returns | Description |
+|---|---|---|
+| `readMarkdownFile(path)` | `Promise<MarkdownFile>` | Read file content via Tauri |
+| `openMarkdownFile()` | `Promise<MarkdownFile \| null>` | Native file picker |
+| `pickMarkdownSavePath(defaultPath?)` | `Promise<string \| null>` | Native save dialog |
+| `saveMarkdownFile(path, content)` | `Promise<void>` | Write file via Tauri |
+| `getInitialMarkdownFilePath()` | `Promise<string \| null>` | CLI arg scan |
+| `getFileName(path)` | `string` | Extract filename from path |
+| `exportMarkdownToPdf(name, markdown)` | `void` | Opens print window |
 
 ### Editor Details
 
 The `MarkdownEditor` component wraps BlockNote:
-- Uses `tryParseMarkdownToBlocks()` to convert markdown string → BlockNote blocks
-- Uses `blocksToMarkdownLossy()` to convert blocks → markdown string
+- Uses `tryParseMarkdownToBlocks()` to convert markdown string → BlockNote blocks on external content change
+- Uses `blocksToMarkdownLossy()` to convert blocks → markdown string on internal edit
 - Tracks `externalMarkdown` ref to avoid re-parsing content that originated from the editor itself
-- Ctrl+S / Cmd+S keyboard shortcut for save
-- Custom scrollbar: a draggable thumb that auto-hides after 900ms of inactivity
-- ResizeObserver keeps scrollbar dimensions in sync with content changes
+- Ctrl+S / Cmd+S keyboard shortcut for save (calls `onSave` prop)
+- Custom scrollbar: draggable thumb that auto-hides after 900ms of inactivity
+- `ResizeObserver` keeps scrollbar dimensions in sync with content changes
 
 ### Window Management
 
 - `tauri.conf.json`: `decorations: false` — the app draws its own titlebar
-- `WindowControls` registers `onCloseRequested` to intercept window close, calls `canCloseApp()` which shows a discard-unsaved dialog via `@tauri-apps/plugin-dialog`
+- `WindowControls` registers `onCloseRequested` to intercept window close, calls `canCloseApp()` from `useFileActions()` which shows a discard-unsaved dialog via `@tauri-apps/plugin-dialog`
 - Min size: 860×560, default: 1088×704
-- CSP is `null` (no restrictions)
 
 ### Vite Build
 
@@ -102,6 +125,24 @@ Manual code-splitting via `rollupOptions.manualChunks`:
 ### UI Language
 
 The app UI is in **Portuguese (Brazilian)** — all labels, tooltips, error messages, and dialogs.
+
+## Where to Make Changes
+
+| I want to... | Touch this file |
+|---|---|
+| Change view routing logic (home ↔ editor) | `WorkspaceContext.tsx` |
+| Add a new tab action (rename, duplicate, pin) | `TabsContext.tsx` |
+| Add a new file operation (export, print, share) | `FileActionsContext.tsx` + `lib/fs.ts` |
+| Change the formatting toolbar | `EditorToolbar.tsx` |
+| Change the slash menu items | `slashMenu.ts` |
+| Change the home screen layout | `Home.tsx` + `home.css` |
+| Change tab appearance or behavior | `FileTabs.tsx` + `titlebar.css` |
+| Change status bar information | `StatusBar.tsx` |
+| Change Tauri backend commands | `src-tauri/src/lib.rs` |
+| Change the file picker/dialog behavior | `lib/fs.ts` |
+| Add a new Rust command | `src-tauri/src/lib.rs` → `lib/fs.ts` (wrapper) → relevant context |
+| Add new CSS variables / design tokens | `globals.css` |
+| Change window size, titlebar, or decorations | `src-tauri/tauri.conf.json` |
 
 ## Design Reference
 
