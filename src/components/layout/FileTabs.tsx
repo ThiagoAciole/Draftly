@@ -1,20 +1,24 @@
 import { X } from "lucide-react";
+import { useWorkspace } from "../../contexts/WorkspaceContext";
 import { useTabsContext } from "../../contexts/TabsContext";
 import { useFileActions } from "../../contexts/FileActionsContext";
 
 export function FileTabs() {
+  const { view } = useWorkspace();
   const { tabsMeta, activeTabId, switchTab } = useTabsContext();
   const { closeDocument } = useFileActions();
 
   if (tabsMeta.length === 0) return null;
 
+  const isHome = view === "home";
   const activeTabIndex = tabsMeta.findIndex((t) => t.id === activeTabId);
 
   return (
     <div className="tabs-list" role="tablist" aria-label="Arquivos abertos">
       {tabsMeta.map((tab, index) => {
-        const isActive = tab.id === activeTabId;
+        const isActive = !isHome && tab.id === activeTabId;
         const shouldShowDivider =
+          !isHome &&
           !isActive &&
           activeTabIndex >= 0 &&
           index > activeTabIndex &&
@@ -40,19 +44,17 @@ export function FileTabs() {
           >
             <span className="file-tab-name">{tab.name}</span>
             {tab.isDirty ? <span className="dirty-dot" aria-label="Não salvo" /> : null}
-            {isActive ? (
-              <button
-                className="file-tab-close"
-                type="button"
-                aria-label={`Fechar ${tab.name}`}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  void closeDocument(tab.id);
-                }}
-              >
-                <X size={14} />
-              </button>
-            ) : null}
+            <button
+              className="file-tab-close"
+              type="button"
+              aria-label={`Fechar ${tab.name}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                void closeDocument(tab.id);
+              }}
+            >
+              <X size={14} />
+            </button>
           </div>
         );
       })}

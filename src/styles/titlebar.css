@@ -63,39 +63,90 @@
   display: flex;
   align-items: center;
   min-width: 0;
-  flex: 0 1 380px;
-  min-width: 220px;
-  height: 44px;
-  gap: 10px;
-  padding: 0 14px 0 18px;
+  flex: 0 1 240px;
+  min-width: 200px;
+  height: 40px;
+  align-self: flex-end;
+  gap: 8px;
+  padding: 0 10px 0 14px;
   border: 0;
-  border-radius: 10px 10px 0 0;
+  border-radius: 8px 8px 0 0;
   background: transparent;
-  color: #c6c9d1;
+  color: #9a9da8;
   cursor: pointer;
+  z-index: 0;
+  overflow: visible;
+  transition: background 100ms ease, color 100ms ease;
 }
 
-.file-tab.has-divider::after {
+.file-tab.has-divider::before {
   position: absolute;
   right: 0;
+  top: 50%;
+  transform: translateY(-50%);
   width: 1px;
-  height: 20px;
+  height: 16px;
   content: "";
   background: rgba(255, 255, 255, 0.1);
 }
 
-.file-tab:hover {
+/* Separador entre tabs inativas */
+.file-tab:not(.is-active) + .file-tab:not(.is-active)::before,
+.file-tab:not(.is-active) + .file-tab.is-active::before,
+.file-tab.is-active + .file-tab:not(.is-active)::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 16px;
   background: rgba(255, 255, 255, 0.08);
-  color: #eceff5;
+  pointer-events: none;
+}
+
+.file-tab:not(.is-active) + .file-tab:not(.is-active)::before {
+  left: 0;
+}
+
+.file-tab:not(.is-active) + .file-tab.is-active::before {
+  left: 0;
+}
+
+.file-tab.is-active + .file-tab:not(.is-active)::after {
+  right: 0;
+}
+
+.file-tab:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #d4d7e0;
 }
 
 .file-tab.is-active {
   color: #ffffff;
   background: #242424;
+  z-index: 2;
 }
 
-.file-tab:hover::after {
-  opacity: 0;
+.file-tab.is-active::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: -8px;
+  width: 8px;
+  height: 8px;
+  background: radial-gradient(circle at 100% 0%, transparent 8px, #303030 8px);
+  pointer-events: none;
+}
+
+.file-tab.is-active::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: -8px;
+  width: 8px;
+  height: 8px;
+  background: radial-gradient(circle at 0% 0%, transparent 8px, #303030 8px);
+  pointer-events: none;
 }
 
 .file-tab-name {
@@ -119,11 +170,11 @@
 }
 
 .file-tab-close {
-  display: inline-flex;
+  display: none;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   padding: 0;
   border: 0;
   border-radius: 999px;
@@ -131,6 +182,11 @@
   flex: 0 0 auto;
   color: #a8acb5;
   cursor: pointer;
+}
+
+.file-tab:hover .file-tab-close,
+.file-tab.is-active .file-tab-close {
+  display: inline-flex;
 }
 
 .file-tab-close:hover {

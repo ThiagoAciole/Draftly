@@ -19,15 +19,21 @@ export function Home({ recentFiles, isBusy, onCreate, onOpen, onOpenRecent }: Ho
   return (
     <main className="home-view">
       <section className="home-panel" aria-label="Home">
-        <div className="home-actions">
-          <button className="home-action is-primary" type="button" onClick={onCreate}>
-            <Plus size={18} />
-            <span>Novo arquivo</span>
-          </button>
-          <button className="home-action is-secondary" type="button" onClick={onOpen} disabled={isBusy}>
-            <FolderOpen size={18} />
-            <span>Abrir</span>
-          </button>
+        <div className="home-hero">
+          <div className="home-mark" aria-hidden="true">
+            <img src="/src/assets/icon.svg" alt="" />
+          </div>
+
+          <div className="home-actions">
+            <button className="home-action is-primary" type="button" onClick={onOpen} disabled={isBusy}>
+              <FolderOpen size={18} />
+              <span>Abrir arquivo</span>
+            </button>
+            <button className="home-action is-secondary" type="button" onClick={onCreate}>
+              <Plus size={18} />
+              <span>Novo Arquivo</span>
+            </button>
+          </div>
         </div>
 
         <div className="recent-files" aria-label="Arquivos recentes">
@@ -50,8 +56,10 @@ export function Home({ recentFiles, isBusy, onCreate, onOpen, onOpenRecent }: Ho
                   <span className="recent-file-icon" aria-hidden="true">
                     <FileText size={16} />
                   </span>
-                  <span className="recent-file-name">{file.name}</span>
-                  <span className="recent-file-path">{getDirectory(file.path)}</span>
+                  <span className="recent-file-info">
+                    <span className="recent-file-name">{file.name}</span>
+                    <span className="recent-file-path">{getDirectory(file.path)}</span>
+                  </span>
                 </button>
               ))}
             </div>
