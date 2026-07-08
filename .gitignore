@@ -44,3 +44,4 @@ vite.config.ts.timestamp-*
 **/.agents/
 **/.claude/
 **/.superpowers/
+CLAUDE.md
