@@ -1,3 +1,46 @@
+# OS / editor
+.DS_Store
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+
+# Dependencies
 node_modules/
+**/node_modules/
+.npm/
+.yarn/
+
+# Build outputs
 dist/
+Dist/
+DIST/
+build/
+package/
 target/
+**/target/
+src-tauri/target/
+*.tgz
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+# Package manager lock files
+package-lock.json
+yarn.lock
+bun.lockb
+
+# Vite timestamp backups
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# Local AI assistant state
+.codex/
+.agents/
+.claude/
+.superpowers/
+**/.codex/
+**/.agents/
+**/.claude/
+**/.superpowers/
