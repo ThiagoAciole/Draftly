@@ -1,0 +1,160 @@
+.home-view {
+  display: grid;
+  grid-row: span 3;
+  min-height: 0;
+  place-items: center;
+  padding: 40px 32px 72px;
+}
+
+.home-panel {
+  display: grid;
+  width: min(100%, 520px);
+  justify-items: center;
+  gap: 40px;
+}
+
+.home-mark {
+  display: none;
+}
+
+.home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.home-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  gap: 8px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.home-action:disabled {
+  opacity: 0.5;
+}
+
+.home-action.is-primary {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.home-action.is-primary:hover {
+  background: #7d56f3;
+}
+
+.home-action.is-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: #d0d0d0;
+}
+
+.home-action.is-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.recent-files {
+  display: grid;
+  width: 100%;
+  gap: 12px;
+}
+
+.recent-files-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+}
+
+.recent-files-header span {
+  color: var(--faint);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.recent-files-list {
+  display: grid;
+  width: 100%;
+  gap: 4px;
+}
+
+.recent-file {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: 44px;
+  gap: 12px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.recent-file:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.recent-file:disabled {
+  opacity: 0.5;
+}
+
+.recent-file-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+}
+
+.recent-file-name {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #d9dce5;
+  font-weight: 500;
+}
+
+.recent-file-path {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--faint);
+  font-size: 12px;
+  max-width: 180px;
+  flex: 0 1 auto;
+}
+
+.recent-files-empty {
+  margin: 8px 0;
+  color: var(--faint);
+  font-size: 13px;
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .home-view {
+    padding-inline: 20px;
+  }
+}

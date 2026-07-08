@@ -1,0 +1,286 @@
+.editor-surface {
+  display: grid;
+  grid-template-rows: 64px minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.editor-surface > .blocknote-editor {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.editor-surface > .blocknote-editor > .bn-container,
+.editor-surface > .blocknote-editor .bn-container {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.editor-toolbar {
+  align-self: center;
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 38px;
+  padding: 4px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: 9px;
+  background: rgba(18, 19, 22, 0.88);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.18);
+}
+
+.editor-formatting-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 30px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.format-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #c8cbd3;
+  cursor: pointer;
+}
+
+.format-button:hover,
+.format-button.is-active {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f3f5f8;
+}
+
+.format-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.format-separator {
+  width: 1px;
+  height: 18px;
+  margin: 0 3px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.toolbar-separator {
+  width: 1px;
+  height: 20px;
+  margin: 0 4px;
+  background: var(--border-soft);
+}
+
+.toolbar-spacer {
+  flex: 1;
+}
+
+.editor-scroll-frame {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.editor-scroll {
+  height: 100%;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 18px 24px 72px;
+  scrollbar-width: none;
+}
+
+.editor-scroll::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.editor-scrollbar {
+  position: absolute;
+  top: 0;
+  right: 7px;
+  bottom: 0;
+  width: 8px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.editor-scrollbar.is-visible,
+.editor-scroll-frame:hover .editor-scrollbar {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.editor-scrollbar-thumb {
+  width: 8px;
+  min-height: 72px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  background-clip: content-box;
+  cursor: default;
+  pointer-events: auto;
+}
+
+.editor-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+  background-clip: content-box;
+}
+
+.editor-canvas {
+  position: relative;
+  width: min(720px, 100%);
+  min-height: 100%;
+  margin: 0 auto;
+}
+
+.blocknote-editor {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+.blocknote-editor .bn-container {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+}
+
+.blocknote-editor .bn-editor {
+  min-height: inherit;
+  padding: 8px 0 72px;
+  background: transparent;
+  color: var(--text);
+}
+
+.blocknote-editor .bn-editor * {
+  caret-color: var(--text);
+}
+
+.blocknote-editor .bn-block-content,
+.blocknote-editor .bn-inline-content,
+.blocknote-editor .bn-block-content[data-content-type="paragraph"],
+.blocknote-editor .bn-block-content[data-content-type="bulletListItem"],
+.blocknote-editor .bn-block-content[data-content-type="numberedListItem"],
+.blocknote-editor .bn-block-content[data-content-type="checkListItem"],
+.blocknote-editor .bn-block-content[data-content-type="quote"] {
+  color: #c7cbd5;
+  font-size: 18px;
+  line-height: 1.65;
+}
+
+.blocknote-editor .bn-block-content {
+  margin: 0;
+}
+
+.blocknote-editor .bn-block-content[data-content-type="heading"] {
+  margin: 0.7rem 0 0.35rem;
+  color: #f2f4f8;
+  line-height: 1.15;
+  letter-spacing: 0;
+}
+
+.blocknote-editor .bn-block-content h1 {
+  font-size: 34px;
+}
+
+.blocknote-editor .bn-block-content h2 {
+  font-size: 25px;
+}
+
+.blocknote-editor .bn-block-content h3 {
+  font-size: 20px;
+}
+
+.blocknote-editor strong {
+  color: #eef0f6;
+  font-weight: 700;
+}
+
+.blocknote-editor a {
+  color: #a78bff;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(167, 139, 255, 0.45);
+}
+
+.blocknote-editor .bn-block-content[data-content-type="quote"] {
+  margin: 0.7rem 0;
+  padding: 20px 24px;
+  border-left: 4px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+  background: #24262b;
+}
+
+.blocknote-editor code {
+  padding: 0.15rem 0.35rem;
+  border-radius: 5px;
+  background: #252830;
+  color: #e6d6ff;
+  font-family: "Cascadia Code", "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+}
+
+.blocknote-editor .bn-block-content[data-content-type="codeBlock"] {
+  margin: 1.25rem 0;
+  padding: 16px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #1d1f24;
+}
+
+.blocknote-editor .bn-block-content[data-content-type="codeBlock"] code {
+  padding: 0;
+  background: transparent;
+  color: #e1e5ee;
+}
+
+.blocknote-editor .bn-block-content[data-content-type="divider"] {
+  margin: 2rem 0;
+  border-color: var(--border);
+}
+
+.blocknote-editor .bn-inline-content:empty::before {
+  color: var(--faint);
+  opacity: 0.85;
+}
+
+@media (max-width: 760px) {
+  .editor-toolbar {
+    justify-self: stretch;
+    width: auto;
+    margin: 0 12px;
+    overflow-x: auto;
+  }
+
+  .editor-scroll {
+    padding-inline: 18px;
+  }
+
+  .blocknote-editor .bn-block-content h1 {
+    font-size: 28px;
+  }
+
+  .blocknote-editor .bn-block-content,
+  .blocknote-editor .bn-inline-content,
+  .blocknote-editor .bn-block-content[data-content-type="paragraph"],
+  .blocknote-editor .bn-block-content[data-content-type="bulletListItem"],
+  .blocknote-editor .bn-block-content[data-content-type="numberedListItem"],
+  .blocknote-editor .bn-block-content[data-content-type="checkListItem"],
+  .blocknote-editor .bn-block-content[data-content-type="quote"] {
+    font-size: 16px;
+  }
+}

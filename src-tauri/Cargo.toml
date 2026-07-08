@@ -1,0 +1,17 @@
+[package]
+name = "draftly"
+version = "0.1.0"
+description = "Draftly Markdown editor"
+authors = ["Thiago Aciole"]
+edition = "2021"
+
+[lib]
+name = "draftly_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.3.1", features = [] }
+
+[dependencies]
+tauri = { version = "2.7.0", features = [] }
+tauri-plugin-dialog = "2.3.2"
