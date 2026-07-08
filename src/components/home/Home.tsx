@@ -1,5 +1,5 @@
 import { FileText, FolderOpen, Plus } from "lucide-react";
-import type { RecentFile } from "../../state/documentStore";
+import type { RecentFile } from "../../contexts/TabsContext";
 
 type HomeProps = {
   recentFiles: RecentFile[];
