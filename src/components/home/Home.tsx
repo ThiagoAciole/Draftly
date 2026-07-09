@@ -1,4 +1,5 @@
-import { FileText, FolderOpen, Plus } from "lucide-react";
+import { FolderOpen, Plus } from "lucide-react";
+import markdownFileIcon from "../../assets/file-markdown.png";
 import type { RecentFile } from "../../contexts/TabsContext";
 
 type HomeProps = {
@@ -54,7 +55,7 @@ export function Home({ recentFiles, isBusy, onCreate, onOpen, onOpenRecent }: Ho
                   disabled={isBusy}
                 >
                   <span className="recent-file-icon" aria-hidden="true">
-                    <FileText size={16} />
+                    <img src={markdownFileIcon} alt="" />
                   </span>
                   <span className="recent-file-info">
                     <span className="recent-file-name">{file.name}</span>

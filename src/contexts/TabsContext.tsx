@@ -8,6 +8,7 @@ export type DocumentTab = {
   path: string | null;
   name: string;
   markdown: string;
+  savedMarkdown: string;
   isDirty: boolean;
   lastSavedAt: Date | null;
 };
@@ -83,6 +84,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
     path: null,
     name: "Untitled.md",
     markdown: "",
+    savedMarkdown: "",
     isDirty: false,
     lastSavedAt: null,
   });
@@ -94,7 +96,11 @@ export function TabsProvider({ children }: { children: ReactNode }) {
 
   const updateActiveMarkdown = (markdown: string) => {
     setTabs((prev) =>
-      prev.map((t) => (t.id === activeTabId ? { ...t, markdown, isDirty: true } : t)),
+      prev.map((t) =>
+        t.id === activeTabId
+          ? { ...t, markdown, isDirty: Boolean(t.path) && markdown !== t.savedMarkdown }
+          : t,
+      ),
     );
   };
 

@@ -8,6 +8,7 @@ import {
   pickMarkdownSavePath,
   readMarkdownFile,
   saveMarkdownFile,
+  exportMarkdownToPdf,
 } from "../lib/fs";
 import { useTabsContext } from "./TabsContext";
 import type { DocumentTab } from "./TabsContext";
@@ -20,6 +21,7 @@ type FileActionsContextValue = {
   openDocumentFromPath: (path: string) => Promise<void>;
   saveDocument: () => Promise<void>;
   saveDocumentAs: () => Promise<void>;
+  exportDocumentPdf: () => Promise<void>;
   closeDocument: (id: string) => Promise<boolean>;
   canCloseApp: () => Promise<boolean>;
 };
@@ -62,7 +64,13 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
         return;
       }
       const file = await readMarkdownFile(initialPath);
-      const tab = { ...createBlankTab(), path: file.path, name: file.name, markdown: file.content };
+      const tab = {
+        ...createBlankTab(),
+        path: file.path,
+        name: file.name,
+        markdown: file.content,
+        savedMarkdown: file.content,
+      };
       addTab(tab);
       addRecentFile(file.path);
       setView("editor");
@@ -95,7 +103,13 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const tab = { ...createBlankTab(), path: file.path, name: file.name, markdown: file.content };
+      const tab = {
+        ...createBlankTab(),
+        path: file.path,
+        name: file.name,
+        markdown: file.content,
+        savedMarkdown: file.content,
+      };
       addTab(tab);
       addRecentFile(file.path);
       setView("editor");
@@ -117,7 +131,13 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
         setView("editor");
         return;
       }
-      const tab = { ...createBlankTab(), path: file.path, name: file.name, markdown: file.content };
+      const tab = {
+        ...createBlankTab(),
+        path: file.path,
+        name: file.name,
+        markdown: file.content,
+        savedMarkdown: file.content,
+      };
       addTab(tab);
       addRecentFile(file.path);
       setView("editor");
@@ -141,6 +161,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
         ...activeTab,
         path: targetPath,
         name: getFileName(targetPath),
+        savedMarkdown: activeTab.markdown,
         isDirty: false,
         lastSavedAt: new Date(),
       };
@@ -167,6 +188,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
         ...activeTab,
         path: targetPath,
         name: getFileName(targetPath),
+        savedMarkdown: activeTab.markdown,
         isDirty: false,
         lastSavedAt: new Date(),
       };
@@ -177,6 +199,17 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
       setError(err instanceof Error ? err.message : "Não foi possível salvar o arquivo.");
     } finally {
       setIsBusy(false);
+    }
+  };
+
+  const exportDocumentPdf = async () => {
+    if (!activeTab) return;
+
+    try {
+      setError(null);
+      await exportMarkdownToPdf(activeTab.name, activeTab.markdown);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível exportar o PDF.");
     }
   };
 
@@ -199,6 +232,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
         openDocumentFromPath,
         saveDocument,
         saveDocumentAs,
+        exportDocumentPdf,
         closeDocument,
         canCloseApp,
       }}

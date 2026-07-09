@@ -70,7 +70,7 @@
   gap: 8px;
   padding: 0 10px 0 14px;
   border: 0;
-  border-radius: 8px 8px 0 0;
+  border-radius: 12px 12px 0 0;
   background: transparent;
   color: #9a9da8;
   cursor: pointer;
@@ -127,6 +127,15 @@
   z-index: 2;
 }
 
+.file-tab.is-dirty .file-tab-name {
+  color: #d8c7ff;
+}
+
+.file-tab.is-dirty:hover .file-tab-name,
+.file-tab.is-dirty.is-active .file-tab-name {
+  color: #efe8ff;
+}
+
 .file-tab.is-active::before {
   content: "";
   position: absolute;
@@ -161,12 +170,11 @@
   line-height: 1;
 }
 
-.dirty-dot {
-  width: 7px;
-  height: 7px;
+.file-tab-icon {
+  width: 16px;
+  height: 16px;
   flex: 0 0 auto;
-  border-radius: 999px;
-  background: var(--accent);
+  object-fit: contain;
 }
 
 .file-tab-close {

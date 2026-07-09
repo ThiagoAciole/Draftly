@@ -147,6 +147,12 @@
   color: var(--muted);
 }
 
+.recent-file-icon img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
 .recent-file-info {
   display: flex;
   flex-direction: column;

@@ -2,15 +2,11 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { FilePlus, FileText, FolderOpen, MoreVertical, Save, SaveAll } from "lucide-react";
 import { useTabsContext } from "../../contexts/TabsContext";
 import { useFileActions } from "../../contexts/FileActionsContext";
-import { exportMarkdownToPdf } from "../../lib/fs";
 
 export function FileMenu() {
   const { activeTab } = useTabsContext();
-  const { createDocument, openDocument, saveDocument, saveDocumentAs } = useFileActions();
-
-  const handleExportPdf = () => {
-    if (activeTab) exportMarkdownToPdf(activeTab.name, activeTab.markdown);
-  };
+  const { createDocument, openDocument, saveDocument, saveDocumentAs, exportDocumentPdf } =
+    useFileActions();
 
   return (
     <DropdownMenu.Root>
@@ -57,7 +53,7 @@ export function FileMenu() {
 
           <DropdownMenu.Item
             className="title-menu-item"
-            onSelect={handleExportPdf}
+            onSelect={() => void exportDocumentPdf()}
             disabled={!activeTab}
           >
             <span className="title-menu-label">

@@ -11,14 +11,33 @@ export function AppShell() {
   const didInitialize = useRef(false);
   const { view, isBusy, error, clearError } = useWorkspace();
   const { activeTab, recentFiles, updateActiveMarkdown } = useTabsContext();
-  const { initializeWorkspace, createDocument, openDocument, openDocumentFromPath, saveDocument } =
-    useFileActions();
+  const {
+    initializeWorkspace,
+    createDocument,
+    openDocument,
+    openDocumentFromPath,
+    saveDocument,
+    exportDocumentPdf,
+  } = useFileActions();
 
   useEffect(() => {
     if (didInitialize.current) return;
     didInitialize.current = true;
     void initializeWorkspace();
   }, [initializeWorkspace]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "p") {
+        event.preventDefault();
+        void exportDocumentPdf();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [exportDocumentPdf]);
 
   const showEditor = view === "editor" && activeTab != null;
 

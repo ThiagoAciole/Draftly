@@ -1,4 +1,5 @@
 import { X } from "lucide-react";
+import markdownFileIcon from "../../assets/file-markdown.png";
 import { useWorkspace } from "../../contexts/WorkspaceContext";
 import { useTabsContext } from "../../contexts/TabsContext";
 import { useFileActions } from "../../contexts/FileActionsContext";
@@ -26,10 +27,11 @@ export function FileTabs() {
 
         return (
           <div
+            aria-label={`${tab.name}${tab.isDirty ? " alterado" : ""}`}
             aria-selected={isActive}
             className={`file-tab ${isActive ? "is-active" : ""} ${
-              shouldShowDivider ? "has-divider" : ""
-            }`}
+              tab.isDirty ? "is-dirty" : ""
+            } ${shouldShowDivider ? "has-divider" : ""}`}
             key={tab.id}
             role="tab"
             tabIndex={0}
@@ -42,8 +44,8 @@ export function FileTabs() {
               }
             }}
           >
+            <img className="file-tab-icon" src={markdownFileIcon} alt="" aria-hidden="true" />
             <span className="file-tab-name">{tab.name}</span>
-            {tab.isDirty ? <span className="dirty-dot" aria-label="Não salvo" /> : null}
             <button
               className="file-tab-close"
               type="button"

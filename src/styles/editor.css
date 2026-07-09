@@ -483,6 +483,7 @@
 .blocknote-editor .bn-block-content[data-content-type="bulletListItem"],
 .blocknote-editor .bn-block-content[data-content-type="numberedListItem"],
 .blocknote-editor .bn-block-content[data-content-type="checkListItem"],
+.blocknote-editor .bn-block-content[data-content-type="toggleListItem"],
 .blocknote-editor .bn-block-content[data-content-type="quote"] {
   color: #c7cbd5;
   font-size: 18px;
@@ -609,6 +610,44 @@
 .blocknote-editor .bn-inline-content:empty::before {
   color: var(--faint);
   opacity: 0.85;
+}
+
+/* Toggle list */
+
+.blocknote-editor .bn-block-content[data-content-type="toggleListItem"] .bn-toggle-wrapper {
+  gap: 8px;
+}
+
+.blocknote-editor .bn-block:has(> .bn-block-content[data-content-type="toggleListItem"]) > .bn-block-group {
+  margin-left: 54px;
+}
+
+.blocknote-editor .bn-block-content[data-content-type="toggleListItem"] .bn-toggle-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 22px;
+  margin-right: 0;
+  padding: 0;
+  color: #d6d9e2;
+}
+
+.blocknote-editor .bn-block-content[data-content-type="toggleListItem"] .bn-toggle-button > svg {
+  display: none;
+}
+
+.blocknote-editor .bn-block-content[data-content-type="toggleListItem"] .bn-toggle-button::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+}
+
+.blocknote-editor .bn-block-content[data-content-type="toggleListItem"] .bn-toggle-button:hover {
+  background: rgba(255, 255, 255, 0.06);
 }
 
 /* Table */
@@ -755,6 +794,7 @@
   .blocknote-editor .bn-block-content[data-content-type="bulletListItem"],
   .blocknote-editor .bn-block-content[data-content-type="numberedListItem"],
   .blocknote-editor .bn-block-content[data-content-type="checkListItem"],
+  .blocknote-editor .bn-block-content[data-content-type="toggleListItem"],
   .blocknote-editor .bn-block-content[data-content-type="quote"] {
     font-size: 16px;
   }
