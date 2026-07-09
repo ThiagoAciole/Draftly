@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { useWorkspace } from "../../contexts/WorkspaceContext";
 import { useTabsContext } from "../../contexts/TabsContext";
 import { useFileActions } from "../../contexts/FileActionsContext";
@@ -9,13 +9,14 @@ import { WindowControls } from "./WindowControls";
 import appIcon from "../../assets/icon.svg";
 
 export function TitleBar() {
-  const { setView } = useWorkspace();
+  const { setView, view, openSearch } = useWorkspace();
   const { tabsMeta } = useTabsContext();
   const { createDocument } = useFileActions();
   const { settings } = useSettings();
 
   const hasTabs = tabsMeta.length > 0;
   const showTabs = settings.appearance.showTabs;
+  const showSearch = view === "editor" && hasTabs;
 
   return (
     <header className="title-bar" data-tauri-drag-region>
@@ -49,6 +50,17 @@ export function TitleBar() {
       </div>
 
       <div className="title-actions">
+        {showSearch ? (
+          <button
+            className="titlebar-button"
+            type="button"
+            aria-label="Buscar no arquivo"
+            title="Buscar (Ctrl+F)"
+            onClick={openSearch}
+          >
+            <Search size={16} />
+          </button>
+        ) : null}
         <FileMenu />
         <WindowControls />
       </div>

@@ -8,6 +8,7 @@ type WorkspaceState = {
   isBusy: boolean;
   error: string | null;
   isSettingsOpen: boolean;
+  isSearchOpen: boolean;
 };
 
 type WorkspaceSetters = {
@@ -17,6 +18,8 @@ type WorkspaceSetters = {
   clearError: () => void;
   openSettings: () => void;
   closeSettings: () => void;
+  openSearch: () => void;
+  closeSearch: () => void;
 };
 
 type WorkspaceContextValue = WorkspaceState & WorkspaceSetters;
@@ -28,13 +31,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const clearError = () => setError(null);
   const openSettings = () => setIsSettingsOpen(true);
   const closeSettings = () => setIsSettingsOpen(false);
+  const openSearch = () => setIsSearchOpen(true);
+  const closeSearch = () => setIsSearchOpen(false);
 
   return (
-    <WorkspaceContext.Provider value={{ view, isBusy, error, isSettingsOpen, setView, setIsBusy, setError, clearError, openSettings, closeSettings }}>
+    <WorkspaceContext.Provider value={{ view, isBusy, error, isSettingsOpen, isSearchOpen, setView, setIsBusy, setError, clearError, openSettings, closeSettings, openSearch, closeSearch }}>
       {children}
     </WorkspaceContext.Provider>
   );

@@ -7,23 +7,37 @@
   font-size: 0.875rem;
 }
 
+.editor-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .editor-surface {
   display: grid;
   grid-template-rows: 64px minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.editor-surface > .blocknote-editor,
+.editor-surface .bn-container,
+.editor-surface .bn-editor,
+.editor-surface .mantine-Editor-root {
   min-height: 0;
   overflow: hidden;
 }
 
 .editor-surface > .blocknote-editor {
   height: 100%;
-  min-height: 0;
-  overflow: hidden;
 }
 
 .editor-surface > .blocknote-editor > .bn-container,
-.editor-surface > .blocknote-editor .bn-container {
+.editor-surface > .blocknote-editor .bn-container,
+.editor-surface > .blocknote-editor > div {
   height: 100%;
-  min-height: 0;
   overflow: hidden;
 }
 
@@ -404,16 +418,8 @@
 .editor-scroll {
   height: 100%;
   min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
   padding: 18px 24px 72px;
-  scrollbar-width: none;
-}
-
-.editor-scroll::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
 }
 
 .editor-scrollbar {

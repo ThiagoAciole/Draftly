@@ -163,6 +163,30 @@ export function MarkdownEditor({
     };
   }, [updateScrollThumb]);
 
+  // Wheel scroll handler (needed because overflow: hidden prevents native wheel scrolling)
+  useEffect(() => {
+    const scrollArea = scrollAreaRef.current;
+    if (!scrollArea) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      const maxScroll = scrollArea.scrollHeight - scrollArea.clientHeight;
+      if (maxScroll <= 0) return;
+
+      // Block scrolling if it would overflow in either direction
+      const atTop = scrollArea.scrollTop <= 0 && e.deltaY < 0;
+      const atBottom = scrollArea.scrollTop >= maxScroll && e.deltaY > 0;
+      if (atTop || atBottom) return;
+
+      e.preventDefault();
+      scrollArea.scrollTop += e.deltaY;
+      updateScrollThumb();
+      showScrollbarTemporarily();
+    };
+
+    scrollArea.addEventListener("wheel", handleWheel, { passive: false });
+    return () => scrollArea.removeEventListener("wheel", handleWheel);
+  }, [updateScrollThumb, showScrollbarTemporarily]);
+
   const handleScrollbarPointerDown = (
     event: ReactPointerEvent<HTMLDivElement>,
   ) => {

@@ -6,13 +6,15 @@ import { useSettings } from "../../contexts/SettingsContext";
 import { EditorLoading } from "../editor/EditorLoading";
 import { MarkdownEditor, StatusBar } from "../editor/Editor.lazy";
 import { Home } from "../home/Home";
+import { SearchBar } from "../search/SearchBar";
 import { SettingsModal } from "../settings/SettingsModal";
 import { TitleBar } from "./TitleBar";
 import "../../styles/settings.css";
+import "../../styles/search.css";
 
 export function AppShell() {
   const didInitialize = useRef(false);
-  const { view, isBusy, error, clearError, openSettings } = useWorkspace();
+  const { view, isBusy, error, clearError, openSettings, isSearchOpen, openSearch, closeSearch } = useWorkspace();
   const { activeTab, recentFiles, updateActiveMarkdown } = useTabsContext();
   const {
     initializeWorkspace,
@@ -44,12 +46,18 @@ export function AppShell() {
         event.preventDefault();
         openSettings();
       }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        if (view === "editor" && activeTab) {
+          openSearch();
+        }
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
 
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [exportDocumentPdf, openSettings]);
+  }, [exportDocumentPdf, openSettings, openSearch, view, activeTab]);
 
   const showEditor = view === "editor" && activeTab != null;
 
@@ -63,12 +71,14 @@ export function AppShell() {
       ) : null}
       {showEditor ? (
         <Suspense fallback={<EditorLoading />}>
-          <MarkdownEditor
-            markdown={activeTab.markdown}
-            onChange={updateActiveMarkdown}
-            onSave={() => void saveDocument()}
-          />
-          <StatusBar />
+          <div className="editor-section">
+            <MarkdownEditor
+              markdown={activeTab.markdown}
+              onChange={updateActiveMarkdown}
+              onSave={() => void saveDocument()}
+            />
+            {isSearchOpen ? <SearchBar onClose={closeSearch} /> : <StatusBar />}
+          </div>
         </Suspense>
       ) : (
         <Home
