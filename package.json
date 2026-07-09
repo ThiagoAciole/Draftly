@@ -21,7 +21,9 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@tauri-apps/api": "^2.7.0",
     "@tauri-apps/plugin-dialog": "^2.3.2",
-    "lucide-react": "^0.468.0"
+    "html2pdf.js": "^0.14.0",
+    "lucide-react": "^0.468.0",
+    "marked": "^18.0.5"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.7.1",
