@@ -1,3 +1,5 @@
+export { SettingsProvider, useSettings } from "./SettingsContext";
+export type { AppSettings } from "./SettingsContext";
 export { WorkspaceProvider, useWorkspace } from "./WorkspaceContext";
 export type { WorkspaceView } from "./WorkspaceContext";
 export { TabsProvider, useTabsContext } from "./TabsContext";

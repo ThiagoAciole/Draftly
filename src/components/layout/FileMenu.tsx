@@ -1,12 +1,14 @@
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { FilePlus, FileText, FolderOpen, MoreVertical, Save, SaveAll } from "lucide-react";
+import { FilePlus, FileText, FolderOpen, MoreVertical, Save, SaveAll, Settings } from "lucide-react";
 import { useTabsContext } from "../../contexts/TabsContext";
 import { useFileActions } from "../../contexts/FileActionsContext";
+import { useWorkspace } from "../../contexts/WorkspaceContext";
 
 export function FileMenu() {
   const { activeTab } = useTabsContext();
   const { createDocument, openDocument, saveDocument, saveDocumentAs, exportDocumentPdf } =
     useFileActions();
+  const { openSettings } = useWorkspace();
 
   return (
     <DropdownMenu.Root>
@@ -61,6 +63,16 @@ export function FileMenu() {
               Exportar PDF
             </span>
             <span className="title-menu-shortcut">Ctrl+P</span>
+          </DropdownMenu.Item>
+
+          <DropdownMenu.Separator className="title-menu-separator" />
+
+          <DropdownMenu.Item className="title-menu-item" onSelect={openSettings}>
+            <span className="title-menu-label">
+              <Settings size={15} />
+              Configurações
+            </span>
+            <span className="title-menu-shortcut">Ctrl+,</span>
           </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>

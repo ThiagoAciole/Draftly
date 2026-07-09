@@ -2,6 +2,7 @@ import { Plus } from "lucide-react";
 import { useWorkspace } from "../../contexts/WorkspaceContext";
 import { useTabsContext } from "../../contexts/TabsContext";
 import { useFileActions } from "../../contexts/FileActionsContext";
+import { useSettings } from "../../contexts/SettingsContext";
 import { FileMenu } from "./FileMenu";
 import { FileTabs } from "./FileTabs";
 import { WindowControls } from "./WindowControls";
@@ -10,8 +11,10 @@ export function TitleBar() {
   const { setView } = useWorkspace();
   const { tabsMeta } = useTabsContext();
   const { createDocument } = useFileActions();
+  const { settings } = useSettings();
 
   const hasTabs = tabsMeta.length > 0;
+  const showTabs = settings.appearance.showTabs;
 
   return (
     <header className="title-bar" data-tauri-drag-region>
@@ -28,7 +31,7 @@ export function TitleBar() {
       </div>
 
       <div className="tab-strip" data-tauri-drag-region>
-        <FileTabs />
+        {showTabs ? <FileTabs /> : null}
         {hasTabs ? (
           <button
             className="new-tab-button"

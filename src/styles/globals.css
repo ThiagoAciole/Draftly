@@ -17,6 +17,8 @@
   --faint: #8a8a8a;
   --accent: #8b6cff;
   --accent-soft: rgba(139, 108, 255, 0.18);
+  --editor-font: Cantarell, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --editor-font-size: 18px;
   --danger: #ff6b6b;
 }
 

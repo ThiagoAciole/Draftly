@@ -8,6 +8,7 @@ type HomeProps = {
   onCreate: () => void;
   onOpen: () => void;
   onOpenRecent: (path: string) => void;
+  showRecentFiles?: boolean;
 };
 
 function getDirectory(path: string) {
@@ -16,7 +17,7 @@ function getDirectory(path: string) {
   return parts.join("/") || path;
 }
 
-export function Home({ recentFiles, isBusy, onCreate, onOpen, onOpenRecent }: HomeProps) {
+export function Home({ recentFiles, isBusy, onCreate, onOpen, onOpenRecent, showRecentFiles = true }: HomeProps) {
   return (
     <main className="home-view">
       <section className="home-panel" aria-label="Home">
@@ -37,37 +38,39 @@ export function Home({ recentFiles, isBusy, onCreate, onOpen, onOpenRecent }: Ho
           </div>
         </div>
 
-        <div className="recent-files" aria-label="Arquivos recentes">
-          {recentFiles.length > 0 && (
-            <div className="recent-files-header">
-              <span>Recentes</span>
-            </div>
-          )}
-          {recentFiles.length > 0 ? (
-            <div className="recent-files-list">
-              {recentFiles.map((file) => (
-                <button
-                  className="recent-file"
-                  type="button"
-                  key={file.path}
-                  title={file.path}
-                  onClick={() => onOpenRecent(file.path)}
-                  disabled={isBusy}
-                >
-                  <span className="recent-file-icon" aria-hidden="true">
-                    <img src={markdownFileIcon} alt="" />
-                  </span>
-                  <span className="recent-file-info">
-                    <span className="recent-file-name">{file.name}</span>
-                    <span className="recent-file-path">{getDirectory(file.path)}</span>
-                  </span>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <p className="recent-files-empty">Nenhum arquivo recente ainda</p>
-          )}
-        </div>
+        {showRecentFiles ? (
+          <div className="recent-files" aria-label="Arquivos recentes">
+            {recentFiles.length > 0 && (
+              <div className="recent-files-header">
+                <span>Recentes</span>
+              </div>
+            )}
+            {recentFiles.length > 0 ? (
+              <div className="recent-files-list">
+                {recentFiles.map((file) => (
+                  <button
+                    className="recent-file"
+                    type="button"
+                    key={file.path}
+                    title={file.path}
+                    onClick={() => onOpenRecent(file.path)}
+                    disabled={isBusy}
+                  >
+                    <span className="recent-file-icon" aria-hidden="true">
+                      <img src={markdownFileIcon} alt="" />
+                    </span>
+                    <span className="recent-file-info">
+                      <span className="recent-file-name">{file.name}</span>
+                      <span className="recent-file-path">{getDirectory(file.path)}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="recent-files-empty">Nenhum arquivo recente ainda</p>
+            )}
+          </div>
+        ) : null}
       </section>
     </main>
   );

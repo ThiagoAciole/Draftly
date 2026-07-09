@@ -1,5 +1,5 @@
 import { confirm } from "@tauri-apps/plugin-dialog";
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import {
   getFileName,
@@ -13,6 +13,7 @@ import {
 import { useTabsContext } from "./TabsContext";
 import type { DocumentTab } from "./TabsContext";
 import { useWorkspace } from "./WorkspaceContext";
+import { useSettings } from "./SettingsContext";
 
 type FileActionsContextValue = {
   initializeWorkspace: () => Promise<void>;
@@ -47,18 +48,104 @@ async function confirmDiscardTabs(tabs: DocumentTab[]): Promise<boolean> {
   }
 }
 
+const SESSION_KEY = "last-session";
+
+type SessionData = {
+  paths: string[];
+  activeTabPath: string | null;
+};
+
 const FileActionsContext = createContext<FileActionsContextValue | null>(null);
 
 export function FileActionsProvider({ children }: { children: ReactNode }) {
   const { setView, setIsBusy, setError } = useWorkspace();
-  const { tabs, activeTab, createBlankTab, addTab, addRecentFile, closeTabById, replaceTab } =
+  const { tabs, activeTab, activeTabId, createBlankTab, addTab, addRecentFile, closeTabById, replaceTab } =
     useTabsContext();
+  const { settings, store } = useSettings();
+  const tabsRef = useRef(tabs);
+  tabsRef.current = tabs;
+
+  // Autosave: every 30s, save dirty tabs that have a path
+  useEffect(() => {
+    if (!settings.general.autosave) return;
+
+    const autosave = async () => {
+      const dirtyTabs = tabsRef.current.filter((t) => t.isDirty && t.path);
+      for (const tab of dirtyTabs) {
+        try {
+          await saveMarkdownFile(tab.path!, tab.markdown);
+          replaceTab({
+            ...tab,
+            savedMarkdown: tab.markdown,
+            isDirty: false,
+            lastSavedAt: new Date(),
+          });
+        } catch {
+          // Silently skip — autosave failures shouldn't disrupt the user
+        }
+      }
+    };
+
+    const id = window.setInterval(autosave, 30_000);
+    return () => window.clearInterval(id);
+  }, [settings.general.autosave, replaceTab]);
+
+  // Persist session on beforeunload
+  useEffect(() => {
+    const saveSession = async () => {
+      if (!settings.general.restoreSession || !store) return;
+      try {
+        const paths = tabsRef.current.map((t) => t.path).filter(Boolean) as string[];
+        if (paths.length === 0) {
+          await store.delete(SESSION_KEY);
+        } else {
+          await store.set(SESSION_KEY, { paths, activeTabPath: activeTabId ? tabsRef.current.find((t) => t.id === activeTabId)?.path ?? null : null });
+        }
+        await store.save();
+      } catch {
+        // Silently ignore
+      }
+    };
+
+    window.addEventListener("beforeunload", saveSession);
+    return () => window.removeEventListener("beforeunload", saveSession);
+  }, [settings.general.restoreSession, activeTabId, store]);
 
   const initializeWorkspace = async () => {
     setIsBusy(true);
     setError(null);
     try {
       const initialPath = await getInitialMarkdownFilePath();
+
+      // Session restore takes precedence over CLI args
+      if (settings.general.restoreSession && !initialPath && store) {
+        try {
+          const session = await store.get<SessionData>(SESSION_KEY);
+          if (session?.paths?.length) {
+            for (const path of session.paths) {
+              try {
+                const file = await readMarkdownFile(path);
+                const tab = {
+                  ...createBlankTab(),
+                  path: file.path,
+                  name: file.name,
+                  markdown: file.content,
+                  savedMarkdown: file.content,
+                };
+                addTab(tab);
+                addRecentFile(file.path);
+              } catch {
+                // Skip files that no longer exist or can't be read
+              }
+            }
+            setView("editor");
+            return;
+          }
+        } catch {
+          // Fall through to default behavior
+        }
+      }
+
       if (!initialPath) {
         setView("home");
         return;

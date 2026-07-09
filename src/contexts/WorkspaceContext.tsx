@@ -7,6 +7,7 @@ type WorkspaceState = {
   view: WorkspaceView;
   isBusy: boolean;
   error: string | null;
+  isSettingsOpen: boolean;
 };
 
 type WorkspaceSetters = {
@@ -14,6 +15,8 @@ type WorkspaceSetters = {
   setIsBusy: (busy: boolean) => void;
   setError: (error: string | null) => void;
   clearError: () => void;
+  openSettings: () => void;
+  closeSettings: () => void;
 };
 
 type WorkspaceContextValue = WorkspaceState & WorkspaceSetters;
@@ -24,11 +27,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [view, setView] = useState<WorkspaceView>("home");
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const clearError = () => setError(null);
+  const openSettings = () => setIsSettingsOpen(true);
+  const closeSettings = () => setIsSettingsOpen(false);
 
   return (
-    <WorkspaceContext.Provider value={{ view, isBusy, error, setView, setIsBusy, setError, clearError }}>
+    <WorkspaceContext.Provider value={{ view, isBusy, error, isSettingsOpen, setView, setIsBusy, setError, clearError, openSettings, closeSettings }}>
       {children}
     </WorkspaceContext.Provider>
   );

@@ -486,7 +486,8 @@
 .blocknote-editor .bn-block-content[data-content-type="toggleListItem"],
 .blocknote-editor .bn-block-content[data-content-type="quote"] {
   color: #c7cbd5;
-  font-size: 18px;
+  font-family: var(--editor-font);
+  font-size: var(--editor-font-size);
   line-height: 1.65;
 }
 
