@@ -5,6 +5,7 @@ import { useWorkspace } from "../../contexts/WorkspaceContext";
 import { useSettings } from "../../contexts/SettingsContext";
 import type { AppSettings } from "../../contexts/SettingsContext";
 import { Toggle } from "../ui/Toggle";
+import { SettingsSelect } from "../ui/SettingsSelect";
 
 const ACCENT_COLORS = [
   { value: "#8b6cff", label: "Roxo" },
@@ -21,7 +22,13 @@ const FONT_OPTIONS: { value: AppSettings["appearance"]["editorFont"]; label: str
   { value: "mono", label: "Monospace" },
 ];
 
-const FONT_SIZE_OPTIONS = [14, 16, 18, 20, 22];
+const FONT_SIZE_OPTIONS = [
+  { value: 14, label: "14px" },
+  { value: 16, label: "16px" },
+  { value: 18, label: "18px" },
+  { value: 20, label: "20px" },
+  { value: 22, label: "22px" },
+];
 
 const SHORTCUTS = [
   { action: "Novo arquivo", key: "Ctrl+N" },
@@ -94,9 +101,12 @@ export function SettingsModal() {
                       <span className="settings-row-title">Idioma</span>
                       <span className="settings-row-hint">Idioma da interface</span>
                     </div>
-                    <select className="settings-select" disabled defaultValue="pt-BR">
-                      <option value="pt-BR">Português (Brasil)</option>
-                    </select>
+                    <SettingsSelect
+                      value="pt-BR"
+                      options={[{ value: "pt-BR", label: "Português (Brasil)" }]}
+                      onChange={() => {}}
+                      disabled
+                    />
                   </div>
                   <div className="settings-row">
                     <div className="settings-row-label">
@@ -142,9 +152,12 @@ export function SettingsModal() {
                       <span className="settings-row-title">Tema</span>
                       <span className="settings-row-hint">Esquema de cores</span>
                     </div>
-                    <select className="settings-select" disabled defaultValue="dark">
-                      <option value="dark">Escuro</option>
-                    </select>
+                    <SettingsSelect
+                      value="dark"
+                      options={[{ value: "dark", label: "Escuro" }]}
+                      onChange={() => {}}
+                      disabled
+                    />
                   </div>
                   <div className="settings-row">
                     <div className="settings-row-label">
@@ -185,35 +198,23 @@ export function SettingsModal() {
                       <span className="settings-row-title">Fonte</span>
                       <span className="settings-row-hint">Família da fonte</span>
                     </div>
-                    <select
-                      className="settings-select"
+                    <SettingsSelect
                       value={settings.appearance.editorFont}
-                      onChange={(e) => void updateSetting(["appearance", "editorFont"], e.target.value)}
-                    >
-                      {FONT_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
+                      options={FONT_OPTIONS}
+                      onChange={(v) => void updateSetting(["appearance", "editorFont"], v)}
+                    />
                   </div>
                   <div className="settings-row">
                     <div className="settings-row-label">
                       <span className="settings-row-title">Tamanho</span>
                       <span className="settings-row-hint">Tamanho da fonte</span>
                     </div>
-                    <select
-                      className="settings-select"
-                      style={{ minWidth: 100 }}
+                    <SettingsSelect
                       value={settings.appearance.editorFontSize}
-                      onChange={(e) => void updateSetting(["appearance", "editorFontSize"], Number(e.target.value))}
-                    >
-                      {FONT_SIZE_OPTIONS.map((size) => (
-                        <option key={size} value={size}>
-                          {size}px
-                        </option>
-                      ))}
-                    </select>
+                      options={FONT_SIZE_OPTIONS}
+                      onChange={(v) => void updateSetting(["appearance", "editorFontSize"], v)}
+                      width={100}
+                    />
                   </div>
                 </div>
               )}

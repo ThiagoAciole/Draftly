@@ -28,6 +28,10 @@ export function AppShell() {
     if (didInitialize.current) return;
     didInitialize.current = true;
     void initializeWorkspace();
+
+    // Preload editor chunk so first file open doesn't flash loading
+    import("../editor/MarkdownEditor").then((m) => { void m.MarkdownEditor; });
+    import("../layout/StatusBar").then((m) => { void m.StatusBar; });
   }, [initializeWorkspace]);
 
   useEffect(() => {

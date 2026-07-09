@@ -1,5 +1,6 @@
 import { FolderOpen, Plus } from "lucide-react";
 import markdownFileIcon from "../../assets/file-markdown.png";
+import appIcon from "../../assets/icon.svg";
 import type { RecentFile } from "../../contexts/TabsContext";
 
 type HomeProps = {
@@ -23,7 +24,7 @@ export function Home({ recentFiles, isBusy, onCreate, onOpen, onOpenRecent, show
       <section className="home-panel" aria-label="Home">
         <div className="home-hero">
           <div className="home-mark" aria-hidden="true">
-            <img src="/src/assets/icon.svg" alt="" />
+            <img src={appIcon} alt="" />
           </div>
 
           <div className="home-actions">

@@ -6,6 +6,7 @@ import { useSettings } from "../../contexts/SettingsContext";
 import { FileMenu } from "./FileMenu";
 import { FileTabs } from "./FileTabs";
 import { WindowControls } from "./WindowControls";
+import appIcon from "../../assets/icon.svg";
 
 export function TitleBar() {
   const { setView } = useWorkspace();
@@ -26,7 +27,7 @@ export function TitleBar() {
           title="Home"
           onClick={() => setView("home")}
         >
-          <img className="app-mark" src="/src/assets/icon.svg" alt="" aria-hidden="true" />
+          <img className="app-mark" src={appIcon} alt="" aria-hidden="true" />
         </button>
       </div>
 
