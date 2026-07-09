@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 This file provides guidance to Claude Code and AI agents when working with this repository.
 
@@ -62,13 +62,14 @@ src/
 
 There are exactly **3 contexts**. Use the right hook for each job:
 
-| Context | Hook | Owns |
-|---|---|---|
-| `WorkspaceContext` | `useWorkspace()` | `view`, `isBusy`, `error`, `clearError`, `setView`, `setIsBusy`, `setError` |
-| `TabsContext` | `useTabsContext()` | `tabs[]`, `activeTab`, `tabsMeta`, `activeTabId`, `recentFiles`, `updateActiveMarkdown`, `switchTab`, `replaceTab`, `addTab`, `createBlankTab`, `closeTabById`, `addRecentFile` |
-| `FileActionsContext` | `useFileActions()` | `initializeWorkspace`, `createDocument`, `openDocument`, `openDocumentFromPath`, `saveDocument`, `saveDocumentAs`, `closeDocument`, `canCloseApp` |
+| Context              | Hook               | Owns                                                                                                                                                                            |
+| -------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `WorkspaceContext`   | `useWorkspace()`   | `view`, `isBusy`, `error`, `clearError`, `setView`, `setIsBusy`, `setError`                                                                                                     |
+| `TabsContext`        | `useTabsContext()` | `tabs[]`, `activeTab`, `tabsMeta`, `activeTabId`, `recentFiles`, `updateActiveMarkdown`, `switchTab`, `replaceTab`, `addTab`, `createBlankTab`, `closeTabById`, `addRecentFile` |
+| `FileActionsContext` | `useFileActions()` | `initializeWorkspace`, `createDocument`, `openDocument`, `openDocumentFromPath`, `saveDocument`, `saveDocumentAs`, `closeDocument`, `canCloseApp`                               |
 
 **Provider nesting order in `App.tsx`** (outermost first):
+
 1. `WorkspaceProvider`
 2. `TabsProvider` — consumes WorkspaceContext
 3. `FileActionsProvider` — consumes WorkspaceContext + TabsContext
@@ -78,6 +79,7 @@ There are exactly **3 contexts**. Use the right hook for each job:
 ### Rust Backend (`src-tauri/src/lib.rs`)
 
 Three Tauri commands:
+
 - `read_markdown_file(path)` — reads a `.md` file, validates `.md` extension
 - `write_markdown_file(path, content)` — writes content, validates `.md` extension
 - `get_initial_markdown_file_path()` — scans CLI args for a `.md` path ("Open with" OS integration)
@@ -90,19 +92,20 @@ The `.md` extension check is enforced server-side in Rust. Non-`.md` files are r
 
 All Tauri IPC calls are isolated here. Public API:
 
-| Function | Returns | Description |
-|---|---|---|
-| `readMarkdownFile(path)` | `Promise<MarkdownFile>` | Read file content via Tauri |
-| `openMarkdownFile()` | `Promise<MarkdownFile \| null>` | Native file picker |
-| `pickMarkdownSavePath(defaultPath?)` | `Promise<string \| null>` | Native save dialog |
-| `saveMarkdownFile(path, content)` | `Promise<void>` | Write file via Tauri |
-| `getInitialMarkdownFilePath()` | `Promise<string \| null>` | CLI arg scan |
-| `getFileName(path)` | `string` | Extract filename from path |
-| `exportMarkdownToPdf(name, markdown)` | `void` | Opens print window |
+| Function                              | Returns                         | Description                 |
+| ------------------------------------- | ------------------------------- | --------------------------- |
+| `readMarkdownFile(path)`              | `Promise<MarkdownFile>`         | Read file content via Tauri |
+| `openMarkdownFile()`                  | `Promise<MarkdownFile \| null>` | Native file picker          |
+| `pickMarkdownSavePath(defaultPath?)`  | `Promise<string \| null>`       | Native save dialog          |
+| `saveMarkdownFile(path, content)`     | `Promise<void>`                 | Write file via Tauri        |
+| `getInitialMarkdownFilePath()`        | `Promise<string \| null>`       | CLI arg scan                |
+| `getFileName(path)`                   | `string`                        | Extract filename from path  |
+| `exportMarkdownToPdf(name, markdown)` | `void`                          | Opens print window          |
 
 ### Editor Details
 
 The `MarkdownEditor` component wraps BlockNote:
+
 - Uses `tryParseMarkdownToBlocks()` to convert markdown string → BlockNote blocks on external content change
 - Uses `blocksToMarkdownLossy()` to convert blocks → markdown string on internal edit
 - Tracks `externalMarkdown` ref to avoid re-parsing content that originated from the editor itself
@@ -119,6 +122,7 @@ The `MarkdownEditor` component wraps BlockNote:
 ### Vite Build
 
 Manual code-splitting via `rollupOptions.manualChunks`:
+
 - `vendor-radix` — all Radix UI packages
 - `vendor-tauri` — `@tauri-apps/api` + `@tauri-apps/plugin-dialog`
 
@@ -128,21 +132,21 @@ The app UI is in **Portuguese (Brazilian)** — all labels, tooltips, error mess
 
 ## Where to Make Changes
 
-| I want to... | Touch this file |
-|---|---|
-| Change view routing logic (home ↔ editor) | `WorkspaceContext.tsx` |
-| Add a new tab action (rename, duplicate, pin) | `TabsContext.tsx` |
-| Add a new file operation (export, print, share) | `FileActionsContext.tsx` + `lib/fs.ts` |
-| Change the formatting toolbar | `EditorToolbar.tsx` |
-| Change the slash menu items | `slashMenu.ts` |
-| Change the home screen layout | `Home.tsx` + `home.css` |
-| Change tab appearance or behavior | `FileTabs.tsx` + `titlebar.css` |
-| Change status bar information | `StatusBar.tsx` |
-| Change Tauri backend commands | `src-tauri/src/lib.rs` |
-| Change the file picker/dialog behavior | `lib/fs.ts` |
-| Add a new Rust command | `src-tauri/src/lib.rs` → `lib/fs.ts` (wrapper) → relevant context |
-| Add new CSS variables / design tokens | `globals.css` |
-| Change window size, titlebar, or decorations | `src-tauri/tauri.conf.json` |
+| I want to...                                    | Touch this file                                                   |
+| ----------------------------------------------- | ----------------------------------------------------------------- |
+| Change view routing logic (home ↔ editor)       | `WorkspaceContext.tsx`                                            |
+| Add a new tab action (rename, duplicate, pin)   | `TabsContext.tsx`                                                 |
+| Add a new file operation (export, print, share) | `FileActionsContext.tsx` + `lib/fs.ts`                            |
+| Change the formatting toolbar                   | `EditorToolbar.tsx`                                               |
+| Change the slash menu items                     | `slashMenu.ts`                                                    |
+| Change the home screen layout                   | `Home.tsx` + `home.css`                                           |
+| Change tab appearance or behavior               | `FileTabs.tsx` + `titlebar.css`                                   |
+| Change status bar information                   | `StatusBar.tsx`                                                   |
+| Change Tauri backend commands                   | `src-tauri/src/lib.rs`                                            |
+| Change the file picker/dialog behavior          | `lib/fs.ts`                                                       |
+| Add a new Rust command                          | `src-tauri/src/lib.rs` → `lib/fs.ts` (wrapper) → relevant context |
+| Add new CSS variables / design tokens           | `globals.css`                                                     |
+| Change window size, titlebar, or decorations    | `src-tauri/tauri.conf.json`                                       |
 
 ## Design Reference
 
