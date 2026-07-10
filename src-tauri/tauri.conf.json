@@ -29,9 +29,20 @@
     "active": true,
     "targets": ["deb", "nsis"],
     "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico", "icons/icon.png"],
+    "resources": ["resources/file-markdown.ico"],
+    "fileAssociations": [
+      {
+        "ext": ["md"],
+        "name": "Markdown",
+        "description": "Arquivo Markdown",
+        "mimeType": "text/markdown",
+        "role": "Editor"
+      }
+    ],
     "windows": {
       "nsis": {
-        "installMode": "currentUser"
+        "installMode": "perMachine",
+        "installerHooks": "./windows/hooks.nsh"
       }
     }
   }
