@@ -10,6 +10,8 @@ type WorkspaceState = {
   error: string | null;
   isSettingsOpen: boolean;
   isSearchOpen: boolean;
+  isCommandPaletteOpen: boolean;
+  isOutlineOpen: boolean;
   editorMode: EditorMode;
 };
 
@@ -22,6 +24,9 @@ type WorkspaceSetters = {
   closeSettings: () => void;
   openSearch: () => void;
   closeSearch: () => void;
+  openCommandPalette: () => void;
+  closeCommandPalette: () => void;
+  toggleOutline: () => void;
   setEditorMode: (mode: EditorMode) => void;
   toggleEditorMode: () => void;
 };
@@ -36,6 +41,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isOutlineOpen, setIsOutlineOpen] = useState(false);
   const [editorMode, setEditorMode] = useState<EditorMode>("visual");
 
   const clearError = () => setError(null);
@@ -43,13 +50,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const closeSettings = () => setIsSettingsOpen(false);
   const openSearch = () => setIsSearchOpen(true);
   const closeSearch = () => setIsSearchOpen(false);
+  const openCommandPalette = () => setIsCommandPaletteOpen(true);
+  const closeCommandPalette = () => setIsCommandPaletteOpen(false);
+  const toggleOutline = () => setIsOutlineOpen((open) => !open);
   const toggleEditorMode = () => {
     setIsSearchOpen(false);
     setEditorMode((mode) => (mode === "visual" ? "source" : "visual"));
   };
 
   return (
-    <WorkspaceContext.Provider value={{ view, isBusy, error, isSettingsOpen, isSearchOpen, editorMode, setView, setIsBusy, setError, clearError, openSettings, closeSettings, openSearch, closeSearch, setEditorMode, toggleEditorMode }}>
+    <WorkspaceContext.Provider value={{ view, isBusy, error, isSettingsOpen, isSearchOpen, isCommandPaletteOpen, isOutlineOpen, editorMode, setView, setIsBusy, setError, clearError, openSettings, closeSettings, openSearch, closeSearch, openCommandPalette, closeCommandPalette, toggleOutline, setEditorMode, toggleEditorMode }}>
       {children}
     </WorkspaceContext.Provider>
   );

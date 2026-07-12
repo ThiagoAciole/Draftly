@@ -102,12 +102,34 @@
   letter-spacing: 0.05em;
 }
 
+.recent-files-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  padding: 4px 6px;
+  background: transparent;
+  color: var(--faint);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.recent-files-clear:hover:not(:disabled) {
+  color: var(--text);
+}
+
 .recent-files-list {
   display: grid;
   grid-template-columns: repeat(3, minmax(250px, 1fr));
   width: 100%;
   gap: 4px;
   align-items: start;
+}
+
+.recent-file-row {
+  position: relative;
+  min-width: 0;
 }
 
 .recent-file {
@@ -124,6 +146,7 @@
   font-size: 14px;
   cursor: pointer;
   transition: background 120ms ease, border-color 120ms ease;
+  width: 100%;
 }
 
 .recent-file:hover {
@@ -133,6 +156,34 @@
 
 .recent-file:disabled {
   opacity: 0.5;
+}
+
+.recent-file-remove {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--faint);
+  cursor: pointer;
+  opacity: 0;
+}
+
+.recent-file-row:hover .recent-file-remove,
+.recent-file-remove:focus-visible {
+  opacity: 1;
+}
+
+.recent-file-remove:hover:not(:disabled) {
+  background: rgba(255, 107, 107, 0.14);
+  color: #ffb4b4;
 }
 
 .recent-file-icon {
@@ -181,6 +232,11 @@
   white-space: nowrap;
   color: var(--faint);
   font-size: 11px;
+}
+
+.recent-file-unavailable {
+  color: #ffb4b4;
+  font-size: 10px;
 }
 
 .recent-files-empty {

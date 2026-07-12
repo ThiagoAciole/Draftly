@@ -231,6 +231,11 @@
   color: var(--text);
 }
 
+.titlebar-button.is-active {
+  background: var(--accent-soft);
+  color: #ddd5ff;
+}
+
 .window-controls {
   display: flex;
   align-items: center;

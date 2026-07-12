@@ -1,8 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
-import DOMPurify from "dompurify";
-import html2pdf from "html2pdf.js";
-import { marked } from "marked";
 
 export type MarkdownFile = {
   path: string;
@@ -275,6 +272,11 @@ function createPdfElement(name: string, markdownHtml: string) {
 }
 
 export async function exportMarkdownToPdf(name: string, markdown: string) {
+  const [{ default: DOMPurify }, { default: html2pdf }, { marked }] = await Promise.all([
+    import("dompurify"),
+    import("html2pdf.js"),
+    import("marked"),
+  ]);
   const targetPath = await save({
     defaultPath: getPdfName(name),
     filters: pdfFilters,

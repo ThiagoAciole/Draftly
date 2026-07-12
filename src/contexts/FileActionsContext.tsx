@@ -15,15 +15,19 @@ import { useWorkspace } from "./WorkspaceContext";
 import { useSettings } from "./SettingsContext";
 import { getRestoredActiveTabId } from "../lib/documentUtils";
 import { UnsavedChangesDialog } from "../components/dialogs/UnsavedChangesDialog";
+import { VersionHistoryDialog } from "../components/dialogs/VersionHistoryDialog";
+import { addVersionSnapshot, getVersionHistoryKey } from "../lib/versionHistory";
+import type { VersionSnapshot } from "../lib/versionHistory";
 
 type FileActionsContextValue = {
   initializeWorkspace: () => Promise<void>;
   createDocument: () => void;
   openDocument: () => Promise<void>;
-  openDocumentFromPath: (path: string) => Promise<void>;
+  openDocumentFromPath: (path: string) => Promise<boolean>;
   saveDocument: () => Promise<void>;
   saveDocumentAs: () => Promise<void>;
   exportDocumentPdf: () => Promise<void>;
+  openVersionHistory: () => Promise<void>;
   closeDocument: (id: string) => Promise<boolean>;
   canCloseApp: () => Promise<boolean>;
 };
@@ -39,13 +43,14 @@ const FileActionsContext = createContext<FileActionsContextValue | null>(null);
 
 export function FileActionsProvider({ children }: { children: ReactNode }) {
   const { setView, setIsBusy, setError } = useWorkspace();
-  const { tabs, activeTab, activeTabId, createBlankTab, addTab, addRecentFile, closeTabById, replaceTab, switchTab } =
+  const { tabs, activeTab, activeTabId, createBlankTab, addTab, addRecentFile, closeTabById, replaceTab, switchTab, updateActiveMarkdown } =
     useTabsContext();
   const { settings, store } = useSettings();
   const tabsRef = useRef(tabs);
   const closeDecisionResolver = useRef<((canClose: boolean) => void) | null>(null);
   const [pendingCloseTabs, setPendingCloseTabs] = useState<DocumentTab[] | null>(null);
   const [isSavingBeforeClose, setIsSavingBeforeClose] = useState(false);
+  const [versionHistory, setVersionHistory] = useState<VersionSnapshot[] | null>(null);
   tabsRef.current = tabs;
 
   const resolveCloseDecision = (canClose: boolean) => {
@@ -84,6 +89,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        await saveVersionSnapshot(tab);
         await saveMarkdownFile(targetPath, tab.markdown);
         replaceTab({
           ...tab,
@@ -105,6 +111,19 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const saveVersionSnapshot = async (tab: DocumentTab) => {
+    if (!store || !tab.path || tab.savedMarkdown === tab.markdown) return;
+
+    try {
+      const key = getVersionHistoryKey(tab.path);
+      const current = (await store.get<VersionSnapshot[]>(key)) ?? [];
+      await store.set(key, addVersionSnapshot(current, tab.savedMarkdown));
+      await store.save();
+    } catch {
+      // Version history must never prevent the user from saving their file.
+    }
+  };
+
   // Autosave: every 30s, save dirty tabs that have a path
   useEffect(() => {
     if (!settings.general.autosave) return;
@@ -113,6 +132,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
       const dirtyTabs = tabsRef.current.filter((t) => t.isDirty && t.path);
       for (const tab of dirtyTabs) {
         try {
+          await saveVersionSnapshot(tab);
           await saveMarkdownFile(tab.path!, tab.markdown);
           replaceTab({
             ...tab,
@@ -251,7 +271,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const openDocumentFromPath = async (path: string) => {
+  const openDocumentFromPath = async (path: string): Promise<boolean> => {
     setIsBusy(true);
     setError(null);
     try {
@@ -260,7 +280,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
       if (existing) {
         addRecentFile(file.path);
         switchTab(existing.id);
-        return;
+        return true;
       }
       const tab = {
         ...createBlankTab(),
@@ -272,8 +292,10 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
       addTab(tab);
       addRecentFile(file.path);
       setView("editor");
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível abrir o arquivo recente.");
+      return false;
     } finally {
       setIsBusy(false);
     }
@@ -287,6 +309,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
     setIsBusy(true);
     setError(null);
     try {
+      await saveVersionSnapshot(activeTab);
       await saveMarkdownFile(targetPath, activeTab.markdown);
       const saved: DocumentTab = {
         ...activeTab,
@@ -314,6 +337,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
     setIsBusy(true);
     setError(null);
     try {
+      await saveVersionSnapshot(activeTab);
       await saveMarkdownFile(targetPath, activeTab.markdown);
       const saved: DocumentTab = {
         ...activeTab,
@@ -344,6 +368,25 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const openVersionHistory = async () => {
+    if (!activeTab?.path || !store) {
+      setError("Salve o arquivo antes de acessar o histórico de versões.");
+      return;
+    }
+
+    try {
+      const snapshots = (await store.get<VersionSnapshot[]>(getVersionHistoryKey(activeTab.path))) ?? [];
+      setVersionHistory(snapshots);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível abrir o histórico de versões.");
+    }
+  };
+
+  const restoreVersion = (snapshot: VersionSnapshot) => {
+    updateActiveMarkdown(snapshot.content);
+    setVersionHistory(null);
+  };
+
   const closeDocument = async (id: string): Promise<boolean> => {
     const tab = tabs.find((t) => t.id === id);
     if (!tab) return false;
@@ -364,6 +407,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
         saveDocument,
         saveDocumentAs,
         exportDocumentPdf,
+        openVersionHistory,
         closeDocument,
         canCloseApp,
       }}
@@ -376,6 +420,13 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
           onSave={() => void savePendingTabsAndClose()}
           onDiscard={() => resolveCloseDecision(true)}
           onCancel={() => resolveCloseDecision(false)}
+        />
+      ) : null}
+      {versionHistory ? (
+        <VersionHistoryDialog
+          snapshots={versionHistory}
+          onClose={() => setVersionHistory(null)}
+          onRestore={restoreVersion}
         />
       ) : null}
     </FileActionsContext.Provider>

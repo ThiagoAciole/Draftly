@@ -20,6 +20,7 @@ import {
   ListOrdered,
   Pencil,
   Quote,
+  SquareCode,
   Strikethrough,
   Table,
   UploadCloud,
@@ -562,7 +563,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         </FormatButton>
         <span className="format-separator" />
         <FormatButton active={isBlockActive("codeBlock")} label="Bloco de Código" onClick={() => setBlockType("codeBlock")}>
-          <Code2 size={17} />
+          <SquareCode size={17} />
         </FormatButton>
         <FormatButton label="Tabela" onClick={() => insertBlock("table")}>
           <Table size={17} />

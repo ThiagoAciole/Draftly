@@ -1,4 +1,4 @@
-import { Code2, Eye, Plus, Search } from "lucide-react";
+import { Eye, FileCode2, ListTree, Plus, Search } from "lucide-react";
 import { useWorkspace } from "../../contexts/WorkspaceContext";
 import { useTabsContext } from "../../contexts/TabsContext";
 import { useFileActions } from "../../contexts/FileActionsContext";
@@ -9,7 +9,7 @@ import { WindowControls } from "./WindowControls";
 import appIcon from "../../assets/icon.svg";
 
 export function TitleBar() {
-  const { setView, view, openSearch, editorMode, toggleEditorMode } = useWorkspace();
+  const { setView, view, openSearch, editorMode, toggleEditorMode, isOutlineOpen, toggleOutline } = useWorkspace();
   const { tabsMeta } = useTabsContext();
   const { createDocument } = useFileActions();
   const { settings } = useSettings();
@@ -64,13 +64,25 @@ export function TitleBar() {
         ) : null}
         {showEditorActions ? (
           <button
+            className={`titlebar-button ${isOutlineOpen ? "is-active" : ""}`}
+            type="button"
+            aria-label="Alternar estrutura do documento"
+            aria-pressed={isOutlineOpen}
+            title="Estrutura do documento"
+            onClick={toggleOutline}
+          >
+            <ListTree size={16} />
+          </button>
+        ) : null}
+        {showEditorActions ? (
+          <button
             className="titlebar-button"
             type="button"
             aria-label={editorMode === "visual" ? "Alternar para Markdown" : "Alternar para editor visual"}
             title={editorMode === "visual" ? "Markdown fonte" : "Editor visual"}
             onClick={toggleEditorMode}
           >
-            {editorMode === "visual" ? <Code2 size={16} /> : <Eye size={16} />}
+            {editorMode === "visual" ? <FileCode2 size={16} /> : <Eye size={16} />}
           </button>
         ) : null}
         <FileMenu />

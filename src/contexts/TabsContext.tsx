@@ -39,6 +39,8 @@ type TabsContextValue = {
   switchTab: (id: string) => void;
   closeTabById: (id: string) => void;
   addRecentFile: (path: string) => void;
+  removeRecentFile: (path: string) => void;
+  clearRecentFiles: () => void;
   setActiveTabId: (id: string | null) => void;
   replaceTab: (updated: DocumentTab) => void;
 };
@@ -137,6 +139,19 @@ export function TabsProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const removeRecentFile = (path: string) => {
+    setRecentFiles((prev) => {
+      const next = prev.filter((file) => file.path !== path);
+      persistRecentFiles(next);
+      return next;
+    });
+  };
+
+  const clearRecentFiles = () => {
+    persistRecentFiles([]);
+    setRecentFiles([]);
+  };
+
   const replaceTab = (updated: DocumentTab) => {
     setTabs((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
   };
@@ -155,6 +170,8 @@ export function TabsProvider({ children }: { children: ReactNode }) {
         switchTab,
         closeTabById,
         addRecentFile,
+        removeRecentFile,
+        clearRecentFiles,
         setActiveTabId,
         replaceTab,
       }}
