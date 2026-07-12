@@ -1,5 +1,5 @@
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { FilePlus, FileText, FolderOpen, History, MoreVertical, Save, SaveAll, Settings } from "lucide-react";
+import { FilePlus, FileText, FolderOpen, History, ListTree, MoreVertical, Save, SaveAll, Search, Settings } from "lucide-react";
 import { useTabsContext } from "../../contexts/TabsContext";
 import { useFileActions } from "../../contexts/FileActionsContext";
 import { useWorkspace } from "../../contexts/WorkspaceContext";
@@ -8,7 +8,9 @@ export function FileMenu() {
   const { activeTab } = useTabsContext();
   const { createDocument, openDocument, saveDocument, saveDocumentAs, exportDocumentPdf, openVersionHistory } =
     useFileActions();
-  const { openSettings } = useWorkspace();
+  const { openSettings, view, editorMode, openSearch, isOutlineOpen, toggleOutline } = useWorkspace();
+  const showEditorActions = view === "editor" && Boolean(activeTab);
+  const showSearch = showEditorActions && editorMode === "visual";
 
   return (
     <DropdownMenu.Root>
@@ -87,6 +89,26 @@ export function FileMenu() {
             </span>
             <span className="title-menu-shortcut">Ctrl+,</span>
           </DropdownMenu.Item>
+
+          {showSearch || showEditorActions ? <DropdownMenu.Separator className="title-menu-separator title-menu-compact-action" /> : null}
+
+          {showSearch ? (
+            <DropdownMenu.Item className="title-menu-item title-menu-compact-action" onSelect={openSearch}>
+              <span className="title-menu-label">
+                <Search size={15} />
+                Buscar no arquivo
+              </span>
+              <span className="title-menu-shortcut">Ctrl+F</span>
+            </DropdownMenu.Item>
+          ) : null}
+          {showEditorActions ? (
+            <DropdownMenu.Item className="title-menu-item title-menu-compact-action" onSelect={toggleOutline}>
+              <span className="title-menu-label">
+                <ListTree size={15} />
+                {isOutlineOpen ? "Ocultar estrutura" : "Estrutura do documento"}
+              </span>
+            </DropdownMenu.Item>
+          ) : null}
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>

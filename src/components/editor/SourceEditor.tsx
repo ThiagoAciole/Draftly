@@ -1,10 +1,9 @@
 import { useRef } from "react";
-import { CornerUpLeft } from "lucide-react";
+import { EditorModeSwitch } from "./EditorModeSwitch";
 
 type SourceEditorProps = {
   markdown: string;
   onChange: (markdown: string) => void;
-  onExit: () => void;
 };
 
 function highlightInlineMarkdown(line: string) {
@@ -38,7 +37,7 @@ function renderMarkdownLine(line: string, isInsideCodeBlock: boolean) {
   return highlightInlineMarkdown(line || " ");
 }
 
-export function SourceEditor({ markdown, onChange, onExit }: SourceEditorProps) {
+export function SourceEditor({ markdown, onChange }: SourceEditorProps) {
   const highlightRef = useRef<HTMLPreElement>(null);
   let isInsideCodeBlock = false;
   const lines = markdown.split(/\r?\n/);
@@ -46,30 +45,19 @@ export function SourceEditor({ markdown, onChange, onExit }: SourceEditorProps) 
   return (
     <section className="source-editor" aria-label="Editor Markdown fonte">
       <div className="source-editor-codeframe">
-        <button
-          className="source-mode-toolbar"
-          type="button"
-          aria-label="Sair do modo código"
-          title="Voltar ao editor visual"
-          onClick={onExit}
-        >
-          <span className="source-mode-exit" aria-hidden="true">
-            <CornerUpLeft size={15} />
-          </span>
-          <span>Sair do modo código</span>
-        </button>
+        <EditorModeSwitch />
         <pre className="source-editor-highlight" ref={highlightRef} aria-hidden="true"><code>{lines.map((line, index) => {
-            const isFence = /^\s*(```|~~~)/.test(line);
-            const content = renderMarkdownLine(line, isInsideCodeBlock);
-            if (isFence) isInsideCodeBlock = !isInsideCodeBlock;
+          const isFence = /^\s*(```|~~~)/.test(line);
+          const content = renderMarkdownLine(line, isInsideCodeBlock);
+          if (isFence) isInsideCodeBlock = !isInsideCodeBlock;
 
-            return (
-              <span className="source-editor-line" key={index}>
-                <span className="source-editor-line-number">{index + 1}</span>
-                <span className="source-editor-line-content">{content}</span>
-              </span>
-            );
-          })}</code></pre>
+          return (
+            <span className="source-editor-line" key={index}>
+              <span className="source-editor-line-number">{index + 1}</span>
+              <span className="source-editor-line-content">{content}</span>
+            </span>
+          );
+        })}</code></pre>
         <textarea
           className="source-editor-input"
           aria-label="Conteúdo Markdown"

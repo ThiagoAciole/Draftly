@@ -7,6 +7,7 @@ import {
 } from "@blocknote/react";
 import {
   Bold,
+  ChevronLeft,
   ChevronRight,
   Code2,
   Heading1,
@@ -25,7 +26,7 @@ import {
   Table,
   UploadCloud,
 } from "lucide-react";
-import type { KeyboardEvent, ReactNode } from "react";
+import type { KeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type EditorToolbarProps = {
@@ -361,9 +362,13 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [linkInitialUrl, setLinkInitialUrl] = useState("");
   const [linkInitialText, setLinkInitialText] = useState("");
+  const [toolbarScroll, setToolbarScroll] = useState({ left: false, right: false });
   const [showImageModal, setShowImageModal] = useState(false);
   const selectedBlocks = useSelectedBlocks(editor);
   const colorButtonRef = useRef<HTMLButtonElement>(null);
+  const toolbarScrollRef = useRef<HTMLDivElement>(null);
+  const toolbarDragRef = useRef({ pointerId: 0, startX: 0, startScrollLeft: 0, moved: false });
+  const suppressToolbarClickRef = useRef(false);
 
   const clearOptimistic = useCallback(() => {
     setOptimisticStyles({});
@@ -382,6 +387,69 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
   const activeBgColor = activeStyles.backgroundColor as string | undefined;
 
   const refresh = useCallback(() => setRevision((r) => r + 1), []);
+
+  const updateToolbarScroll = useCallback(() => {
+    const element = toolbarScrollRef.current;
+    if (!element) return;
+
+    const maxScrollLeft = element.scrollWidth - element.clientWidth;
+    setToolbarScroll({
+      left: element.scrollLeft > 1,
+      right: maxScrollLeft - element.scrollLeft > 1,
+    });
+  }, []);
+
+  useEffect(() => {
+    const element = toolbarScrollRef.current;
+    if (!element) return;
+
+    updateToolbarScroll();
+    const observer = new ResizeObserver(updateToolbarScroll);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [updateToolbarScroll]);
+
+  const scrollToolbar = (direction: -1 | 1) => {
+    toolbarScrollRef.current?.scrollBy({ left: direction * 220, behavior: "smooth" });
+  };
+
+  const handleToolbarPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const element = event.currentTarget;
+    toolbarDragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startScrollLeft: element.scrollLeft,
+      moved: false,
+    };
+    element.setPointerCapture(event.pointerId);
+  };
+
+  const handleToolbarPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const element = event.currentTarget;
+    const drag = toolbarDragRef.current;
+    if (drag.pointerId !== event.pointerId) return;
+
+    const distance = event.clientX - drag.startX;
+    if (Math.abs(distance) > 3) {
+      drag.moved = true;
+      element.scrollLeft = drag.startScrollLeft - distance;
+      updateToolbarScroll();
+      event.preventDefault();
+    }
+  };
+
+  const handleToolbarPointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const element = event.currentTarget;
+    const drag = toolbarDragRef.current;
+    if (drag.pointerId !== event.pointerId) return;
+
+    if (element.hasPointerCapture(event.pointerId)) element.releasePointerCapture(event.pointerId);
+    if (drag.moved) {
+      suppressToolbarClickRef.current = true;
+      requestAnimationFrame(() => { suppressToolbarClickRef.current = false; });
+    }
+    toolbarDragRef.current.pointerId = 0;
+  };
 
   const isStyleActive = (style: string) =>
     optimisticStyles[style] !== undefined
@@ -488,8 +556,32 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         onClose={() => setShowImageModal(false)}
       />
     )}
-    <div className="editor-toolbar" role="toolbar" aria-label="Editor">
-      <div className="editor-formatting-toolbar">
+    <div className={`editor-toolbar ${toolbarScroll.left || toolbarScroll.right ? "is-scrollable" : ""}`} role="toolbar" aria-label="Editor">
+      <button
+        className="editor-toolbar-scroll-button is-left"
+        type="button"
+        aria-label="Ver ferramentas anteriores"
+        title="Ferramentas anteriores"
+        disabled={!toolbarScroll.left}
+        onClick={() => scrollToolbar(-1)}
+      >
+        <ChevronLeft size={16} />
+      </button>
+      <div
+        ref={toolbarScrollRef}
+        className="editor-toolbar-scroll-area"
+        onScroll={updateToolbarScroll}
+        onPointerDown={handleToolbarPointerDown}
+        onPointerMove={handleToolbarPointerMove}
+        onPointerUp={handleToolbarPointerEnd}
+        onPointerCancel={handleToolbarPointerEnd}
+        onClickCapture={(event) => {
+          if (!suppressToolbarClickRef.current) return;
+          event.preventDefault();
+          event.stopPropagation();
+        }}
+      >
+        <div className="editor-formatting-toolbar">
         <FormatButton active={isStyleActive("bold")} label="Negrito" onClick={() => toggleStyle("bold")}>
           <Bold size={17} />
         </FormatButton>
@@ -571,7 +663,18 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         <FormatButton label="Imagem" onClick={handleImageClick}>
           <Image size={17} />
         </FormatButton>
+        </div>
       </div>
+      <button
+        className="editor-toolbar-scroll-button is-right"
+        type="button"
+        aria-label="Ver próximas ferramentas"
+        title="Próximas ferramentas"
+        disabled={!toolbarScroll.right}
+        onClick={() => scrollToolbar(1)}
+      >
+        <ChevronRight size={16} />
+      </button>
     </div>
     </>
   );

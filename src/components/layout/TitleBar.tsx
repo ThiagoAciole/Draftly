@@ -1,4 +1,4 @@
-import { Eye, FileCode2, ListTree, Plus, Search } from "lucide-react";
+import { ListTree, Plus, Search } from "lucide-react";
 import { useWorkspace } from "../../contexts/WorkspaceContext";
 import { useTabsContext } from "../../contexts/TabsContext";
 import { useFileActions } from "../../contexts/FileActionsContext";
@@ -9,7 +9,7 @@ import { WindowControls } from "./WindowControls";
 import appIcon from "../../assets/icon.svg";
 
 export function TitleBar() {
-  const { setView, view, openSearch, editorMode, toggleEditorMode, isOutlineOpen, toggleOutline } = useWorkspace();
+  const { setView, view, openSearch, editorMode, isOutlineOpen, toggleOutline } = useWorkspace();
   const { tabsMeta } = useTabsContext();
   const { createDocument } = useFileActions();
   const { settings } = useSettings();
@@ -53,7 +53,7 @@ export function TitleBar() {
       <div className="title-actions">
         {showSearch ? (
           <button
-            className="titlebar-button"
+            className="titlebar-button titlebar-compact-action"
             type="button"
             aria-label="Buscar no arquivo"
             title="Buscar (Ctrl+F)"
@@ -64,7 +64,7 @@ export function TitleBar() {
         ) : null}
         {showEditorActions ? (
           <button
-            className={`titlebar-button ${isOutlineOpen ? "is-active" : ""}`}
+            className={`titlebar-button titlebar-compact-action ${isOutlineOpen ? "is-active" : ""}`}
             type="button"
             aria-label="Alternar estrutura do documento"
             aria-pressed={isOutlineOpen}
@@ -72,17 +72,6 @@ export function TitleBar() {
             onClick={toggleOutline}
           >
             <ListTree size={16} />
-          </button>
-        ) : null}
-        {showEditorActions ? (
-          <button
-            className="titlebar-button"
-            type="button"
-            aria-label={editorMode === "visual" ? "Alternar para Markdown" : "Alternar para editor visual"}
-            title={editorMode === "visual" ? "Markdown fonte" : "Editor visual"}
-            onClick={toggleEditorMode}
-          >
-            {editorMode === "visual" ? <FileCode2 size={16} /> : <Eye size={16} />}
           </button>
         ) : null}
         <FileMenu />

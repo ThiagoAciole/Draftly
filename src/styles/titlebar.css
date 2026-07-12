@@ -58,6 +58,10 @@
   flex: 0 1 auto;
 }
 
+.file-tab.mobile-tab-picker {
+  display: none;
+}
+
 .file-tab {
   position: relative;
   display: flex;
@@ -338,4 +342,134 @@
   height: 1px;
   margin: 6px 8px;
   background: rgba(255, 255, 255, 0.08);
+}
+
+.tab-picker-content {
+  min-width: min(260px, calc(100vw - 24px));
+}
+
+.tab-picker-item {
+  min-height: 42px;
+  padding: 0 10px;
+  gap: 14px;
+}
+
+.tab-picker-item.is-current {
+  background: #262626;
+  color: #f1f1f1;
+}
+
+.tab-picker-item.is-current .title-menu-label,
+.tab-picker-item.is-current[data-highlighted] .title-menu-label {
+  color: #f1f1f1;
+}
+
+.tab-picker-file-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.tab-picker-item .is-dirty {
+  color: #e5d9ff;
+}
+
+.title-menu-compact-action {
+  display: none;
+}
+
+@media (max-width: 500px) {
+  .titlebar-compact-action {
+    display: none;
+  }
+
+  .title-menu-compact-action {
+    display: flex;
+  }
+
+  .tab-strip {
+    min-width: 0;
+  }
+
+  .titlebar-button,
+  .window-control {
+    width: 32px;
+    height: 36px;
+  }
+
+  .title-actions {
+    padding: 0 2px;
+  }
+
+  .window-controls {
+    margin-left: 2px;
+  }
+
+  .tabs-list {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .desktop-file-tab {
+    display: none;
+  }
+
+  .file-tab.mobile-tab-picker {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .mobile-tab-picker-chevron {
+    display: inline-flex;
+    flex: 0 0 auto;
+    color: #aeb3bd;
+  }
+
+  .new-tab-button {
+    width: 32px;
+    margin-left: 0;
+  }
+
+  .new-tab-button-icon {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+@media (max-width: 360px) {
+  .title-bar {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+  }
+
+  .window-brand {
+    padding-left: 0;
+  }
+
+  .app-home-button {
+    width: 32px;
+  }
+
+  .titlebar-button,
+  .window-control {
+    width: 28px;
+    height: 36px;
+    border-radius: 8px;
+  }
+
+  .title-actions,
+  .window-controls {
+    gap: 0;
+  }
+
+  .new-tab-button {
+    width: 28px;
+  }
+
+  .mobile-tab-picker {
+    gap: 6px;
+    padding-left: 8px;
+  }
 }

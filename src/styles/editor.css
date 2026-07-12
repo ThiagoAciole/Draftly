@@ -67,6 +67,22 @@
   overflow: hidden;
 }
 
+.editor-toolbar-row {
+  align-self: center;
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  max-width: calc(100% - 48px);
+  min-width: 0;
+  gap: 48px;
+}
+
+.editor-toolbar-row > .editor-mode-switch {
+  flex: 0 0 auto;
+}
+
 .editor-surface > .blocknote-editor,
 .editor-surface .bn-container,
 .editor-surface .bn-editor,
@@ -87,12 +103,13 @@
 }
 
 .editor-toolbar {
-  align-self: center;
-  justify-self: center;
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 3px;
-  height: 38px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  height: 40px;
   padding: 4px 6px;
   border: 1px solid var(--border);
   border-radius: 9px;
@@ -100,11 +117,107 @@
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
 }
 
+.editor-toolbar.is-scrollable {
+  padding-inline: 30px;
+}
+
+.editor-toolbar-scroll-area {
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  cursor: grab;
+  user-select: none;
+}
+
+.editor-toolbar-scroll-area::-webkit-scrollbar {
+  display: none;
+}
+
+.editor-toolbar-scroll-area:active {
+  cursor: grabbing;
+}
+
+.editor-toolbar-scroll-button {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: #303030;
+  color: #d4d7df;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.editor-toolbar-scroll-button.is-left {
+  left: 3px;
+}
+
+.editor-toolbar-scroll-button.is-right {
+  right: 3px;
+}
+
+.editor-toolbar-scroll-button:hover:not(:disabled) {
+  background: rgba(139, 108, 255, 0.28);
+  color: #f3f0ff;
+}
+
+.editor-toolbar-scroll-button:disabled {
+  color: #666b76;
+  cursor: default;
+}
+
+.editor-toolbar:not(.is-scrollable) .editor-toolbar-scroll-button {
+  display: none;
+}
+
+.editor-mode-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(45, 45, 45, 0.92);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+}
+
+.editor-mode-switch-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #aeb3bd;
+  cursor: pointer;
+}
+
+.editor-mode-switch-button:hover {
+  color: #f3f5f8;
+}
+
+.editor-mode-switch-button.is-active {
+  background: rgba(139, 108, 255, 0.2);
+  color: #e4dcff;
+}
+
 .editor-formatting-toolbar {
   display: inline-flex;
   align-items: center;
   gap: 2px;
   height: 30px;
+  min-width: max-content;
 }
 
 .format-button {
@@ -912,61 +1025,22 @@
   grid-template-rows: minmax(0, 1fr);
   flex: 1;
   min-height: 0;
-  background: var(--bg);
+  background: var(--bg-elevated);
 }
 
 .source-editor-codeframe {
   position: relative;
   min-height: 0;
   overflow: hidden;
-  background: var(--bg);
+  background: var(--bg-elevated);
 }
 
-.source-mode-toolbar {
+.source-editor-codeframe > .editor-mode-switch {
   position: absolute;
   z-index: 2;
   top: 16px;
   right: 16px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 10px 5px 5px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 9px;
-  background: rgba(43, 43, 46, 0.88);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.2);
-  color: var(--muted);
-  font: inherit;
-  font-size: 12px;
-  cursor: pointer;
   backdrop-filter: blur(12px);
-}
-
-.source-mode-toolbar:hover,
-.source-mode-toolbar:focus-visible {
-  border-color: rgba(139, 108, 255, 0.55);
-  background: rgba(58, 50, 80, 0.94);
-  color: var(--text);
-  outline: 0;
-}
-
-.source-mode-exit {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border: 0;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text);
-  cursor: pointer;
-}
-
-.source-mode-toolbar:hover .source-mode-exit,
-.source-mode-toolbar:focus-visible .source-mode-exit {
-  background: var(--accent-soft);
-  color: #e5defe;
 }
 
 .source-editor-highlight,
@@ -1048,7 +1122,7 @@
     justify-self: stretch;
     width: auto;
     margin: 0 12px;
-    overflow-x: auto;
+    overflow: hidden;
   }
 
   .editor-scroll {

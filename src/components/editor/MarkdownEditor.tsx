@@ -14,6 +14,7 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CustomSideMenuController } from "./CustomSideMenu";
 import { EditorToolbar } from "./EditorToolbar";
+import { EditorModeSwitch } from "./EditorModeSwitch";
 import { getSlashMenuItems } from "./slashMenu";
 
 type MarkdownEditorProps = {
@@ -222,7 +223,10 @@ export function MarkdownEditor({
 
   return (
     <section className="editor-surface">
-      <EditorToolbar editor={editor} />
+      <div className="editor-toolbar-row">
+        <EditorToolbar editor={editor} />
+        <EditorModeSwitch />
+      </div>
       <BlockNoteView
         className="blocknote-editor"
         editor={editor}

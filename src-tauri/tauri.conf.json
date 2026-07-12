@@ -15,7 +15,7 @@
         "title": "Draftly",
         "width": 1088,
         "height": 704,
-        "minWidth": 860,
+        "minWidth": 400,
         "minHeight": 560,
         "decorations": false,
         "resizable": true
@@ -28,7 +28,13 @@
   "bundle": {
     "active": true,
     "targets": ["deb", "nsis"],
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico", "icons/icon.png"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico",
+      "icons/icon.png"
+    ],
     "resources": ["resources/file-markdown.ico"],
     "fileAssociations": [
       {
