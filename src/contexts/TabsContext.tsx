@@ -1,6 +1,7 @@
 import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
 import { getFileName } from "../lib/fs";
+import { isDocumentDirty } from "../lib/documentUtils";
 import { useWorkspace } from "./WorkspaceContext";
 
 export type DocumentTab = {
@@ -98,7 +99,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
     setTabs((prev) =>
       prev.map((t) =>
         t.id === activeTabId
-          ? { ...t, markdown, isDirty: markdown !== t.savedMarkdown }
+          ? { ...t, markdown, isDirty: isDocumentDirty(markdown, t.savedMarkdown) }
           : t,
       ),
     );

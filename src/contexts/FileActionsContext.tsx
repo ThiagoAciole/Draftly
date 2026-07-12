@@ -1,5 +1,4 @@
-import { confirm } from "@tauri-apps/plugin-dialog";
-import { createContext, useContext, useEffect, useRef } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
   getFileName,
@@ -14,6 +13,8 @@ import { useTabsContext } from "./TabsContext";
 import type { DocumentTab } from "./TabsContext";
 import { useWorkspace } from "./WorkspaceContext";
 import { useSettings } from "./SettingsContext";
+import { getRestoredActiveTabId } from "../lib/documentUtils";
+import { UnsavedChangesDialog } from "../components/dialogs/UnsavedChangesDialog";
 
 type FileActionsContextValue = {
   initializeWorkspace: () => Promise<void>;
@@ -26,27 +27,6 @@ type FileActionsContextValue = {
   closeDocument: (id: string) => Promise<boolean>;
   canCloseApp: () => Promise<boolean>;
 };
-
-async function confirmDiscardTabs(tabs: DocumentTab[]): Promise<boolean> {
-  const dirty = tabs.filter((t) => t.isDirty);
-  if (dirty.length === 0) return true;
-
-  const message =
-    dirty.length === 1
-      ? `Descartar alterações não salvas em "${dirty[0].name}"?`
-      : `Descartar alterações não salvas em ${dirty.length} arquivos?`;
-
-  try {
-    return await confirm(message, {
-      title: "Descartar alterações?",
-      kind: "warning",
-      okLabel: "Descartar",
-      cancelLabel: "Cancelar",
-    });
-  } catch {
-    return window.confirm(message);
-  }
-}
 
 const SESSION_KEY = "last-session";
 
@@ -63,7 +43,67 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
     useTabsContext();
   const { settings, store } = useSettings();
   const tabsRef = useRef(tabs);
+  const closeDecisionResolver = useRef<((canClose: boolean) => void) | null>(null);
+  const [pendingCloseTabs, setPendingCloseTabs] = useState<DocumentTab[] | null>(null);
+  const [isSavingBeforeClose, setIsSavingBeforeClose] = useState(false);
   tabsRef.current = tabs;
+
+  const resolveCloseDecision = (canClose: boolean) => {
+    const resolve = closeDecisionResolver.current;
+    closeDecisionResolver.current = null;
+    setPendingCloseTabs(null);
+    resolve?.(canClose);
+  };
+
+  const requestCloseDecision = (candidateTabs: DocumentTab[]): Promise<boolean> => {
+    const dirtyTabs = candidateTabs.filter((tab) => tab.isDirty);
+    if (dirtyTabs.length === 0) return Promise.resolve(true);
+    if (closeDecisionResolver.current) return Promise.resolve(false);
+
+    return new Promise((resolve) => {
+      closeDecisionResolver.current = resolve;
+      setPendingCloseTabs(dirtyTabs);
+    });
+  };
+
+  const savePendingTabsAndClose = async () => {
+    if (!pendingCloseTabs) return;
+
+    setIsSavingBeforeClose(true);
+    setIsBusy(true);
+    setError(null);
+
+    try {
+      for (const pendingTab of pendingCloseTabs) {
+        const tab = tabsRef.current.find((current) => current.id === pendingTab.id);
+        if (!tab || !tab.isDirty) continue;
+
+        const targetPath = tab.path ?? (await pickMarkdownSavePath());
+        if (!targetPath) {
+          resolveCloseDecision(false);
+          return;
+        }
+
+        await saveMarkdownFile(targetPath, tab.markdown);
+        replaceTab({
+          ...tab,
+          path: targetPath,
+          name: getFileName(targetPath),
+          savedMarkdown: tab.markdown,
+          isDirty: false,
+          lastSavedAt: new Date(),
+        });
+        addRecentFile(targetPath);
+      }
+      resolveCloseDecision(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível salvar o arquivo.");
+      resolveCloseDecision(false);
+    } finally {
+      setIsSavingBeforeClose(false);
+      setIsBusy(false);
+    }
+  };
 
   // Autosave: every 30s, save dirty tabs that have a path
   useEffect(() => {
@@ -122,7 +162,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
         try {
           const session = await store.get<SessionData>(SESSION_KEY);
           if (session?.paths?.length) {
-            let restoredActiveTabId: string | null = null;
+            const restoredTabs: DocumentTab[] = [];
             for (const path of session.paths) {
               try {
                 const file = await readMarkdownFile(path);
@@ -134,12 +174,13 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
                   savedMarkdown: file.content,
                 };
                 addTab(tab);
-                if (file.path === session.activeTabPath) restoredActiveTabId = tab.id;
+                restoredTabs.push(tab);
                 addRecentFile(file.path);
               } catch {
                 // Skip files that no longer exist or can't be read
               }
             }
+            const restoredActiveTabId = getRestoredActiveTabId(restoredTabs, session.activeTabPath);
             if (restoredActiveTabId) switchTab(restoredActiveTabId);
             else setView("editor");
             return;
@@ -306,12 +347,12 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
   const closeDocument = async (id: string): Promise<boolean> => {
     const tab = tabs.find((t) => t.id === id);
     if (!tab) return false;
-    if (!(await confirmDiscardTabs([tab]))) return false;
+    if (!(await requestCloseDecision([tab]))) return false;
     closeTabById(id);
     return true;
   };
 
-  const canCloseApp = () => confirmDiscardTabs(tabs);
+  const canCloseApp = () => requestCloseDecision(tabs);
 
   return (
     <FileActionsContext.Provider
@@ -328,6 +369,15 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
+      {pendingCloseTabs ? (
+        <UnsavedChangesDialog
+          tabs={pendingCloseTabs}
+          isSaving={isSavingBeforeClose}
+          onSave={() => void savePendingTabsAndClose()}
+          onDiscard={() => resolveCloseDecision(true)}
+          onCancel={() => resolveCloseDecision(false)}
+        />
+      ) : null}
     </FileActionsContext.Provider>
   );
 }

@@ -5,6 +5,7 @@ import { useFileActions } from "../../contexts/FileActionsContext";
 import { useSettings } from "../../contexts/SettingsContext";
 import { EditorLoading } from "../editor/EditorLoading";
 import { MarkdownEditor, StatusBar } from "../editor/Editor.lazy";
+import { SourceEditor } from "../editor/SourceEditor";
 import { Home } from "../home/Home";
 import { SearchBar } from "../search/SearchBar";
 import { SettingsModal } from "../settings/SettingsModal";
@@ -14,7 +15,7 @@ import "../../styles/search.css";
 
 export function AppShell() {
   const didInitialize = useRef(false);
-  const { view, isBusy, error, clearError, openSettings, isSearchOpen, openSearch, closeSearch } = useWorkspace();
+  const { view, isBusy, error, clearError, openSettings, isSearchOpen, openSearch, closeSearch, editorMode } = useWorkspace();
   const { activeTab, recentFiles, updateActiveMarkdown } = useTabsContext();
   const {
     initializeWorkspace,
@@ -85,12 +86,16 @@ export function AppShell() {
       {showEditor ? (
         <Suspense fallback={<EditorLoading />}>
           <div className="editor-section">
-            <MarkdownEditor
-              markdown={activeTab.markdown}
-              onChange={updateActiveMarkdown}
-              onSave={() => void saveDocument()}
-            />
-            {isSearchOpen ? <SearchBar onClose={closeSearch} /> : <StatusBar />}
+            {editorMode === "visual" ? (
+              <MarkdownEditor
+                markdown={activeTab.markdown}
+                onChange={updateActiveMarkdown}
+                onSave={() => void saveDocument()}
+              />
+            ) : (
+              <SourceEditor markdown={activeTab.markdown} onChange={updateActiveMarkdown} />
+            )}
+            {editorMode === "visual" && isSearchOpen ? <SearchBar onClose={closeSearch} /> : <StatusBar />}
           </div>
         </Suspense>
       ) : (
