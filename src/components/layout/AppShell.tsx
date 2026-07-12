@@ -103,7 +103,7 @@ export function AppShell() {
                   onSave={() => void saveDocument()}
                 />
               ) : (
-                <SourceEditor markdown={activeTab.markdown} onChange={updateActiveMarkdown} />
+              <SourceEditor markdown={activeTab.markdown} onChange={updateActiveMarkdown} onExit={toggleEditorMode} />
               )}
               <DocumentOutline markdown={activeTab.markdown} mode={editorMode} isOpen={isOutlineOpen} />
             </div>
