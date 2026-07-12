@@ -18,13 +18,13 @@ Documento de design objetivo baseado no código atual do projeto (v0.1.0).
 
 | Camada | Tecnologia |
 |---|---|
-| Frontend | React 18, TypeScript, Vite 6 |
+| Frontend | React 19, TypeScript, Vite 6 |
 | Desktop shell | Tauri v2 (Rust) |
 | Editor | BlockNote (`@blocknote/react` + `@blocknote/mantine`) v0.51.4 |
 | UI primitives | Radix UI (dropdown-menu, tooltip), Lucide React v0.468 |
-| State management | React Context API — 3 contextos de domínio |
+| State management | React Context API — 4 contextos de domínio |
 | Estilização | CSS customizado por grupo de componente |
-| Window | `decorations: false` — titlebar customizada, `transparent: true` |
+| Window | `decorations: false` — titlebar customizada |
 
 ### Dependências de Produção
 
@@ -74,7 +74,6 @@ lucide-react
 ### 3.4 Aparência de Janela
 
 - `decorations: false` — a app desenha sua própria titlebar
-- `transparent: true` — permite bordas arredondadas na janela (`border-radius: 12px`)
 - Tamanho padrão: 1088×704, mínimo: 860×560
 
 ---
@@ -120,13 +119,14 @@ App
 
 ### 4.2 Contextos (State Management)
 
-São exatamente **3 contextos**. Aninhamento no `App.tsx` (externo → interno):
+São exatamente **4 contextos**. Aninhamento no `App.tsx` (externo → interno):
 
 | # | Contexto | Hook | Responsabilidade |
 |---|---|---|---|
-| 1 | `WorkspaceContext` | `useWorkspace()` | `view` ("home"\|"editor"), `isBusy`, `error`, setters |
-| 2 | `TabsContext` | `useTabsContext()` | `tabs[]`, `activeTab`, `recentFiles`, CRUD de tabs |
-| 3 | `FileActionsContext` | `useFileActions()` | Operações async: open, save, create, close, initialize |
+| 1 | `SettingsContext` | `useSettings()` | Preferências persistidas, tokens CSS e store de sessão |
+| 2 | `WorkspaceContext` | `useWorkspace()` | `view` ("home"\|"editor"), `isBusy`, `error`, setters |
+| 3 | `TabsContext` | `useTabsContext()` | `tabs[]`, `activeTab`, `recentFiles`, CRUD de tabs |
+| 4 | `FileActionsContext` | `useFileActions()` | Operações async: open, save, create, close, initialize |
 
 **Regra**: Componentes nunca importam de `src/state/`. Todo estado vem dos contextos.
 
@@ -266,7 +266,7 @@ type MarkdownFile = {
 | Salvar | `Ctrl+S` | `saveDocument()` → se sem path, abre dialog "Salvar como" |
 | Salvar como | `Ctrl+Shift+S` | `saveDocumentAs()` → sempre abre dialog |
 | Fechar tab | × na tab | `closeDocument(id)` → confirma descarte se isDirty |
-| Exportar PDF | `Ctrl+P` | `exportMarkdownToPdf()` → abre janela de impressão |
+| Exportar PDF | `Ctrl+P` | `exportMarkdownToPdf()` → gera e salva PDF |
 | Abrir com OS | CLI arg | `get_initial_markdown_file_path()` → scan de args por `.md` |
 
 ### 6.2 Gerenciamento de Tabs
@@ -374,10 +374,8 @@ Toda a UI está em **Português (Brasil)**: labels, tooltips, placeholders, mens
 - Command palette
 - Suporte a JSON, código, CSV, YAML
 - Múltiplos temas (apenas dark)
-- Settings modal
-- Busca no editor
 - Renomear/duplicar/pin de tabs
-- Atalho `Ctrl+N` funcional (apenas exibido no menu)
+- Atalhos globais para criar, abrir e salvar como
 - Autenticação ou sincronização
 - Testes automatizados
 

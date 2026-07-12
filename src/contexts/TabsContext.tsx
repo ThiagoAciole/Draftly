@@ -98,7 +98,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
     setTabs((prev) =>
       prev.map((t) =>
         t.id === activeTabId
-          ? { ...t, markdown, isDirty: Boolean(t.path) && markdown !== t.savedMarkdown }
+          ? { ...t, markdown, isDirty: markdown !== t.savedMarkdown }
           : t,
       ),
     );
@@ -138,7 +138,6 @@ export function TabsProvider({ children }: { children: ReactNode }) {
 
   const replaceTab = (updated: DocumentTab) => {
     setTabs((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
-    setActiveTabId(updated.id);
   };
 
   return (

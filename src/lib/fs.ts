@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
+import DOMPurify from "dompurify";
 import html2pdf from "html2pdf.js";
 import { marked } from "marked";
 
@@ -286,7 +287,10 @@ export async function exportMarkdownToPdf(name: string, markdown: string) {
     breaks: false,
     gfm: true,
   });
-  const pdfElement = createPdfElement(name, markdownHtml);
+  const safeMarkdownHtml = DOMPurify.sanitize(markdownHtml, {
+    ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|data:image\/(?:png|gif|jpe?g|webp);base64,)/i,
+  });
+  const pdfElement = createPdfElement(name, safeMarkdownHtml);
   document.body.appendChild(pdfElement);
 
   try {

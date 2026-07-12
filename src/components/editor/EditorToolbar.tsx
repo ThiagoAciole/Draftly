@@ -137,8 +137,11 @@ type ImageModalProps = {
   onClose: () => void;
 };
 
+const MAX_EMBEDDED_IMAGE_SIZE = 5 * 1024 * 1024;
+
 function ImageModal({ onConfirm, onClose }: ImageModalProps) {
   const [dragging, setDragging] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -150,9 +153,22 @@ function ImageModal({ onConfirm, onClose }: ImageModalProps) {
   }, [onClose]);
 
   const handleFile = (file: File) => {
-    if (!file.type.startsWith("image/")) return;
-    const url = URL.createObjectURL(file);
-    onConfirm(url);
+    if (!file.type.startsWith("image/")) {
+      setError("Selecione um arquivo de imagem válido.");
+      return;
+    }
+    if (file.size > MAX_EMBEDDED_IMAGE_SIZE) {
+      setError("A imagem deve ter no máximo 5 MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onerror = () => setError("Não foi possível ler esta imagem.");
+    reader.onload = () => {
+      if (typeof reader.result === "string") onConfirm(reader.result);
+      else setError("Não foi possível ler esta imagem.");
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -187,7 +203,7 @@ function ImageModal({ onConfirm, onClose }: ImageModalProps) {
               <UploadCloud size={28} />
             </div>
             <p className="image-dropzone-title">Arraste e solte ou clique para selecionar</p>
-            <p className="image-dropzone-hint">PNG, JPG, GIF, WebP</p>
+            <p className="image-dropzone-hint">PNG, JPG, GIF ou WebP — até 5 MB</p>
             <button
               className="image-dropzone-browse"
               type="button"
@@ -196,6 +212,7 @@ function ImageModal({ onConfirm, onClose }: ImageModalProps) {
               Escolher arquivo
             </button>
           </div>
+          {error ? <p className="image-dropzone-error" role="alert">{error}</p> : null}
         </div>
       </div>
     </div>

@@ -21,9 +21,9 @@ There are no tests yet.
 
 ### Tech Stack
 
-- **Frontend**: React 18, TypeScript, Vite 6
+- **Frontend**: React 19, TypeScript, Vite 6
 - **Desktop shell**: Tauri v2 (Rust)
-- **State management**: React Context API — 3 domain contexts (see below)
+- **State management**: React Context API — 4 domain contexts (see below)
 - **Editor**: BlockNote (`@blocknote/react` + `@blocknote/mantine`) — block-based rich text editing, converts to/from Markdown
 - **UI primitives**: Radix UI (dropdown-menu, tooltip), Lucide React icons
 - **Styling**: Custom CSS per component group (`globals.css`, `shell.css`, `titlebar.css`, `home.css`, `editor.css`)
@@ -33,8 +33,9 @@ There are no tests yet.
 ```
 src/
   main.tsx                  # Entry point, mounts <App />
-  app/App.tsx               # Root component — nests 3 context providers, renders <AppShell />
+  app/App.tsx               # Root component — nests 4 context providers, renders <AppShell />
   contexts/
+    SettingsContext.tsx      # Persisted user preferences and design tokens
     WorkspaceContext.tsx     # UI state: view ("home"|"editor"), isBusy, error
     TabsContext.tsx          # Document state: tabs[], activeTabId, recentFiles + tab CRUD
     FileActionsContext.tsx   # Async operations: open, save, create, close (calls lib/fs.ts)
@@ -60,28 +61,31 @@ src/
 
 ### Context Architecture
 
-There are exactly **3 contexts**. Use the right hook for each job:
+There are exactly **4 contexts**. Use the right hook for each job:
 
 | Context              | Hook               | Owns                                                                                                                                                                            |
 | -------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `WorkspaceContext`   | `useWorkspace()`   | `view`, `isBusy`, `error`, `clearError`, `setView`, `setIsBusy`, `setError`                                                                                                     |
 | `TabsContext`        | `useTabsContext()` | `tabs[]`, `activeTab`, `tabsMeta`, `activeTabId`, `recentFiles`, `updateActiveMarkdown`, `switchTab`, `replaceTab`, `addTab`, `createBlankTab`, `closeTabById`, `addRecentFile` |
 | `FileActionsContext` | `useFileActions()` | `initializeWorkspace`, `createDocument`, `openDocument`, `openDocumentFromPath`, `saveDocument`, `saveDocumentAs`, `closeDocument`, `canCloseApp`                               |
+| `SettingsContext`    | `useSettings()`    | persisted preferences, CSS variables, session store                                                                                                                              |
 
 **Provider nesting order in `App.tsx`** (outermost first):
 
-1. `WorkspaceProvider`
-2. `TabsProvider` — consumes WorkspaceContext
-3. `FileActionsProvider` — consumes WorkspaceContext + TabsContext
+1. `SettingsProvider`
+2. `WorkspaceProvider`
+3. `TabsProvider` — consumes WorkspaceContext
+4. `FileActionsProvider` — consumes WorkspaceContext + TabsContext + SettingsContext
 
 **Rule:** Components never import from `src/state/`. All state comes from `src/contexts/`.
 
 ### Rust Backend (`src-tauri/src/lib.rs`)
 
-Three Tauri commands:
+Four Tauri commands:
 
 - `read_markdown_file(path)` — reads a `.md` file, validates `.md` extension
 - `write_markdown_file(path, content)` — writes content, validates `.md` extension
+- `write_pdf_file(path, bytes)` — writes the exported PDF, validates `.pdf` extension
 - `get_initial_markdown_file_path()` — scans CLI args for a `.md` path ("Open with" OS integration)
 
 The `.md` extension check is enforced server-side in Rust. Non-`.md` files are rejected with a Portuguese error message.
@@ -100,7 +104,7 @@ All Tauri IPC calls are isolated here. Public API:
 | `saveMarkdownFile(path, content)`     | `Promise<void>`                 | Write file via Tauri        |
 | `getInitialMarkdownFilePath()`        | `Promise<string \| null>`       | CLI arg scan                |
 | `getFileName(path)`                   | `string`                        | Extract filename from path  |
-| `exportMarkdownToPdf(name, markdown)` | `void`                          | Opens print window          |
+| `exportMarkdownToPdf(name, markdown)` | `Promise<void>`                 | Sanitizes and writes a PDF  |
 
 ### Editor Details
 
@@ -150,4 +154,4 @@ The app UI is in **Portuguese (Brazilian)** — all labels, tooltips, error mess
 
 ## Design Reference
 
-`screens-ui/DESIGN.md` contains the full product design spec — design tokens (colors, typography, spacing), component specifications, screen layouts, and the long-term vision (JSON editor, code editor, command palette, settings modal, multi-file-type support). The v1 MVP implements the Markdown Visual Editor and Home screen only.
+`DESIGN.md` describes the current UI and product direction. Treat it as supporting documentation and verify behavior against the active code before making changes.

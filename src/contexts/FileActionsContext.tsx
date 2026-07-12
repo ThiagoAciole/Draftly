@@ -59,7 +59,7 @@ const FileActionsContext = createContext<FileActionsContextValue | null>(null);
 
 export function FileActionsProvider({ children }: { children: ReactNode }) {
   const { setView, setIsBusy, setError } = useWorkspace();
-  const { tabs, activeTab, activeTabId, createBlankTab, addTab, addRecentFile, closeTabById, replaceTab } =
+  const { tabs, activeTab, activeTabId, createBlankTab, addTab, addRecentFile, closeTabById, replaceTab, switchTab } =
     useTabsContext();
   const { settings, store } = useSettings();
   const tabsRef = useRef(tabs);
@@ -122,6 +122,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
         try {
           const session = await store.get<SessionData>(SESSION_KEY);
           if (session?.paths?.length) {
+            let restoredActiveTabId: string | null = null;
             for (const path of session.paths) {
               try {
                 const file = await readMarkdownFile(path);
@@ -133,12 +134,14 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
                   savedMarkdown: file.content,
                 };
                 addTab(tab);
+                if (file.path === session.activeTabPath) restoredActiveTabId = tab.id;
                 addRecentFile(file.path);
               } catch {
                 // Skip files that no longer exist or can't be read
               }
             }
-            setView("editor");
+            if (restoredActiveTabId) switchTab(restoredActiveTabId);
+            else setView("editor");
             return;
           }
         } catch {
@@ -186,7 +189,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
       const existing = tabs.find((t) => t.path === file.path);
       if (existing) {
         addRecentFile(file.path);
-        setView("editor");
+        switchTab(existing.id);
         return;
       }
 
@@ -215,7 +218,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
       const existing = tabs.find((t) => t.path === file.path);
       if (existing) {
         addRecentFile(file.path);
-        setView("editor");
+        switchTab(existing.id);
         return;
       }
       const tab = {

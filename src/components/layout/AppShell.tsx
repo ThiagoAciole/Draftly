@@ -22,6 +22,7 @@ export function AppShell() {
     openDocument,
     openDocumentFromPath,
     saveDocument,
+    saveDocumentAs,
     exportDocumentPdf,
   } = useFileActions();
   const { settings } = useSettings();
@@ -42,6 +43,18 @@ export function AppShell() {
         event.preventDefault();
         void exportDocumentPdf();
       }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "n") {
+        event.preventDefault();
+        createDocument();
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "o") {
+        event.preventDefault();
+        void openDocument();
+      }
+      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        void saveDocumentAs();
+      }
       if ((event.ctrlKey || event.metaKey) && event.key === ",") {
         event.preventDefault();
         openSettings();
@@ -57,7 +70,7 @@ export function AppShell() {
     window.addEventListener("keydown", handleKeyDown);
 
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [exportDocumentPdf, openSettings, openSearch, view, activeTab]);
+  }, [createDocument, exportDocumentPdf, openDocument, openSearch, openSettings, saveDocumentAs, view, activeTab]);
 
   const showEditor = view === "editor" && activeTab != null;
 
