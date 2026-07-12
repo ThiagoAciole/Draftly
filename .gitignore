@@ -26,8 +26,7 @@ src-tauri/target/
 .env.*
 !.env.example
 
-# Package manager lock files
-package-lock.json
+# Alternative package manager lock files
 yarn.lock
 bun.lockb
 
