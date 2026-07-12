@@ -1,11 +1,12 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { Keyboard, Palette, Settings, X } from "lucide-react";
-import { useState } from "react";
+import { Download, Keyboard, Palette, Settings, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useWorkspace } from "../../contexts/WorkspaceContext";
 import { useSettings } from "../../contexts/SettingsContext";
 import type { AppSettings } from "../../contexts/SettingsContext";
 import { Toggle } from "../ui/Toggle";
 import { SettingsSelect } from "../ui/SettingsSelect";
+import { checkForAppUpdate, downloadAppUpdate } from "../../lib/updates";
 
 const ACCENT_COLORS = [
   { value: "#8b6cff", label: "Roxo" },
@@ -51,9 +52,42 @@ export function SettingsModal() {
   const { isSettingsOpen, closeSettings } = useWorkspace();
   const { settings, updateSetting, resetAll } = useSettings();
   const [activeTab, setActiveTab] = useState<TabId>("general");
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [updateToast, setUpdateToast] = useState<string | null>(null);
+  const updateToastTimer = useRef<number | null>(null);
+
+  useEffect(() => () => {
+    if (updateToastTimer.current !== null) window.clearTimeout(updateToastTimer.current);
+  }, []);
 
   const handleReset = () => {
     void resetAll();
+  };
+
+  const showUpdateToast = (message: string) => {
+    if (updateToastTimer.current !== null) window.clearTimeout(updateToastTimer.current);
+    setUpdateToast(message);
+    updateToastTimer.current = window.setTimeout(() => setUpdateToast(null), 4200);
+  };
+
+  const handleAppUpdate = async () => {
+    setIsCheckingUpdate(true);
+
+    try {
+      const update = await checkForAppUpdate();
+      if (update.status === "current") {
+        showUpdateToast("O app já está atualizado.");
+      } else if (update.status === "unpublished") {
+        showUpdateToast("Ainda não há uma versão publicada para atualizar.");
+      } else {
+        await downloadAppUpdate(update.downloadUrl);
+        showUpdateToast(`A versão ${update.version} será baixada pelo sistema.`);
+      }
+    } catch {
+      showUpdateToast("Não foi possível verificar atualizações. Tente novamente.");
+    } finally {
+      setIsCheckingUpdate(false);
+    }
   };
 
   return (
@@ -140,6 +174,25 @@ export function SettingsModal() {
                       onChange={(v) => void updateSetting(["general", "autosave"], v)}
                       label="Salvamento automático"
                     />
+                  </div>
+
+                  <p className="settings-group-title" style={{ marginTop: 28 }}>
+                    Atualizações
+                  </p>
+                  <div className="settings-row">
+                    <div className="settings-row-label">
+                      <span className="settings-row-title">Atualizar app</span>
+                      <span className="settings-row-hint">Verifica a última versão publicada no GitHub</span>
+                    </div>
+                    <button
+                      className="settings-update-button"
+                      type="button"
+                      onClick={() => void handleAppUpdate()}
+                      disabled={isCheckingUpdate}
+                    >
+                      <Download size={15} />
+                      {isCheckingUpdate ? "Verificando..." : "Verificar"}
+                    </button>
                   </div>
                 </div>
               )}
@@ -248,6 +301,7 @@ export function SettingsModal() {
               Redefinir
             </button>
           </div>
+          {updateToast ? <div className="settings-update-toast" role="status">{updateToast}</div> : null}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
