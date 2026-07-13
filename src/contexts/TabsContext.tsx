@@ -1,6 +1,7 @@
 import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
 import { getFileName } from "../lib/fs";
+import type { DocumentLanguage, EditorKind } from "../lib/languages";
 import { isDocumentDirty } from "../lib/documentUtils";
 import { useWorkspace } from "./WorkspaceContext";
 
@@ -8,6 +9,8 @@ export type DocumentTab = {
   id: string;
   path: string | null;
   name: string;
+  language: DocumentLanguage;
+  editorKind: EditorKind;
   markdown: string;
   savedMarkdown: string;
   isDirty: boolean;
@@ -86,6 +89,8 @@ export function TabsProvider({ children }: { children: ReactNode }) {
     id: `tab-${nextTabId++}`,
     path: null,
     name: "Untitled.md",
+    language: "markdown",
+    editorKind: "visual-markdown",
     markdown: "",
     savedMarkdown: "",
     isDirty: false,

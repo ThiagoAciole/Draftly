@@ -11,6 +11,15 @@
   WriteRegStr SHCTX "Software\Classes\Draftly.Markdown\shell\open" "" "Abrir com Draftly"
   WriteRegStr SHCTX "Software\Classes\Draftly.Markdown\shell\open\command" "" '"$INSTDIR\Draftly.exe" "%1"'
 
+  WriteRegStr SHCTX "Software\Classes\.json\OpenWithProgids" "Draftly.Code" ""
+  WriteRegStr SHCTX "Software\Classes\.js\OpenWithProgids" "Draftly.Code" ""
+  WriteRegStr SHCTX "Software\Classes\.ts\OpenWithProgids" "Draftly.Code" ""
+  WriteRegStr SHCTX "Software\Classes\.py\OpenWithProgids" "Draftly.Code" ""
+  WriteRegStr SHCTX "Software\Classes\.html\OpenWithProgids" "Draftly.Code" ""
+  WriteRegStr SHCTX "Software\Classes\Draftly.Code" "" "Arquivo de cÃ³digo"
+  WriteRegStr SHCTX "Software\Classes\Draftly.Code\DefaultIcon" "" "$INSTDIR\resources\file-markdown.ico,0"
+  WriteRegStr SHCTX "Software\Classes\Draftly.Code\shell\open\command" "" '"$INSTDIR\Draftly.exe" "%1"'
+
   !insertmacro UPDATEFILEASSOC
 !macroend
 
@@ -28,6 +37,12 @@
   DeleteRegValue SHCTX "Software\Classes\.md" "Draftly.Markdown_backup"
   DeleteRegValue SHCTX "Software\Classes\.md\OpenWithProgids" "Draftly.Markdown"
   DeleteRegKey SHCTX "Software\Classes\Draftly.Markdown"
+  DeleteRegValue SHCTX "Software\Classes\.json\OpenWithProgids" "Draftly.Code"
+  DeleteRegValue SHCTX "Software\Classes\.js\OpenWithProgids" "Draftly.Code"
+  DeleteRegValue SHCTX "Software\Classes\.ts\OpenWithProgids" "Draftly.Code"
+  DeleteRegValue SHCTX "Software\Classes\.py\OpenWithProgids" "Draftly.Code"
+  DeleteRegValue SHCTX "Software\Classes\.html\OpenWithProgids" "Draftly.Code"
+  DeleteRegKey SHCTX "Software\Classes\Draftly.Code"
 
   !insertmacro UPDATEFILEASSOC
 !macroend

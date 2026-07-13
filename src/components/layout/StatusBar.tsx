@@ -13,7 +13,7 @@ export function StatusBar() {
   return (
     <footer className="status-bar">
       <span>{status}</span>
-      <span>Markdown</span>
+      <span>{activeTab.language === "html" ? "HTML" : activeTab.language === "json" ? "JSON" : activeTab.language === "javascript" ? "JavaScript" : activeTab.language === "typescript" ? "TypeScript" : activeTab.language === "python" ? "Python" : "Markdown"}</span>
       <span>UTF-8</span>
       <span className="status-path">{activeTab.path || "Arquivo novo"}</span>
     </footer>

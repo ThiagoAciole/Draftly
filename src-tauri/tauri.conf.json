@@ -43,6 +43,12 @@
         "description": "Arquivo Markdown",
         "mimeType": "text/markdown",
         "role": "Editor"
+      },
+      {
+        "ext": ["json", "js", "ts", "py", "html"],
+        "name": "Draftly Code",
+        "description": "Arquivo de cÃ³digo compatÃ­vel com Draftly",
+        "role": "Editor"
       }
     ],
     "windows": {

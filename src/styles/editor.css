@@ -1043,75 +1043,11 @@
   backdrop-filter: blur(12px);
 }
 
-.source-editor-highlight,
-.source-editor-input {
+.source-editor-host {
   position: absolute;
   inset: 0;
-  box-sizing: border-box;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 18px 24px 28px 0;
-  overflow: auto;
-  resize: none;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  font-family: "Cascadia Code", "Fira Code", ui-monospace, monospace;
-  font-size: 16px;
-  line-height: 1.7;
-  tab-size: 2;
-  white-space: pre;
+  min-height: 0;
 }
-
-.source-editor-highlight {
-  color: #d4d7dd;
-  pointer-events: none;
-  scrollbar-width: none;
-}
-
-.source-editor-highlight::-webkit-scrollbar {
-  display: none;
-}
-
-.source-editor-line {
-  display: grid;
-  grid-template-columns: 54px max-content;
-  min-height: 1.65em;
-}
-
-.source-editor-line-number {
-  box-sizing: border-box;
-  padding-right: 16px;
-  color: #5f6470;
-  text-align: right;
-  user-select: none;
-}
-
-.source-editor-line-content {
-  min-width: max-content;
-}
-
-.source-editor-input {
-  z-index: 1;
-  padding-left: 54px;
-  color: transparent;
-  caret-color: #f1f3f8;
-  -webkit-text-fill-color: transparent;
-}
-
-.source-editor-input::selection {
-  background: rgba(139, 108, 255, 0.3);
-}
-
-.syntax-heading-mark { color: #c678dd; }
-.syntax-heading { color: #e06c75; font-weight: 700; }
-.syntax-list-mark { color: #e5c07b; }
-.syntax-quote-mark { color: #56b6c2; }
-.syntax-inline-code { color: #98c379; }
-.syntax-strong { color: #e5c07b; font-weight: 700; }
-.syntax-emphasis { color: #c678dd; font-style: italic; }
-.syntax-link { color: #61afef; }
 .syntax-code-block { color: #abb2bf; }
 
 @media (max-width: 760px) {

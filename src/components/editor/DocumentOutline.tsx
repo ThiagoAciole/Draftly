@@ -8,14 +8,7 @@ type DocumentOutlineProps = {
 };
 
 function scrollSourceEditorTo(line: number) {
-  const editor = document.querySelector<HTMLTextAreaElement>(".source-editor-input");
-  if (!editor) return;
-
-  const lines = editor.value.split(/\r?\n/);
-  const offset = lines.slice(0, line).reduce((total, value) => total + value.length + 1, 0);
-  editor.focus();
-  editor.setSelectionRange(offset, offset);
-  editor.scrollTop = Math.max(0, line * 25 - editor.clientHeight * 0.35);
+  window.dispatchEvent(new CustomEvent("draftly:scroll-to-line", { detail: line }));
 }
 
 function scrollVisualEditorTo(index: number) {

@@ -1,4 +1,4 @@
-import { FileCode2, FilePlus, FileText, FolderOpen, History, Search, Settings } from "lucide-react";
+import { FileCode2, FilePlus, FileText, FolderOpen, History, Search, Settings, WandSparkles } from "lucide-react";
 import { Suspense, useEffect, useRef } from "react";
 import { useWorkspace } from "../../contexts/WorkspaceContext";
 import { useTabsContext } from "../../contexts/TabsContext";
@@ -27,7 +27,7 @@ export function AppShell() {
     openDocumentFromPath,
     saveDocument,
     saveDocumentAs,
-    exportDocumentPdf,
+    exportDocumentPdf, formatDocument,
     openVersionHistory,
   } = useFileActions();
   const { settings } = useSettings();
@@ -45,8 +45,18 @@ export function AppShell() {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "p") {
+        if (activeTab?.language === "markdown") {
+          event.preventDefault();
+          void exportDocumentPdf();
+        }
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s" && !event.shiftKey) {
         event.preventDefault();
-        void exportDocumentPdf();
+        void saveDocument();
+      }
+      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "i") {
+        event.preventDefault();
+        void formatDocument();
       }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "n") {
         event.preventDefault();
@@ -66,7 +76,7 @@ export function AppShell() {
       }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") {
         event.preventDefault();
-        if (view === "editor" && activeTab) {
+        if (view === "editor" && activeTab?.editorKind === "visual-markdown" && editorMode === "visual") {
           openSearch();
         }
       }
@@ -80,7 +90,7 @@ export function AppShell() {
     window.addEventListener("keydown", handleKeyDown);
 
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [closeCommandPalette, createDocument, exportDocumentPdf, isCommandPaletteOpen, openCommandPalette, openDocument, openSearch, openSettings, saveDocumentAs, view, activeTab]);
+  }, [closeCommandPalette, createDocument, exportDocumentPdf, formatDocument, isCommandPaletteOpen, openCommandPalette, openDocument, openSearch, openSettings, saveDocument, saveDocumentAs, view, activeTab, editorMode]);
 
   const showEditor = view === "editor" && activeTab != null;
 
@@ -96,18 +106,18 @@ export function AppShell() {
         <Suspense fallback={<EditorLoading />}>
           <div className="editor-section">
             <div className="editor-content">
-              {editorMode === "visual" ? (
+              {activeTab.editorKind === "visual-markdown" && editorMode === "visual" ? (
                 <MarkdownEditor
                   markdown={activeTab.markdown}
                   onChange={updateActiveMarkdown}
                   onSave={() => void saveDocument()}
                 />
               ) : (
-              <SourceEditor markdown={activeTab.markdown} onChange={updateActiveMarkdown} />
+              <SourceEditor content={activeTab.markdown} language={activeTab.language} showModeSwitch={activeTab.editorKind === "visual-markdown"} onChange={updateActiveMarkdown} />
               )}
-              <DocumentOutline markdown={activeTab.markdown} mode={editorMode} isOpen={isOutlineOpen} />
+              {activeTab.editorKind === "visual-markdown" ? <DocumentOutline markdown={activeTab.markdown} mode={editorMode} isOpen={isOutlineOpen} /> : null}
             </div>
-            {editorMode === "visual" && isSearchOpen ? <SearchBar onClose={closeSearch} /> : <StatusBar />}
+            {activeTab.editorKind === "visual-markdown" && editorMode === "visual" && isSearchOpen ? <SearchBar onClose={closeSearch} /> : <StatusBar />}
           </div>
         </Suspense>
       ) : (
@@ -130,10 +140,11 @@ export function AppShell() {
             { id: "new", label: "Novo arquivo", shortcut: "Ctrl+N", icon: <FilePlus size={16} />, run: createDocument },
             { id: "open", label: "Abrir arquivo", shortcut: "Ctrl+O", icon: <FolderOpen size={16} />, run: () => void openDocument() },
             { id: "save", label: "Salvar", shortcut: "Ctrl+S", icon: <FileText size={16} />, disabled: !activeTab, run: () => void saveDocument() },
-            { id: "source", label: editorMode === "visual" ? "Alternar para Markdown fonte" : "Alternar para editor visual", icon: <FileCode2 size={16} />, disabled: !activeTab, run: toggleEditorMode },
-            { id: "search", label: "Buscar no arquivo", shortcut: "Ctrl+F", icon: <Search size={16} />, disabled: !activeTab || editorMode !== "visual", run: openSearch },
+            { id: "source", label: editorMode === "visual" ? "Alternar para Markdown fonte" : "Alternar para editor visual", icon: <FileCode2 size={16} />, disabled: !activeTab || activeTab.editorKind !== "visual-markdown", run: toggleEditorMode },
+            { id: "format", label: "Formatar documento", shortcut: "Ctrl+Shift+I", icon: <WandSparkles size={16} />, disabled: !activeTab || activeTab.language === "markdown" || activeTab.language === "python", run: () => void formatDocument() },
+            { id: "search", label: "Buscar no arquivo", shortcut: "Ctrl+F", icon: <Search size={16} />, disabled: !activeTab || activeTab.editorKind !== "visual-markdown" || editorMode !== "visual", run: openSearch },
             { id: "history", label: "Histórico de versões", icon: <History size={16} />, disabled: !activeTab?.path, run: () => void openVersionHistory() },
-            { id: "export", label: "Exportar PDF", shortcut: "Ctrl+P", icon: <FileText size={16} />, disabled: !activeTab, run: () => void exportDocumentPdf() },
+            { id: "export", label: "Exportar PDF", shortcut: "Ctrl+P", icon: <FileText size={16} />, disabled: !activeTab || activeTab.language !== "markdown", run: () => void exportDocumentPdf() },
             { id: "settings", label: "Configurações", shortcut: "Ctrl+,", icon: <Settings size={16} />, run: openSettings },
           ]}
         />

@@ -1,16 +1,16 @@
 use std::path::Path;
 
-fn ensure_markdown_path(path: &str) -> Result<(), String> {
+fn ensure_supported_text_path(path: &str) -> Result<(), String> {
     let extension = Path::new(path)
         .extension()
         .and_then(|value| value.to_str())
         .unwrap_or_default()
         .to_ascii_lowercase();
 
-    if extension == "md" {
+    if matches!(extension.as_str(), "md" | "json" | "js" | "ts" | "py" | "html") {
         Ok(())
     } else {
-        Err("Draftly v1 abre e salva apenas arquivos .md".into())
+        Err("O Draftly abre e salva arquivos .md, .json, .js, .ts, .py e .html".into())
     }
 }
 
@@ -29,14 +29,14 @@ fn ensure_pdf_path(path: &str) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn read_markdown_file(path: String) -> Result<String, String> {
-    ensure_markdown_path(&path)?;
+fn read_text_file(path: String) -> Result<String, String> {
+    ensure_supported_text_path(&path)?;
     std::fs::read_to_string(path).map_err(|error| error.to_string())
 }
 
 #[tauri::command]
-fn write_markdown_file(path: String, content: String) -> Result<(), String> {
-    ensure_markdown_path(&path)?;
+fn write_text_file(path: String, content: String) -> Result<(), String> {
+    ensure_supported_text_path(&path)?;
     std::fs::write(path, content).map_err(|error| error.to_string())
 }
 
@@ -47,12 +47,12 @@ fn write_pdf_file(path: String, bytes: Vec<u8>) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn get_initial_markdown_file_path() -> Option<String> {
+fn get_initial_text_file_path() -> Option<String> {
     std::env::args().skip(1).find(|argument| {
         Path::new(argument)
             .extension()
             .and_then(|value| value.to_str())
-            .is_some_and(|extension| extension.eq_ignore_ascii_case("md"))
+            .is_some_and(|extension| matches!(extension.to_ascii_lowercase().as_str(), "md" | "json" | "js" | "ts" | "py" | "html"))
     })
 }
 
@@ -62,10 +62,10 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .invoke_handler(tauri::generate_handler![
-            read_markdown_file,
-            write_markdown_file,
+            read_text_file,
+            write_text_file,
             write_pdf_file,
-            get_initial_markdown_file_path
+            get_initial_text_file_path
         ])
         .run(tauri::generate_context!())
         .expect("error while running Draftly");

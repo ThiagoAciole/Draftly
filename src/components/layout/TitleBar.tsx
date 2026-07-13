@@ -10,14 +10,14 @@ import appIcon from "../../assets/icon.svg";
 
 export function TitleBar() {
   const { setView, view, openSearch, editorMode, isOutlineOpen, toggleOutline } = useWorkspace();
-  const { tabsMeta } = useTabsContext();
+  const { tabsMeta, activeTab } = useTabsContext();
   const { createDocument } = useFileActions();
   const { settings } = useSettings();
 
   const hasTabs = tabsMeta.length > 0;
   const showTabs = settings.appearance.showTabs;
   const showEditorActions = view === "editor" && hasTabs;
-  const showSearch = showEditorActions && editorMode === "visual";
+  const showSearch = showEditorActions && activeTab?.editorKind === "visual-markdown" && editorMode === "visual";
 
   return (
     <header className="title-bar" data-tauri-drag-region>
@@ -62,7 +62,7 @@ export function TitleBar() {
             <Search size={16} />
           </button>
         ) : null}
-        {showEditorActions ? (
+        {showEditorActions && activeTab?.editorKind === "visual-markdown" ? (
           <button
             className={`titlebar-button titlebar-compact-action ${isOutlineOpen ? "is-active" : ""}`}
             type="button"

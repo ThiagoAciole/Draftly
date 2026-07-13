@@ -1,15 +1,15 @@
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { FilePlus, FileText, FolderOpen, History, ListTree, MoreVertical, Save, SaveAll, Search, Settings } from "lucide-react";
+import { FilePlus, FileText, FolderOpen, History, ListTree, MoreVertical, Save, SaveAll, Search, Settings, WandSparkles } from "lucide-react";
 import { useTabsContext } from "../../contexts/TabsContext";
 import { useFileActions } from "../../contexts/FileActionsContext";
 import { useWorkspace } from "../../contexts/WorkspaceContext";
 
 export function FileMenu() {
   const { activeTab } = useTabsContext();
-  const { createDocument, openDocument, saveDocument, saveDocumentAs, exportDocumentPdf, openVersionHistory } =
+  const { createDocument, openDocument, saveDocument, saveDocumentAs, exportDocumentPdf, openVersionHistory, formatDocument } =
     useFileActions();
   const { openSettings, view, editorMode, openSearch, isOutlineOpen, toggleOutline } = useWorkspace();
-  const showEditorActions = view === "editor" && Boolean(activeTab);
+  const showEditorActions = view === "editor" && activeTab?.editorKind === "visual-markdown";
   const showSearch = showEditorActions && editorMode === "visual";
 
   return (
@@ -58,7 +58,7 @@ export function FileMenu() {
           <DropdownMenu.Item
             className="title-menu-item"
             onSelect={() => void exportDocumentPdf()}
-            disabled={!activeTab}
+            disabled={!activeTab || activeTab.language !== "markdown"}
           >
             <span className="title-menu-label">
               <FileText size={15} />
@@ -78,6 +78,11 @@ export function FileMenu() {
               <History size={15} />
               Histórico de versões
             </span>
+          </DropdownMenu.Item>
+
+          <DropdownMenu.Item className="title-menu-item" onSelect={() => void formatDocument()} disabled={!activeTab || activeTab.language === "markdown" || activeTab.language === "python"}>
+            <span className="title-menu-label"><WandSparkles size={15} />Formatar documento</span>
+            <span className="title-menu-shortcut">Ctrl+Shift+I</span>
           </DropdownMenu.Item>
 
           <DropdownMenu.Separator className="title-menu-separator" />

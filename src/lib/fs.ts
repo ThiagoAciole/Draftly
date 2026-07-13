@@ -1,18 +1,14 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
+import { documentFileFilters, getLanguageForPath } from "./languages";
+import type { DocumentLanguage } from "./languages";
 
-export type MarkdownFile = {
+export type TextFile = {
   path: string;
   name: string;
   content: string;
+  language: DocumentLanguage;
 };
-
-const markdownFilters = [
-  {
-    name: "Markdown",
-    extensions: ["md"],
-  },
-];
 
 const pdfFilters = [
   {
@@ -25,42 +21,43 @@ export function getFileName(path: string) {
   return path.split(/[\\/]/).pop() || "Untitled.md";
 }
 
-export async function readMarkdownFile(path: string): Promise<MarkdownFile> {
-  const content = await invoke<string>("read_markdown_file", { path });
+export async function readTextFile(path: string): Promise<TextFile> {
+  const content = await invoke<string>("read_text_file", { path });
 
   return {
     path,
     name: getFileName(path),
     content,
+    language: getLanguageForPath(path).id,
   };
 }
 
-export async function openMarkdownFile(): Promise<MarkdownFile | null> {
+export async function openTextFile(): Promise<TextFile | null> {
   const selected = await open({
     multiple: false,
-    filters: markdownFilters,
+    filters: documentFileFilters,
   });
 
   if (typeof selected !== "string") {
     return null;
   }
 
-  return readMarkdownFile(selected);
+  return readTextFile(selected);
 }
 
-export async function pickMarkdownSavePath(defaultPath?: string | null) {
+export async function pickTextSavePath(defaultPath?: string | null) {
   return save({
     defaultPath: defaultPath || "Untitled.md",
-    filters: markdownFilters,
+    filters: documentFileFilters,
   });
 }
 
-export async function saveMarkdownFile(path: string, content: string) {
-  await invoke("write_markdown_file", { path, content });
+export async function saveTextFile(path: string, content: string) {
+  await invoke("write_text_file", { path, content });
 }
 
-export async function getInitialMarkdownFilePath() {
-  return invoke<string | null>("get_initial_markdown_file_path");
+export async function getInitialTextFilePath() {
+  return invoke<string | null>("get_initial_text_file_path");
 }
 
 function getPdfName(name: string) {
