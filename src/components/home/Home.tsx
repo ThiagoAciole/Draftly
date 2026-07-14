@@ -1,7 +1,7 @@
 import { FolderOpen, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
-import markdownFileIcon from "../../assets/file-markdown.png";
 import appIcon from "../../assets/icon.svg";
+import { getFileIcon } from "../../lib/fileIcons";
 import type { RecentFile } from "../../contexts/TabsContext";
 
 type HomeProps = {
@@ -72,7 +72,7 @@ export function Home({ recentFiles, isBusy, onCreate, onOpen, onOpenRecent, onRe
                       disabled={isBusy}
                     >
                       <span className="recent-file-icon" aria-hidden="true">
-                        <img src={markdownFileIcon} alt="" />
+                        <img src={getFileIcon(file.path)} alt="" />
                       </span>
                       <span className="recent-file-info">
                         <span className="recent-file-name">{file.name}</span>

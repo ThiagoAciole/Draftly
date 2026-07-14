@@ -1,5 +1,5 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { Download, Keyboard, Palette, Settings, X } from "lucide-react";
+import { Code2, Download, Keyboard, Palette, Settings, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useWorkspace } from "../../contexts/WorkspaceContext";
 import { useSettings } from "../../contexts/SettingsContext";
@@ -31,6 +31,12 @@ const FONT_SIZE_OPTIONS = [
   { value: 22, label: "22px" },
 ];
 
+const CODE_FONT_SIZE_OPTIONS = [12, 13, 14, 15, 16, 18, 20].map((value) => ({ value, label: `${value}px` }));
+const TAB_SIZE_OPTIONS = [
+  { value: 2, label: "2 espaços" },
+  { value: 4, label: "4 espaços" },
+];
+
 const SHORTCUTS = [
   { action: "Novo arquivo", key: "Ctrl+N" },
   { action: "Abrir", key: "Ctrl+O" },
@@ -40,10 +46,11 @@ const SHORTCUTS = [
   { action: "Configurações", key: "Ctrl+," },
 ];
 
-type TabId = "general" | "appearance" | "shortcuts";
+type TabId = "general" | "appearance" | "code" | "shortcuts";
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "general", label: "Geral", icon: <Settings size={16} /> },
+  { id: "code", label: "Código", icon: <Code2 size={16} /> },
   { id: "appearance", label: "Aparência", icon: <Palette size={16} /> },
   { id: "shortcuts", label: "Atalhos", icon: <Keyboard size={16} /> },
 ];
@@ -267,6 +274,80 @@ export function SettingsModal() {
                       options={FONT_SIZE_OPTIONS}
                       onChange={(v) => void updateSetting(["appearance", "editorFontSize"], v)}
                       width={100}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "code" && (
+                <div className="settings-group">
+                  <p className="settings-group-title">Editor de código</p>
+                  <div className="settings-row">
+                    <div className="settings-row-label">
+                      <span className="settings-row-title">Tamanho da fonte</span>
+                      <span className="settings-row-hint">Tamanho do texto nos arquivos de código</span>
+                    </div>
+                    <SettingsSelect
+                      value={settings.codeEditor.fontSize}
+                      options={CODE_FONT_SIZE_OPTIONS}
+                      onChange={(value) => void updateSetting(["codeEditor", "fontSize"], value)}
+                      width={110}
+                    />
+                  </div>
+                  <div className="settings-row">
+                    <div className="settings-row-label">
+                      <span className="settings-row-title">Tabulação</span>
+                      <span className="settings-row-hint">Quantidade de espaços usada no recuo</span>
+                    </div>
+                    <SettingsSelect
+                      value={settings.codeEditor.tabSize}
+                      options={TAB_SIZE_OPTIONS}
+                      onChange={(value) => void updateSetting(["codeEditor", "tabSize"], value)}
+                      width={110}
+                    />
+                  </div>
+                  <div className="settings-row">
+                    <div className="settings-row-label">
+                      <span className="settings-row-title">Quebra automática de linha</span>
+                      <span className="settings-row-hint">Ajusta linhas longas à largura do editor</span>
+                    </div>
+                    <Toggle
+                      checked={settings.codeEditor.wordWrap}
+                      onChange={(value) => void updateSetting(["codeEditor", "wordWrap"], value)}
+                      label="Quebra automática de linha"
+                    />
+                  </div>
+                  <div className="settings-row">
+                    <div className="settings-row-label">
+                      <span className="settings-row-title">Números de linha</span>
+                      <span className="settings-row-hint">Exibe a numeração ao lado do código</span>
+                    </div>
+                    <Toggle
+                      checked={settings.codeEditor.showLineNumbers}
+                      onChange={(value) => void updateSetting(["codeEditor", "showLineNumbers"], value)}
+                      label="Números de linha"
+                    />
+                  </div>
+                  <div className="settings-row">
+                    <div className="settings-row-label">
+                      <span className="settings-row-title">Autocomplete</span>
+                      <span className="settings-row-hint">Mostra sugestões enquanto você digita</span>
+                    </div>
+                    <Toggle
+                      checked={settings.codeEditor.autocomplete}
+                      onChange={(value) => void updateSetting(["codeEditor", "autocomplete"], value)}
+                      label="Autocomplete"
+                    />
+                  </div>
+                  <div className="settings-row">
+                    <div className="settings-row-label">
+                      <span className="settings-row-title">Formatar ao salvar</span>
+                      <span className="settings-row-hint">Formata arquivos compatíveis antes de gravar</span>
+                    </div>
+                    <Toggle
+                      checked={settings.codeEditor.formatOnSave}
+                      onChange={(value) => void updateSetting(["codeEditor", "formatOnSave"], value)}
+                      label="Formatar ao salvar"
                     />
                   </div>
                 </div>

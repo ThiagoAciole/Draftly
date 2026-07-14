@@ -1,4 +1,4 @@
-import { ListTree, Plus, Search } from "lucide-react";
+import { ListTree, Plus, Search, WandSparkles } from "lucide-react";
 import { useWorkspace } from "../../contexts/WorkspaceContext";
 import { useTabsContext } from "../../contexts/TabsContext";
 import { useFileActions } from "../../contexts/FileActionsContext";
@@ -7,17 +7,24 @@ import { FileMenu } from "./FileMenu";
 import { FileTabs } from "./FileTabs";
 import { WindowControls } from "./WindowControls";
 import appIcon from "../../assets/icon.svg";
+import { openSourceEditorSearch } from "../../lib/editorEvents";
 
 export function TitleBar() {
   const { setView, view, openSearch, editorMode, isOutlineOpen, toggleOutline } = useWorkspace();
   const { tabsMeta, activeTab } = useTabsContext();
-  const { createDocument } = useFileActions();
+  const { createDocument, formatDocument } = useFileActions();
   const { settings } = useSettings();
 
   const hasTabs = tabsMeta.length > 0;
   const showTabs = settings.appearance.showTabs;
   const showEditorActions = view === "editor" && hasTabs;
-  const showSearch = showEditorActions && activeTab?.editorKind === "visual-markdown" && editorMode === "visual";
+  const isVisualMarkdown = activeTab?.editorKind === "visual-markdown" && editorMode === "visual";
+  const showSearch = showEditorActions && activeTab != null;
+  const showFormat = showEditorActions && activeTab?.editorKind === "code" && activeTab.language !== "python";
+  const handleSearch = () => {
+    if (isVisualMarkdown) openSearch();
+    else openSourceEditorSearch();
+  };
 
   return (
     <header className="title-bar" data-tauri-drag-region>
@@ -57,9 +64,20 @@ export function TitleBar() {
             type="button"
             aria-label="Buscar no arquivo"
             title="Buscar (Ctrl+F)"
-            onClick={openSearch}
+            onClick={handleSearch}
           >
             <Search size={16} />
+          </button>
+        ) : null}
+        {showFormat ? (
+          <button
+            className="titlebar-button titlebar-compact-action"
+            type="button"
+            aria-label="Formatar documento"
+            title="Formatar documento (Ctrl+Shift+I)"
+            onClick={() => void formatDocument()}
+          >
+            <WandSparkles size={16} />
           </button>
         ) : null}
         {showEditorActions && activeTab?.editorKind === "visual-markdown" ? (

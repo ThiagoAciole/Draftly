@@ -3,14 +3,21 @@ import { FilePlus, FileText, FolderOpen, History, ListTree, MoreVertical, Save, 
 import { useTabsContext } from "../../contexts/TabsContext";
 import { useFileActions } from "../../contexts/FileActionsContext";
 import { useWorkspace } from "../../contexts/WorkspaceContext";
+import { openSourceEditorSearch } from "../../lib/editorEvents";
 
 export function FileMenu() {
   const { activeTab } = useTabsContext();
   const { createDocument, openDocument, saveDocument, saveDocumentAs, exportDocumentPdf, openVersionHistory, formatDocument } =
     useFileActions();
   const { openSettings, view, editorMode, openSearch, isOutlineOpen, toggleOutline } = useWorkspace();
-  const showEditorActions = view === "editor" && activeTab?.editorKind === "visual-markdown";
-  const showSearch = showEditorActions && editorMode === "visual";
+  const showEditorActions = view === "editor" && activeTab != null;
+  const showSearch = showEditorActions;
+  const showOutline = showEditorActions && activeTab.editorKind === "visual-markdown";
+  const isVisualMarkdown = showOutline && editorMode === "visual";
+  const handleSearch = () => {
+    if (isVisualMarkdown) openSearch();
+    else openSourceEditorSearch();
+  };
 
   return (
     <DropdownMenu.Root>
@@ -98,7 +105,7 @@ export function FileMenu() {
           {showSearch || showEditorActions ? <DropdownMenu.Separator className="title-menu-separator title-menu-compact-action" /> : null}
 
           {showSearch ? (
-            <DropdownMenu.Item className="title-menu-item title-menu-compact-action" onSelect={openSearch}>
+            <DropdownMenu.Item className="title-menu-item title-menu-compact-action" onSelect={handleSearch}>
               <span className="title-menu-label">
                 <Search size={15} />
                 Buscar no arquivo
@@ -106,7 +113,7 @@ export function FileMenu() {
               <span className="title-menu-shortcut">Ctrl+F</span>
             </DropdownMenu.Item>
           ) : null}
-          {showEditorActions ? (
+          {showOutline ? (
             <DropdownMenu.Item className="title-menu-item title-menu-compact-action" onSelect={toggleOutline}>
               <span className="title-menu-label">
                 <ListTree size={15} />

@@ -17,6 +17,14 @@ export type AppSettings = {
     editorFont: "sans" | "serif" | "mono";
     editorFontSize: number;
   };
+  codeEditor: {
+    fontSize: number;
+    tabSize: 2 | 4;
+    wordWrap: boolean;
+    showLineNumbers: boolean;
+    formatOnSave: boolean;
+    autocomplete: boolean;
+  };
 };
 
 export const DEFAULTS: AppSettings = {
@@ -30,6 +38,14 @@ export const DEFAULTS: AppSettings = {
     showTabs: true,
     editorFont: "sans",
     editorFontSize: 18,
+  },
+  codeEditor: {
+    fontSize: 15,
+    tabSize: 2,
+    wordWrap: false,
+    showLineNumbers: true,
+    formatOnSave: true,
+    autocomplete: true,
   },
 };
 
@@ -52,6 +68,7 @@ function applyCssVars(s: AppSettings): void {
   root.style.setProperty("--accent-soft", hexToRgba(s.appearance.accentColor, 0.18));
   root.style.setProperty("--editor-font", FONT_FAMILY_MAP[s.appearance.editorFont]);
   root.style.setProperty("--editor-font-size", `${s.appearance.editorFontSize}px`);
+  root.style.setProperty("--code-editor-font-size", `${s.codeEditor.fontSize}px`);
 }
 
 function deepClone<T>(obj: T): T {
@@ -93,6 +110,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           const merged = { ...DEFAULTS };
           if (stored.general) merged.general = { ...DEFAULTS.general, ...stored.general };
           if (stored.appearance) merged.appearance = { ...DEFAULTS.appearance, ...stored.appearance };
+          if (stored.codeEditor) merged.codeEditor = { ...DEFAULTS.codeEditor, ...stored.codeEditor };
           setSettings(merged);
           applyCssVars(merged);
         }

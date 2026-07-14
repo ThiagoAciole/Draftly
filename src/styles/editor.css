@@ -1021,18 +1021,21 @@
 }
 
 .source-editor {
+  --source-editor-bg: var(--bg-elevated);
+  --source-editor-gutter: var(--bg);
+  --source-editor-divider: rgba(255, 255, 255, 0.065);
   display: grid;
   grid-template-rows: minmax(0, 1fr);
   flex: 1;
   min-height: 0;
-  background: var(--bg-elevated);
+  background: var(--source-editor-bg);
 }
 
 .source-editor-codeframe {
   position: relative;
   min-height: 0;
   overflow: hidden;
-  background: var(--bg-elevated);
+  background: var(--source-editor-bg);
 }
 
 .source-editor-codeframe > .editor-mode-switch {
@@ -1048,6 +1051,7 @@
   inset: 0;
   min-height: 0;
 }
+
 .syntax-code-block { color: #abb2bf; }
 
 @media (max-width: 760px) {

@@ -1,6 +1,6 @@
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { Check, ChevronDown, X } from "lucide-react";
-import markdownFileIcon from "../../assets/file-markdown.png";
+import { getFileIcon } from "../../lib/fileIcons";
 import { useWorkspace } from "../../contexts/WorkspaceContext";
 import { useTabsContext } from "../../contexts/TabsContext";
 import { useFileActions } from "../../contexts/FileActionsContext";
@@ -46,7 +46,7 @@ export function FileTabs() {
               }
             }}
           >
-            <img className="file-tab-icon" src={markdownFileIcon} alt="" aria-hidden="true" />
+            <img className="file-tab-icon" src={getFileIcon(tab.path ?? tab.name)} alt="" aria-hidden="true" />
             <span className="file-tab-name">{tab.name}</span>
             <button
               className="file-tab-close"
@@ -71,7 +71,7 @@ export function FileTabs() {
             aria-label="Escolher arquivo aberto"
             title={currentTab.name}
           >
-            <img className="file-tab-icon" src={markdownFileIcon} alt="" aria-hidden="true" />
+            <img className="file-tab-icon" src={getFileIcon(currentTab.path ?? currentTab.name)} alt="" aria-hidden="true" />
             <span className="file-tab-name">{currentTab.name}</span>
             <ChevronDown className="mobile-tab-picker-chevron" size={16} aria-hidden="true" />
           </button>
@@ -87,7 +87,7 @@ export function FileTabs() {
                   onSelect={() => switchTab(tab.id)}
                 >
                   <span className="title-menu-label">
-                    <img className="tab-picker-file-icon" src={markdownFileIcon} alt="" aria-hidden="true" />
+                    <img className="tab-picker-file-icon" src={getFileIcon(tab.path ?? tab.name)} alt="" aria-hidden="true" />
                     <span className={tab.isDirty ? "is-dirty" : ""}>{tab.name}</span>
                   </span>
                   {isCurrent ? <Check size={16} aria-label="Aba atual" /> : null}

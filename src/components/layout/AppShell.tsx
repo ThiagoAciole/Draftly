@@ -13,6 +13,7 @@ import { Home } from "../home/Home";
 import { SearchBar } from "../search/SearchBar";
 import { SettingsModal } from "../settings/SettingsModal";
 import { TitleBar } from "./TitleBar";
+import { openSourceEditorSearch } from "../../lib/editorEvents";
 import "../../styles/settings.css";
 import "../../styles/search.css";
 
@@ -78,6 +79,8 @@ export function AppShell() {
         event.preventDefault();
         if (view === "editor" && activeTab?.editorKind === "visual-markdown" && editorMode === "visual") {
           openSearch();
+        } else if (view === "editor" && activeTab) {
+          openSourceEditorSearch();
         }
       }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
@@ -113,7 +116,7 @@ export function AppShell() {
                   onSave={() => void saveDocument()}
                 />
               ) : (
-              <SourceEditor content={activeTab.markdown} language={activeTab.language} showModeSwitch={activeTab.editorKind === "visual-markdown"} onChange={updateActiveMarkdown} />
+              <SourceEditor key={activeTab.id} content={activeTab.markdown} language={activeTab.language} showModeSwitch={activeTab.editorKind === "visual-markdown"} onChange={updateActiveMarkdown} />
               )}
               {activeTab.editorKind === "visual-markdown" ? <DocumentOutline markdown={activeTab.markdown} mode={editorMode} isOpen={isOutlineOpen} /> : null}
             </div>
@@ -142,7 +145,7 @@ export function AppShell() {
             { id: "save", label: "Salvar", shortcut: "Ctrl+S", icon: <FileText size={16} />, disabled: !activeTab, run: () => void saveDocument() },
             { id: "source", label: editorMode === "visual" ? "Alternar para Markdown fonte" : "Alternar para editor visual", icon: <FileCode2 size={16} />, disabled: !activeTab || activeTab.editorKind !== "visual-markdown", run: toggleEditorMode },
             { id: "format", label: "Formatar documento", shortcut: "Ctrl+Shift+I", icon: <WandSparkles size={16} />, disabled: !activeTab || activeTab.language === "markdown" || activeTab.language === "python", run: () => void formatDocument() },
-            { id: "search", label: "Buscar no arquivo", shortcut: "Ctrl+F", icon: <Search size={16} />, disabled: !activeTab || activeTab.editorKind !== "visual-markdown" || editorMode !== "visual", run: openSearch },
+            { id: "search", label: "Buscar no arquivo", shortcut: "Ctrl+F", icon: <Search size={16} />, disabled: !activeTab, run: () => activeTab?.editorKind === "visual-markdown" && editorMode === "visual" ? openSearch() : openSourceEditorSearch() },
             { id: "history", label: "Histórico de versões", icon: <History size={16} />, disabled: !activeTab?.path, run: () => void openVersionHistory() },
             { id: "export", label: "Exportar PDF", shortcut: "Ctrl+P", icon: <FileText size={16} />, disabled: !activeTab || activeTab.language !== "markdown", run: () => void exportDocumentPdf() },
             { id: "settings", label: "Configurações", shortcut: "Ctrl+,", icon: <Settings size={16} />, run: openSettings },

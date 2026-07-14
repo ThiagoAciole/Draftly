@@ -132,7 +132,9 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
   };
 
   const getFormattedContentForPath = (tab: DocumentTab, path: string) =>
-    formatDocumentContent(tab.markdown, getLanguageForPath(path).id);
+    settings.codeEditor.formatOnSave
+      ? formatDocumentContent(tab.markdown, getLanguageForPath(path).id)
+      : Promise.resolve(tab.markdown);
 
   // Autosave: every 30s, save dirty tabs that have a path
   useEffect(() => {
