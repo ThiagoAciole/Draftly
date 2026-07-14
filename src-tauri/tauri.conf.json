@@ -35,19 +35,55 @@
       "icons/icon.ico",
       "icons/icon.png"
     ],
-    "resources": ["resources/file-markdown.ico"],
+    "resources": [
+      "resources/file-markdown.ico",
+      "resources/file-json.ico",
+      "resources/file-js.ico",
+      "resources/file-ts.ico",
+      "resources/file-py.ico",
+      "resources/file-html.ico"
+    ],
     "fileAssociations": [
       {
         "ext": ["md"],
-        "name": "Markdown",
+        "name": "Draftly.Markdown",
         "description": "Arquivo Markdown",
         "mimeType": "text/markdown",
         "role": "Editor"
       },
       {
-        "ext": ["json", "js", "ts", "py", "html"],
-        "name": "Draftly Code",
-        "description": "Arquivo de cÃ³digo compatÃ­vel com Draftly",
+        "ext": ["json"],
+        "name": "Draftly.JSON",
+        "description": "Arquivo JSON",
+        "mimeType": "application/json",
+        "role": "Editor"
+      },
+      {
+        "ext": ["js"],
+        "name": "Draftly.JavaScript",
+        "description": "Arquivo JavaScript",
+        "mimeType": "text/javascript",
+        "role": "Editor"
+      },
+      {
+        "ext": ["ts"],
+        "name": "Draftly.TypeScript",
+        "description": "Arquivo TypeScript",
+        "mimeType": "text/typescript",
+        "role": "Editor"
+      },
+      {
+        "ext": ["py"],
+        "name": "Draftly.Python",
+        "description": "Arquivo Python",
+        "mimeType": "text/x-python",
+        "role": "Editor"
+      },
+      {
+        "ext": ["html"],
+        "name": "Draftly.HTML",
+        "description": "Arquivo HTML",
+        "mimeType": "text/html",
         "role": "Editor"
       }
     ],
