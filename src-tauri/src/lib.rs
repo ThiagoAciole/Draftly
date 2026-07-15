@@ -7,10 +7,13 @@ fn ensure_supported_text_path(path: &str) -> Result<(), String> {
         .unwrap_or_default()
         .to_ascii_lowercase();
 
-    if matches!(extension.as_str(), "md" | "json" | "js" | "ts" | "py" | "html") {
+    if matches!(
+        extension.as_str(),
+        "md" | "txt" | "json" | "js" | "ts" | "py" | "html"
+    ) {
         Ok(())
     } else {
-        Err("O Draftly abre e salva arquivos .md, .json, .js, .ts, .py e .html".into())
+        Err("O Draftly abre e salva arquivos .md, .txt, .json, .js, .ts, .py e .html".into())
     }
 }
 
@@ -52,7 +55,12 @@ fn get_initial_text_file_path() -> Option<String> {
         Path::new(argument)
             .extension()
             .and_then(|value| value.to_str())
-            .is_some_and(|extension| matches!(extension.to_ascii_lowercase().as_str(), "md" | "json" | "js" | "ts" | "py" | "html"))
+            .is_some_and(|extension| {
+                matches!(
+                    extension.to_ascii_lowercase().as_str(),
+                    "md" | "txt" | "json" | "js" | "ts" | "py" | "html"
+                )
+            })
     })
 }
 

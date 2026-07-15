@@ -5,7 +5,7 @@ import { useTabsContext } from "../../contexts/TabsContext";
 import { useFileActions } from "../../contexts/FileActionsContext";
 import { useSettings } from "../../contexts/SettingsContext";
 import { EditorLoading } from "../editor/EditorLoading";
-import { MarkdownEditor, StatusBar } from "../editor/Editor.lazy";
+import { MarkdownEditor, PlainTextEditor, StatusBar } from "../editor/Editor.lazy";
 import { SourceEditor } from "../editor/SourceEditor";
 import { DocumentOutline } from "../editor/DocumentOutline";
 import { CommandPalette } from "../commands/CommandPalette";
@@ -40,6 +40,7 @@ export function AppShell() {
 
     // Preload editor chunk so first file open doesn't flash loading
     import("../editor/MarkdownEditor").then((m) => { void m.MarkdownEditor; });
+    import("../editor/PlainTextEditor").then((m) => { void m.PlainTextEditor; });
     import("../layout/StatusBar").then((m) => { void m.StatusBar; });
   }, [initializeWorkspace]);
 
@@ -56,6 +57,7 @@ export function AppShell() {
         void saveDocument();
       }
       if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "i") {
+        if (activeTab?.editorKind !== "code") return;
         event.preventDefault();
         void formatDocument();
       }
@@ -76,6 +78,7 @@ export function AppShell() {
         openSettings();
       }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") {
+        if (view === "editor" && activeTab?.editorKind === "plain-text") return;
         event.preventDefault();
         if (view === "editor" && activeTab?.editorKind === "visual-markdown" && editorMode === "visual") {
           openSearch();
@@ -115,8 +118,14 @@ export function AppShell() {
                   onChange={updateActiveMarkdown}
                   onSave={() => void saveDocument()}
                 />
+              ) : activeTab.editorKind === "plain-text" ? (
+                <PlainTextEditor
+                  key={activeTab.id}
+                  content={activeTab.markdown}
+                  onChange={updateActiveMarkdown}
+                />
               ) : (
-              <SourceEditor key={activeTab.id} content={activeTab.markdown} language={activeTab.language} showModeSwitch={activeTab.editorKind === "visual-markdown"} onChange={updateActiveMarkdown} />
+                <SourceEditor key={activeTab.id} content={activeTab.markdown} language={activeTab.language} showModeSwitch={activeTab.editorKind === "visual-markdown"} onChange={updateActiveMarkdown} />
               )}
               {activeTab.editorKind === "visual-markdown" ? <DocumentOutline markdown={activeTab.markdown} mode={editorMode} isOpen={isOutlineOpen} /> : null}
             </div>
@@ -144,8 +153,8 @@ export function AppShell() {
             { id: "open", label: "Abrir arquivo", shortcut: "Ctrl+O", icon: <FolderOpen size={16} />, run: () => void openDocument() },
             { id: "save", label: "Salvar", shortcut: "Ctrl+S", icon: <FileText size={16} />, disabled: !activeTab, run: () => void saveDocument() },
             { id: "source", label: editorMode === "visual" ? "Alternar para Markdown fonte" : "Alternar para editor visual", icon: <FileCode2 size={16} />, disabled: !activeTab || activeTab.editorKind !== "visual-markdown", run: toggleEditorMode },
-            { id: "format", label: "Formatar documento", shortcut: "Ctrl+Shift+I", icon: <WandSparkles size={16} />, disabled: !activeTab || activeTab.language === "markdown" || activeTab.language === "python", run: () => void formatDocument() },
-            { id: "search", label: "Buscar no arquivo", shortcut: "Ctrl+F", icon: <Search size={16} />, disabled: !activeTab, run: () => activeTab?.editorKind === "visual-markdown" && editorMode === "visual" ? openSearch() : openSourceEditorSearch() },
+            { id: "format", label: "Formatar documento", shortcut: "Ctrl+Shift+I", icon: <WandSparkles size={16} />, disabled: !activeTab || activeTab.editorKind !== "code" || activeTab.language === "python", run: () => void formatDocument() },
+            { id: "search", label: "Buscar no arquivo", shortcut: "Ctrl+F", icon: <Search size={16} />, disabled: !activeTab || activeTab.editorKind === "plain-text", run: () => activeTab?.editorKind === "visual-markdown" && editorMode === "visual" ? openSearch() : openSourceEditorSearch() },
             { id: "history", label: "Histórico de versões", icon: <History size={16} />, disabled: !activeTab?.path, run: () => void openVersionHistory() },
             { id: "export", label: "Exportar PDF", shortcut: "Ctrl+P", icon: <FileText size={16} />, disabled: !activeTab || activeTab.language !== "markdown", run: () => void exportDocumentPdf() },
             { id: "settings", label: "Configurações", shortcut: "Ctrl+,", icon: <Settings size={16} />, run: openSettings },

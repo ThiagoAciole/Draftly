@@ -37,6 +37,7 @@
     ],
     "resources": [
       "resources/file-markdown.ico",
+      "resources/file-txt.ico",
       "resources/file-json.ico",
       "resources/file-js.ico",
       "resources/file-ts.ico",
@@ -49,6 +50,13 @@
         "name": "Draftly.Markdown",
         "description": "Arquivo Markdown",
         "mimeType": "text/markdown",
+        "role": "Editor"
+      },
+      {
+        "ext": ["txt"],
+        "name": "Draftly.Text",
+        "description": "Arquivo de texto",
+        "mimeType": "text/plain",
         "role": "Editor"
       },
       {

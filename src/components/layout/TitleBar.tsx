@@ -19,7 +19,7 @@ export function TitleBar() {
   const showTabs = settings.appearance.showTabs;
   const showEditorActions = view === "editor" && hasTabs;
   const isVisualMarkdown = activeTab?.editorKind === "visual-markdown" && editorMode === "visual";
-  const showSearch = showEditorActions && activeTab != null;
+  const showSearch = showEditorActions && activeTab != null && activeTab.editorKind !== "plain-text";
   const showFormat = showEditorActions && activeTab?.editorKind === "code" && activeTab.language !== "python";
   const handleSearch = () => {
     if (isVisualMarkdown) openSearch();

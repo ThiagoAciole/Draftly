@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
-import { documentFileFilters, getLanguageForPath } from "./languages";
+import { documentFileFilters, getLanguageForPath, supportedDocumentFilter } from "./languages";
 import type { DocumentLanguage } from "./languages";
 
 export type TextFile = {
@@ -35,7 +35,7 @@ export async function readTextFile(path: string): Promise<TextFile> {
 export async function openTextFile(): Promise<TextFile | null> {
   const selected = await open({
     multiple: false,
-    filters: documentFileFilters,
+    filters: [supportedDocumentFilter],
   });
 
   if (typeof selected !== "string") {

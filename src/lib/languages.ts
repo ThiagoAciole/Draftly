@@ -1,5 +1,5 @@
-export type DocumentLanguage = "markdown" | "json" | "javascript" | "typescript" | "python" | "html";
-export type EditorKind = "visual-markdown" | "code";
+export type DocumentLanguage = "markdown" | "plaintext" | "json" | "javascript" | "typescript" | "python" | "html";
+export type EditorKind = "visual-markdown" | "plain-text" | "code";
 
 export type DocumentLanguageDefinition = {
   id: DocumentLanguage;
@@ -11,6 +11,7 @@ export type DocumentLanguageDefinition = {
 
 export const documentLanguages: DocumentLanguageDefinition[] = [
   { id: "markdown", label: "Markdown", extensions: ["md"], editorKind: "visual-markdown" },
+  { id: "plaintext", label: "Texto", extensions: ["txt"], editorKind: "plain-text" },
   { id: "json", label: "JSON", extensions: ["json"], editorKind: "code", prettierParser: "json" },
   { id: "javascript", label: "JavaScript", extensions: ["js"], editorKind: "code", prettierParser: "babel" },
   { id: "typescript", label: "TypeScript", extensions: ["ts"], editorKind: "code", prettierParser: "typescript" },
@@ -19,6 +20,11 @@ export const documentLanguages: DocumentLanguageDefinition[] = [
 ];
 
 export const supportedExtensions = documentLanguages.flatMap((language) => language.extensions);
+
+export const supportedDocumentFilter = {
+  name: "Arquivos suportados",
+  extensions: supportedExtensions,
+};
 
 export function getFileExtension(path: string): string | null {
   const name = path.split(/[\\/]/).pop() ?? path;

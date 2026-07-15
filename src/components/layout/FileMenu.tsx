@@ -11,7 +11,7 @@ export function FileMenu() {
     useFileActions();
   const { openSettings, view, editorMode, openSearch, isOutlineOpen, toggleOutline } = useWorkspace();
   const showEditorActions = view === "editor" && activeTab != null;
-  const showSearch = showEditorActions;
+  const showSearch = showEditorActions && activeTab.editorKind !== "plain-text";
   const showOutline = showEditorActions && activeTab.editorKind === "visual-markdown";
   const isVisualMarkdown = showOutline && editorMode === "visual";
   const handleSearch = () => {
@@ -87,7 +87,7 @@ export function FileMenu() {
             </span>
           </DropdownMenu.Item>
 
-          <DropdownMenu.Item className="title-menu-item" onSelect={() => void formatDocument()} disabled={!activeTab || activeTab.language === "markdown" || activeTab.language === "python"}>
+          <DropdownMenu.Item className="title-menu-item" onSelect={() => void formatDocument()} disabled={!activeTab || activeTab.editorKind !== "code" || activeTab.language === "python"}>
             <span className="title-menu-label"><WandSparkles size={15} />Formatar documento</span>
             <span className="title-menu-shortcut">Ctrl+Shift+I</span>
           </DropdownMenu.Item>
@@ -102,7 +102,7 @@ export function FileMenu() {
             <span className="title-menu-shortcut">Ctrl+,</span>
           </DropdownMenu.Item>
 
-          {showSearch || showEditorActions ? <DropdownMenu.Separator className="title-menu-separator title-menu-compact-action" /> : null}
+          {showSearch || showOutline ? <DropdownMenu.Separator className="title-menu-separator title-menu-compact-action" /> : null}
 
           {showSearch ? (
             <DropdownMenu.Item className="title-menu-item title-menu-compact-action" onSelect={handleSearch}>
