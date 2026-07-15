@@ -49,6 +49,17 @@ O comando incrementa e sincroniza as versões npm, Tauri e Cargo, executa as val
 
 Para uma versão minor ou major, use `npm run release:minor` ou `npm run release:major`.
 
+### Atualizar no Linux
+
+Depois de instalar o `.deb` uma vez, baixe o arquivo `update-draftly-linux.sh` da última Release e execute:
+
+```bash
+chmod +x update-draftly-linux.sh
+./update-draftly-linux.sh
+```
+
+O script baixa o pacote `.deb` mais recente da Release oficial e o instala sobre a versão atual usando o `apt` (Debian, Ubuntu e derivados).
+
 ## Licença
 
 Uso pessoal e experimental.
