@@ -1,6 +1,7 @@
 import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
 import { getFileName } from "../lib/fs";
+import { getLanguageForPath } from "../lib/languages";
 import type { DocumentLanguage, EditorKind } from "../lib/languages";
 import { isDocumentDirty } from "../lib/documentUtils";
 import { useWorkspace } from "./WorkspaceContext";
@@ -36,7 +37,7 @@ type TabsContextValue = {
   recentFiles: RecentFile[];
   activeTab: DocumentTab | null;
   tabsMeta: TabsMeta[];
-  createBlankTab: () => DocumentTab;
+  createBlankTab: (language?: DocumentLanguage) => DocumentTab;
   addTab: (tab: DocumentTab) => void;
   updateActiveMarkdown: (markdown: string) => void;
   switchTab: (id: string) => void;
@@ -85,17 +86,21 @@ export function TabsProvider({ children }: { children: ReactNode }) {
   const activeTab = tabs.find((t) => t.id === activeTabId) ?? tabs[0] ?? null;
   const tabsMeta: TabsMeta[] = tabs.map(({ id, path, name, isDirty }) => ({ id, path, name, isDirty }));
 
-  const createBlankTab = (): DocumentTab => ({
-    id: `tab-${nextTabId++}`,
-    path: null,
-    name: "Untitled.md",
-    language: "markdown",
-    editorKind: "visual-markdown",
-    markdown: "",
-    savedMarkdown: "",
-    isDirty: false,
-    lastSavedAt: null,
-  });
+  const createBlankTab = (language: DocumentLanguage = "markdown"): DocumentTab => {
+    const definition = getLanguageForPath(`Untitled.${language === "plaintext" ? "txt" : language}`);
+
+    return {
+      id: `tab-${nextTabId++}`,
+      path: null,
+      name: `Untitled.${definition.extensions[0]}`,
+      language: definition.id,
+      editorKind: definition.editorKind,
+      markdown: "",
+      savedMarkdown: "",
+      isDirty: false,
+      lastSavedAt: null,
+    };
+  };
 
   const addTab = (tab: DocumentTab) => {
     setTabs((prev) => [...prev, tab]);

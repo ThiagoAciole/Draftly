@@ -28,7 +28,7 @@ export function FileMenu() {
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content className="title-menu-content" align="end" sideOffset={8}>
-          <DropdownMenu.Item className="title-menu-item" onSelect={createDocument}>
+          <DropdownMenu.Item className="title-menu-item" onSelect={() => createDocument()}>
             <span className="title-menu-label">
               <FilePlus size={15} />
               Novo arquivo

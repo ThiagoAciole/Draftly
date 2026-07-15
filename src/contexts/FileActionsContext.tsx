@@ -20,10 +20,11 @@ import { UnsavedChangesDialog } from "../components/dialogs/UnsavedChangesDialog
 import { VersionHistoryDialog } from "../components/dialogs/VersionHistoryDialog";
 import { addVersionSnapshot, getVersionHistoryKey } from "../lib/versionHistory";
 import type { VersionSnapshot } from "../lib/versionHistory";
+import type { DocumentLanguage } from "../lib/languages";
 
 type FileActionsContextValue = {
   initializeWorkspace: () => Promise<void>;
-  createDocument: () => void;
+  createDocument: (language?: DocumentLanguage) => void;
   openDocument: () => Promise<void>;
   openDocumentFromPath: (path: string) => Promise<boolean>;
   saveDocument: () => Promise<void>;
@@ -251,8 +252,8 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const createDocument = () => {
-    const tab = createBlankTab();
+  const createDocument = (language?: DocumentLanguage) => {
+    const tab = createBlankTab(language);
     addTab(tab);
     setView("editor");
     setError(null);

@@ -3,11 +3,13 @@ import { useState } from "react";
 import appIcon from "../../assets/icon.svg";
 import { getFileIcon } from "../../lib/fileIcons";
 import type { RecentFile } from "../../contexts/TabsContext";
+import type { DocumentLanguage } from "../../lib/languages";
+import { NewDocumentDropdown } from "../ui/NewDocumentDropdown";
 
 type HomeProps = {
   recentFiles: RecentFile[];
   isBusy: boolean;
-  onCreate: () => void;
+  onCreate: (language: DocumentLanguage) => void;
   onOpen: () => void;
   onOpenRecent: (path: string) => Promise<boolean>;
   onRemoveRecent: (path: string) => void;
@@ -42,10 +44,12 @@ export function Home({ recentFiles, isBusy, onCreate, onOpen, onOpenRecent, onRe
               <FolderOpen size={18} />
               <span>Abrir arquivo</span>
             </button>
-            <button className="home-action is-secondary" type="button" onClick={onCreate}>
-              <Plus size={18} />
-              <span>Novo Arquivo</span>
-            </button>
+            <NewDocumentDropdown className="home-new-document-menu" onCreate={onCreate}>
+              <button className="home-action is-secondary" type="button" aria-label="Novo arquivo" aria-haspopup="menu">
+                <Plus size={18} />
+                <span>Novo Arquivo</span>
+              </button>
+            </NewDocumentDropdown>
           </div>
         </div>
 

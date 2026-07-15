@@ -80,6 +80,36 @@
   color: #ffffff;
 }
 
+.new-document-menu {
+  z-index: 60;
+  min-width: 134px;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #3b3b3b;
+  color: #d8dbe3;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+}
+
+.new-document-menu-item {
+  display: flex;
+  align-items: center;
+  min-height: 34px;
+  gap: 9px;
+  padding: 0 9px;
+  border-radius: 7px;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+}
+
+.new-document-menu-item[data-highlighted] {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
 .recent-files {
   display: flex;
   flex-direction: column;

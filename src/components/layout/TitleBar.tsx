@@ -8,6 +8,7 @@ import { FileTabs } from "./FileTabs";
 import { WindowControls } from "./WindowControls";
 import appIcon from "../../assets/icon.svg";
 import { openSourceEditorSearch } from "../../lib/editorEvents";
+import { NewDocumentDropdown } from "../ui/NewDocumentDropdown";
 
 export function TitleBar() {
   const { setView, view, openSearch, editorMode, isOutlineOpen, toggleOutline } = useWorkspace();
@@ -43,17 +44,13 @@ export function TitleBar() {
       <div className="tab-strip" data-tauri-drag-region>
         {showTabs ? <FileTabs /> : null}
         {hasTabs ? (
-          <button
-            className="new-tab-button"
-            type="button"
-            aria-label="Novo arquivo"
-            title="Novo arquivo"
-            onClick={createDocument}
-          >
-            <span className="new-tab-button-icon">
-              <Plus size={14} />
-            </span>
-          </button>
+          <NewDocumentDropdown className="title-new-document-menu" onCreate={createDocument}>
+            <button className="new-tab-button" type="button" aria-label="Novo arquivo" title="Novo arquivo" aria-haspopup="menu">
+              <span className="new-tab-button-icon">
+                <Plus size={14} />
+              </span>
+            </button>
+          </NewDocumentDropdown>
         ) : null}
       </div>
 
