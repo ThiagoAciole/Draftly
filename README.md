@@ -9,7 +9,7 @@ Escreva no modo visual ou edite o Markdown fonte, sem depender de conta, nuvem o
 - Edição visual e Markdown fonte
 - Abas, arquivos recentes e salvamento local
 - Busca, estrutura do documento e exportação para PDF
-- Suporte exclusivo a arquivos `.md`
+- Suporte a Markdown, texto simples, JSON, JavaScript, TypeScript, Python e HTML
 - Interface escura, responsiva e focada na escrita
 
 ## Tecnologias
@@ -39,14 +39,15 @@ As versões publicadas no GitHub incluem:
 - `*-setup.exe` — instalador Windows (NSIS)
 - `*.deb` — pacote para Debian e Ubuntu
 
-Para publicar uma versão, atualize a versão do projeto e envie uma tag:
+Para publicar a próxima versão patch, deixe o Git limpo e execute:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+npm run release:patch
 ```
 
-O GitHub Actions cria a Release e anexa os três arquivos automaticamente.
+O comando incrementa e sincroniza as versões npm, Tauri e Cargo, executa as validações, cria o commit e a tag e envia tudo ao GitHub. A tag dispara o GitHub Actions, que cria a Release e anexa os três arquivos automaticamente.
+
+Para uma versão minor ou major, use `npm run release:minor` ou `npm run release:major`.
 
 ## Licença
 
