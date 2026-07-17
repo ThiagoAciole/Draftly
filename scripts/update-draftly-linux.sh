@@ -24,7 +24,7 @@ fi
 
 echo "Procurando a versao mais recente do Draftly..."
 release_json="$(curl --fail --silent --show-error --location "$RELEASE_API")"
-asset_url="$(printf '%s' "$release_json" | grep -oE '"browser_download_url"[[:space:]]*:[[:space:]]*"[^"]+\.deb"' | head -n 1 | sed -E 's/^[^\"]*"(https:[^\"]+)"$/\1/')"
+asset_url="$(printf '%s' "$release_json" | grep -oE 'https://[^"]+\.deb' | head -n 1)"
 
 if [ -z "$asset_url" ]; then
   echo "Nenhum pacote .deb foi encontrado na ultima Release do Draftly."
@@ -40,6 +40,30 @@ if [ "$(id -u)" -eq 0 ]; then
   apt install --yes "$package_path"
 else
   sudo apt install --yes "$package_path"
+fi
+
+echo "Atualizando cache de ícones..."
+
+update_icon_cache() {
+  if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+    touch /usr/share/icons/hicolor
+    gtk-update-icon-cache -t -f /usr/share/icons/hicolor 2>/dev/null || true
+  fi
+  if command -v update-mime-database >/dev/null 2>&1; then
+    update-mime-database /usr/share/mime 2>/dev/null || true
+  fi
+  if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database /usr/share/applications 2>/dev/null || true
+  fi
+}
+
+if [ "$(id -u)" -eq 0 ]; then
+  update_icon_cache
+else
+  sudo sh -c "
+    $(declare -f update_icon_cache)
+    update_icon_cache
+  "
 fi
 
 echo "Draftly atualizado com sucesso."

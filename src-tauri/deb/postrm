@@ -1,0 +1,25 @@
+#!/bin/sh
+set -e
+
+# Remove os ícones de tipo MIME do Draftly
+for icon_name in text-markdown text-plain application-json text-javascript text-typescript text-x-python text-html; do
+  for size in 16x16 32x32 48x48 64x64 128x128 256x256; do
+    rm -f "/usr/share/icons/hicolor/${size}/mimetypes/${icon_name}.png"
+  done
+done
+
+# Reconstroi os caches
+if [ -x "$(command -v gtk-update-icon-cache)" ]; then
+  touch /usr/share/icons/hicolor
+  gtk-update-icon-cache -t -f /usr/share/icons/hicolor
+fi
+
+if [ -x "$(command -v update-mime-database)" ]; then
+  update-mime-database /usr/share/mime
+fi
+
+if [ -x "$(command -v update-desktop-database)" ]; then
+  update-desktop-database /usr/share/applications
+fi
+
+echo "[Draftly] Ícones MIME removidos."

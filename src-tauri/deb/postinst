@@ -1,0 +1,20 @@
+#!/bin/sh
+set -e
+
+# Atualiza o banco de dados MIME para reconhecer os novos tipos
+if [ -x "$(command -v update-mime-database)" ]; then
+  update-mime-database /usr/share/mime
+fi
+
+# Atualiza o cache de ícones do tema hicolor
+if [ -x "$(command -v gtk-update-icon-cache)" ]; then
+  touch /usr/share/icons/hicolor
+  gtk-update-icon-cache -t -f /usr/share/icons/hicolor
+fi
+
+# Atualiza o banco de dados do desktop
+if [ -x "$(command -v update-desktop-database)" ]; then
+  update-desktop-database /usr/share/applications
+fi
+
+echo "[Draftly] Ícones e tipos MIME atualizados."

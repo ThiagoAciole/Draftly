@@ -421,34 +421,33 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
       startScrollLeft: element.scrollLeft,
       moved: false,
     };
-    element.setPointerCapture(event.pointerId);
-  };
 
-  const handleToolbarPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const element = event.currentTarget;
-    const drag = toolbarDragRef.current;
-    if (drag.pointerId !== event.pointerId) return;
+    // Use global listeners instead of setPointerCapture to avoid
+    // redirecting click events away from toolbar buttons.
+    const handleMove = (e: PointerEvent) => {
+      if (e.pointerId !== toolbarDragRef.current.pointerId) return;
+      const distance = e.clientX - toolbarDragRef.current.startX;
+      if (Math.abs(distance) > 3) {
+        toolbarDragRef.current.moved = true;
+        element.scrollLeft = toolbarDragRef.current.startScrollLeft - distance;
+        updateToolbarScroll();
+        e.preventDefault();
+      }
+    };
 
-    const distance = event.clientX - drag.startX;
-    if (Math.abs(distance) > 3) {
-      drag.moved = true;
-      element.scrollLeft = drag.startScrollLeft - distance;
-      updateToolbarScroll();
-      event.preventDefault();
-    }
-  };
+    const handleUp = (e: PointerEvent) => {
+      if (e.pointerId !== toolbarDragRef.current.pointerId) return;
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+      if (toolbarDragRef.current.moved) {
+        suppressToolbarClickRef.current = true;
+        requestAnimationFrame(() => { suppressToolbarClickRef.current = false; });
+      }
+      toolbarDragRef.current.pointerId = 0;
+    };
 
-  const handleToolbarPointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const element = event.currentTarget;
-    const drag = toolbarDragRef.current;
-    if (drag.pointerId !== event.pointerId) return;
-
-    if (element.hasPointerCapture(event.pointerId)) element.releasePointerCapture(event.pointerId);
-    if (drag.moved) {
-      suppressToolbarClickRef.current = true;
-      requestAnimationFrame(() => { suppressToolbarClickRef.current = false; });
-    }
-    toolbarDragRef.current.pointerId = 0;
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", handleUp);
   };
 
   const isStyleActive = (style: string) =>
@@ -572,9 +571,6 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         className="editor-toolbar-scroll-area"
         onScroll={updateToolbarScroll}
         onPointerDown={handleToolbarPointerDown}
-        onPointerMove={handleToolbarPointerMove}
-        onPointerUp={handleToolbarPointerEnd}
-        onPointerCancel={handleToolbarPointerEnd}
         onClickCapture={(event) => {
           if (!suppressToolbarClickRef.current) return;
           event.preventDefault();

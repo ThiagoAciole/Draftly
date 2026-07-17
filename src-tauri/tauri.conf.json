@@ -95,6 +95,54 @@
         "role": "Editor"
       }
     ],
+    "linux": {
+      "deb": {
+        "files": {
+          "/usr/share/icons/hicolor/16x16/mimetypes/text-markdown.png": "icons/mimetypes/16x16/text-markdown.png",
+          "/usr/share/icons/hicolor/32x32/mimetypes/text-markdown.png": "icons/mimetypes/32x32/text-markdown.png",
+          "/usr/share/icons/hicolor/48x48/mimetypes/text-markdown.png": "icons/mimetypes/48x48/text-markdown.png",
+          "/usr/share/icons/hicolor/64x64/mimetypes/text-markdown.png": "icons/mimetypes/64x64/text-markdown.png",
+          "/usr/share/icons/hicolor/128x128/mimetypes/text-markdown.png": "icons/mimetypes/128x128/text-markdown.png",
+          "/usr/share/icons/hicolor/256x256/mimetypes/text-markdown.png": "icons/mimetypes/256x256/text-markdown.png",
+          "/usr/share/icons/hicolor/16x16/mimetypes/text-plain.png": "icons/mimetypes/16x16/text-plain.png",
+          "/usr/share/icons/hicolor/32x32/mimetypes/text-plain.png": "icons/mimetypes/32x32/text-plain.png",
+          "/usr/share/icons/hicolor/48x48/mimetypes/text-plain.png": "icons/mimetypes/48x48/text-plain.png",
+          "/usr/share/icons/hicolor/64x64/mimetypes/text-plain.png": "icons/mimetypes/64x64/text-plain.png",
+          "/usr/share/icons/hicolor/128x128/mimetypes/text-plain.png": "icons/mimetypes/128x128/text-plain.png",
+          "/usr/share/icons/hicolor/256x256/mimetypes/text-plain.png": "icons/mimetypes/256x256/text-plain.png",
+          "/usr/share/icons/hicolor/16x16/mimetypes/application-json.png": "icons/mimetypes/16x16/application-json.png",
+          "/usr/share/icons/hicolor/32x32/mimetypes/application-json.png": "icons/mimetypes/32x32/application-json.png",
+          "/usr/share/icons/hicolor/48x48/mimetypes/application-json.png": "icons/mimetypes/48x48/application-json.png",
+          "/usr/share/icons/hicolor/64x64/mimetypes/application-json.png": "icons/mimetypes/64x64/application-json.png",
+          "/usr/share/icons/hicolor/128x128/mimetypes/application-json.png": "icons/mimetypes/128x128/application-json.png",
+          "/usr/share/icons/hicolor/256x256/mimetypes/application-json.png": "icons/mimetypes/256x256/application-json.png",
+          "/usr/share/icons/hicolor/16x16/mimetypes/text-javascript.png": "icons/mimetypes/16x16/text-javascript.png",
+          "/usr/share/icons/hicolor/32x32/mimetypes/text-javascript.png": "icons/mimetypes/32x32/text-javascript.png",
+          "/usr/share/icons/hicolor/48x48/mimetypes/text-javascript.png": "icons/mimetypes/48x48/text-javascript.png",
+          "/usr/share/icons/hicolor/64x64/mimetypes/text-javascript.png": "icons/mimetypes/64x64/text-javascript.png",
+          "/usr/share/icons/hicolor/128x128/mimetypes/text-javascript.png": "icons/mimetypes/128x128/text-javascript.png",
+          "/usr/share/icons/hicolor/256x256/mimetypes/text-javascript.png": "icons/mimetypes/256x256/text-javascript.png",
+          "/usr/share/icons/hicolor/16x16/mimetypes/text-typescript.png": "icons/mimetypes/16x16/text-typescript.png",
+          "/usr/share/icons/hicolor/32x32/mimetypes/text-typescript.png": "icons/mimetypes/32x32/text-typescript.png",
+          "/usr/share/icons/hicolor/48x48/mimetypes/text-typescript.png": "icons/mimetypes/48x48/text-typescript.png",
+          "/usr/share/icons/hicolor/64x64/mimetypes/text-typescript.png": "icons/mimetypes/64x64/text-typescript.png",
+          "/usr/share/icons/hicolor/128x128/mimetypes/text-typescript.png": "icons/mimetypes/128x128/text-typescript.png",
+          "/usr/share/icons/hicolor/256x256/mimetypes/text-typescript.png": "icons/mimetypes/256x256/text-typescript.png",
+          "/usr/share/icons/hicolor/16x16/mimetypes/text-x-python.png": "icons/mimetypes/16x16/text-x-python.png",
+          "/usr/share/icons/hicolor/32x32/mimetypes/text-x-python.png": "icons/mimetypes/32x32/text-x-python.png",
+          "/usr/share/icons/hicolor/48x48/mimetypes/text-x-python.png": "icons/mimetypes/48x48/text-x-python.png",
+          "/usr/share/icons/hicolor/64x64/mimetypes/text-x-python.png": "icons/mimetypes/64x64/text-x-python.png",
+          "/usr/share/icons/hicolor/128x128/mimetypes/text-x-python.png": "icons/mimetypes/128x128/text-x-python.png",
+          "/usr/share/icons/hicolor/256x256/mimetypes/text-x-python.png": "icons/mimetypes/256x256/text-x-python.png",
+          "/usr/share/icons/hicolor/16x16/mimetypes/text-html.png": "icons/mimetypes/16x16/text-html.png",
+          "/usr/share/icons/hicolor/32x32/mimetypes/text-html.png": "icons/mimetypes/32x32/text-html.png",
+          "/usr/share/icons/hicolor/48x48/mimetypes/text-html.png": "icons/mimetypes/48x48/text-html.png",
+          "/usr/share/icons/hicolor/64x64/mimetypes/text-html.png": "icons/mimetypes/64x64/text-html.png",
+          "/usr/share/icons/hicolor/128x128/mimetypes/text-html.png": "icons/mimetypes/128x128/text-html.png",
+          "/usr/share/icons/hicolor/256x256/mimetypes/text-html.png": "icons/mimetypes/256x256/text-html.png"
+        }
+      }
+    },
     "windows": {
       "nsis": {
         "installMode": "perMachine",
