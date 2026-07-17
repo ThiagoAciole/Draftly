@@ -7,8 +7,10 @@ import {
 } from "@blocknote/react";
 import {
   Bold,
+  Check,
   ChevronLeft,
   ChevronRight,
+  Clipboard,
   Code2,
   Heading1,
   Heading2,
@@ -28,6 +30,7 @@ import {
 } from "lucide-react";
 import type { KeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { marked } from "marked";
 
 type EditorToolbarProps = {
   editor: BlockNoteEditor;
@@ -54,6 +57,27 @@ function FormatButton({ label, active, disabled, onClick, children }: FormatButt
       {children}
     </button>
   );
+}
+
+function markdownToPlainText(markdown: string) {
+  const document = new DOMParser().parseFromString(marked.parse(markdown) as string, "text/html");
+  return document.body.innerText.trimEnd();
+}
+
+async function copyToClipboard(text: string) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textArea = document.createElement("textarea");
+  textArea.value = text;
+  textArea.style.position = "fixed";
+  textArea.style.opacity = "0";
+  document.body.appendChild(textArea);
+  textArea.select();
+  document.execCommand("copy");
+  textArea.remove();
 }
 
 type LinkModalProps = {
@@ -364,11 +388,19 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
   const [linkInitialText, setLinkInitialText] = useState("");
   const [toolbarScroll, setToolbarScroll] = useState({ left: false, right: false });
   const [showImageModal, setShowImageModal] = useState(false);
+  const [hasCopiedText, setHasCopiedText] = useState(false);
   const selectedBlocks = useSelectedBlocks(editor);
   const colorButtonRef = useRef<HTMLButtonElement>(null);
   const toolbarScrollRef = useRef<HTMLDivElement>(null);
   const toolbarDragRef = useRef({ pointerId: 0, startX: 0, startScrollLeft: 0, moved: false });
   const suppressToolbarClickRef = useRef(false);
+  const copiedTextTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => () => {
+    if (copiedTextTimeoutRef.current !== null) {
+      window.clearTimeout(copiedTextTimeoutRef.current);
+    }
+  }, []);
 
   const clearOptimistic = useCallback(() => {
     setOptimisticStyles({});
@@ -528,6 +560,22 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
 
   const handleImageClick = () => setShowImageModal(true);
 
+  const handleCopyPlainText = async () => {
+    const markdown = editor.blocksToMarkdownLossy(editor.document);
+    const plainText = markdownToPlainText(markdown);
+
+    await copyToClipboard(plainText);
+    setHasCopiedText(true);
+
+    if (copiedTextTimeoutRef.current !== null) {
+      window.clearTimeout(copiedTextTimeoutRef.current);
+    }
+    copiedTextTimeoutRef.current = window.setTimeout(() => {
+      setHasCopiedText(false);
+      copiedTextTimeoutRef.current = null;
+    }, 1600);
+  };
+
   const handleImageConfirm = (url: string) => {
     setShowImageModal(false);
     editor.focus();
@@ -658,6 +706,13 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         </FormatButton>
         <FormatButton label="Imagem" onClick={handleImageClick}>
           <Image size={17} />
+        </FormatButton>
+        <span className="format-separator" />
+        <FormatButton
+          label={hasCopiedText ? "Texto limpo copiado" : "Copiar texto limpo"}
+          onClick={() => void handleCopyPlainText()}
+        >
+          {hasCopiedText ? <Check size={17} /> : <Clipboard size={17} />}
         </FormatButton>
         </div>
       </div>
