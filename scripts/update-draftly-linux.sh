@@ -22,18 +22,27 @@ if ! command -v curl >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "Procurando a versao mais recente do Draftly..."
-release_json="$(curl --fail --silent --show-error --location "$RELEASE_API")"
-asset_url="$(printf '%s' "$release_json" | grep -oE 'https://[^"]+\.deb' | head -n 1)"
+SCRIPT_DIR="$(CDPATH="" cd -- "$(dirname -- "$0")" 2>/dev/null || true; pwd -P)"
+LOCAL_DEB_DIR="$SCRIPT_DIR/../src-tauri/target/release/bundle/deb"
+LOCAL_DEB="$(ls -1t "$LOCAL_DEB_DIR"/Draftly_*.deb 2>/dev/null | head -n 1 || true)"
 
-if [ -z "$asset_url" ]; then
-  echo "Nenhum pacote .deb foi encontrado na ultima Release do Draftly."
-  exit 1
+if [ -n "$LOCAL_DEB" ] && [ -f "$LOCAL_DEB" ]; then
+  package_path="$LOCAL_DEB"
+  echo "Usando pacote local: $package_path"
+else
+  echo "Procurando a versao mais recente do Draftly..."
+  release_json="$(curl --fail --silent --show-error --location "$RELEASE_API")"
+  asset_url="$(printf '%s' "$release_json" | grep -oE 'https://[^"]+\.deb' | head -n 1)"
+
+  if [ -z "$asset_url" ]; then
+    echo "Nenhum pacote .deb foi encontrado na ultima Release do Draftly."
+    exit 1
+  fi
+
+  package_path="$TEMP_DIR/draftly.deb"
+  echo "Baixando: $asset_url"
+  curl --fail --silent --show-error --location "$asset_url" --output "$package_path"
 fi
-
-package_path="$TEMP_DIR/draftly.deb"
-echo "Baixando: $asset_url"
-curl --fail --silent --show-error --location "$asset_url" --output "$package_path"
 
 echo "Atualizando o Draftly..."
 if [ "$(id -u)" -eq 0 ]; then

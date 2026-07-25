@@ -13,6 +13,7 @@ import { Home } from "../home/Home";
 import { SearchBar } from "../search/SearchBar";
 import { SettingsModal } from "../settings/SettingsModal";
 import { TitleBar } from "./TitleBar";
+import { WindowResizeHandles } from "./WindowResizeHandles";
 import { openSourceEditorSearch } from "../../lib/editorEvents";
 import "../../styles/settings.css";
 import "../../styles/search.css";
@@ -102,6 +103,7 @@ export function AppShell() {
 
   return (
     <div className="app-shell">
+      <WindowResizeHandles />
       <TitleBar />
       {error ? (
         <button className="error-banner" type="button" onClick={clearError}>

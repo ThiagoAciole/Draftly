@@ -92,8 +92,6 @@
   line-height: 1.72;
   tab-size: 4;
   caret-color: var(--text);
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-  scrollbar-width: thin;
 }
 
 .plain-text-input::placeholder {
@@ -470,7 +468,6 @@
   display: flex;
   flex: 0 0 0;
   flex-direction: column;
-  min-width: 0;
   overflow: hidden;
   border-left: 0 solid var(--border-soft);
   background: var(--bg-elevated);
@@ -507,6 +504,7 @@
 .document-outline-item {
   width: 100%;
   overflow: hidden;
+  min-height: 28px;
   border: 0;
   border-radius: 6px;
   padding-block: 6px;
@@ -748,7 +746,7 @@
 
 .blocknote-editor .bn-editor {
   min-height: inherit;
-  padding: 8px 0 72px;
+  padding: 0 0 72px;
   background: transparent;
   color: var(--text);
 }
@@ -773,10 +771,12 @@
 
 .blocknote-editor .bn-block-content {
   margin: 0;
+  padding: 0 !important;
 }
 
 .blocknote-editor .bn-block-content[data-content-type="heading"] {
-  margin: 0.7rem 0 0.35rem;
+  margin: 0 0 0.35rem;
+  padding-top: 0 !important;
   color: #f2f4f8;
   line-height: 1.15;
   letter-spacing: 0;
@@ -831,17 +831,31 @@
 
 .blocknote-editor .bn-block-content[data-content-type="codeBlock"] {
   margin: 1.25rem 0;
-  padding: 16px;
+  padding: 0;
   overflow: auto;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: #2d2d2d;
 }
 
+.blocknote-editor .bn-block-content[data-content-type="codeBlock"] * {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.blocknote-editor .bn-block-content[data-content-type="codeBlock"] > pre,
+.blocknote-editor .bn-block-content[data-content-type="codeBlock"] > div,
+.blocknote-editor .bn-block-content[data-content-type="codeBlock"] > .ProseMirror,
+.blocknote-editor .bn-block-content[data-content-type="codeBlock"] .bn-editor {
+  padding: 0 !important;
+  margin: 0;
+}
+
 .blocknote-editor .bn-block-content[data-content-type="codeBlock"] code {
   padding: 0;
   background: transparent;
   color: #e1e5ee;
+  line-height: 1.7;
 }
 
 .blocknote-editor .bn-block-content[data-content-type="divider"],

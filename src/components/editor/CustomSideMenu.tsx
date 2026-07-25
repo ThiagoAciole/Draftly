@@ -26,7 +26,8 @@ function DeleteBlockButton() {
   return (
     <Components.SideMenu.Button
       label="Deletar bloco"
-      icon={<Trash2 size={15} onClick={() => editor.removeBlocks([block])} />}
+      icon={<Trash2 size={15} />}
+      onClick={() => editor.removeBlocks([block])}
     />
   );
 }
@@ -66,26 +67,13 @@ function CustomDragHandleMenu() {
 const AnyDragHandleButton: any = DragHandleButton;
 
 function CustomSideMenu(props: SideMenuProps) {
-  const referencePos = useExtensionState(SideMenuExtension, {
-    selector: (s) => s?.referencePos,
-  });
-  const blockHeight = referencePos?.height ?? 0;
-
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        height: Math.max(blockHeight, 30),
-      }}
-    >
-      <SideMenu {...props}>
-        <DeleteBlockButton />
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-        <AddBlockButton {...(props as any)} />
-        <AnyDragHandleButton dragHandleMenu={CustomDragHandleMenu} />
-      </SideMenu>
-    </div>
+    <SideMenu {...props}>
+      <DeleteBlockButton />
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+      <AddBlockButton {...(props as any)} />
+      <AnyDragHandleButton dragHandleMenu={CustomDragHandleMenu} />
+    </SideMenu>
   );
 }
 

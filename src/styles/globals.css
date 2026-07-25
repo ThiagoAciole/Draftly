@@ -42,6 +42,29 @@
   background: transparent;
 }
 
+*::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
 html,
 body,
 #root {
@@ -363,26 +386,55 @@ button {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
 }
 
-/* Side menu (drag handle) */
+/*
+ * Side menu — alinhamento vertical com a primeira linha do bloco
+ *
+ * BlockNote (v0.51.4) define alturas fixas por tipo de bloco:
+ *   parágrafo: 30px, h1: 108px, h2: 84px, h3: 67px
+ *
+ * Essas alturas foram pensadas para Inter 16px. O Draftly usa
+ * Cantarell com tamanhos maiores (18px base, headings maiores).
+ * Corrigimos apenas as alturas para casar com o line-height real
+ * de cada bloco — o Mantine Group (align-items: center) cuida
+ * do resto automaticamente.
+ */
 
+/* --- container --- */
+
+.bn-side-menu,
 .bn-mantine .bn-side-menu {
-  display: flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  margin-right: 12px !important;
-  background: transparent !important;
-  height: 100% !important;
+  gap: 9px !important;
+  margin-right: 4px !important;
+  background-color: transparent !important;
+  overflow: visible !important;
 }
 
-.bn-mantine .bn-side-menu .mantine-ActionIcon-root {
-  border-radius: 6px !important;
-  background: transparent !important;
-  color: #7a7f8f !important;
+/* --- parágrafo e blocos padrão: 18px * 1.65 = 29.7px --- */
+
+.bn-side-menu:not([data-block-type]),
+.bn-mantine .bn-side-menu:not([data-block-type]),
+.bn-side-menu[data-block-type="paragraph"],
+.bn-mantine .bn-side-menu[data-block-type="paragraph"] {
+  height: 30px !important;
 }
 
-.bn-mantine .bn-side-menu .mantine-ActionIcon-root:hover {
-  background: rgba(255, 255, 255, 0.08) !important;
-  color: #c8cbd3 !important;
+/* --- headings: altura = font-size * line-height --- */
+/* h1: 34px * 1.15 = 39.1px */
+.bn-side-menu[data-block-type="heading"][data-level="1"],
+.bn-mantine .bn-side-menu[data-block-type="heading"][data-level="1"] {
+  height: 39px !important;
+}
+
+/* h2: 25px * 1.15 = 28.75px */
+.bn-side-menu[data-block-type="heading"][data-level="2"],
+.bn-mantine .bn-side-menu[data-block-type="heading"][data-level="2"] {
+  height: 29px !important;
+}
+
+/* h3: 20px * 1.15 = 23px */
+.bn-side-menu[data-block-type="heading"][data-level="3"],
+.bn-mantine .bn-side-menu[data-block-type="heading"][data-level="3"] {
+  height: 23px !important;
 }
 
 /* Table handles (drag + extend buttons) */
@@ -396,7 +448,7 @@ button {
   box-shadow: 0 2px 6px rgba(124, 124, 124, 0.18) !important;
   color: #7a7f8f !important;
   margin: 8px !important;
-  transition: background 120ms ease, color 120ms ease, border-color 120ms ease !important;
+  transition: background 500ms ease, color 500ms ease, border-color 500ms ease !important;
 }
 
 .bn-mantine .bn-table-handle:hover,
