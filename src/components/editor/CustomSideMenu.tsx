@@ -4,7 +4,6 @@ import {
   DragHandleButton,
   DragHandleMenu,
   SideMenu,
-  SideMenuController,
   useBlockNoteEditor,
   useComponentsContext,
   useExtensionState,
@@ -12,6 +11,7 @@ import {
 import type { SideMenuProps } from "@blocknote/react";
 import { SeparatorHorizontal, Trash2 } from "lucide-react";
 import React from "react";
+import { PremiumSideMenuController } from "./PremiumSideMenuController";
 
 function DeleteBlockButton() {
   const editor = useBlockNoteEditor();
@@ -78,5 +78,5 @@ function CustomSideMenu(props: SideMenuProps) {
 }
 
 export function CustomSideMenuController() {
-  return <SideMenuController sideMenu={CustomSideMenu} />;
+  return <PremiumSideMenuController sideMenu={CustomSideMenu} />;
 }

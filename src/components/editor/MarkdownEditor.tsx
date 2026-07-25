@@ -16,6 +16,7 @@ import { CustomSideMenuController } from "./CustomSideMenu";
 import { EditorToolbar } from "./EditorToolbar";
 import { EditorModeSwitch } from "./EditorModeSwitch";
 import { getSlashMenuItems } from "./slashMenu";
+import { normalizeImportedMarkdown } from "../../lib/normalizeImportedMarkdown";
 
 type MarkdownEditorProps = {
   markdown: string;
@@ -35,7 +36,9 @@ const initialScrollThumb = {
 };
 
 function parseMarkdown(editor: BlockNoteEditor, markdown: string) {
-  const blocks = editor.tryParseMarkdownToBlocks(markdown);
+  const blocks = editor.tryParseMarkdownToBlocks(
+    normalizeImportedMarkdown(markdown),
+  );
   return blocks.length > 0 ? blocks : [EMPTY_BLOCK];
 }
 

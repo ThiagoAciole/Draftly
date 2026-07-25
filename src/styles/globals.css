@@ -409,34 +409,6 @@ button {
   overflow: visible !important;
 }
 
-/* --- parágrafo e blocos padrão: 18px * 1.65 = 29.7px --- */
-
-.bn-side-menu:not([data-block-type]),
-.bn-mantine .bn-side-menu:not([data-block-type]),
-.bn-side-menu[data-block-type="paragraph"],
-.bn-mantine .bn-side-menu[data-block-type="paragraph"] {
-  height: 30px !important;
-}
-
-/* --- headings: altura = font-size * line-height --- */
-/* h1: 34px * 1.15 = 39.1px */
-.bn-side-menu[data-block-type="heading"][data-level="1"],
-.bn-mantine .bn-side-menu[data-block-type="heading"][data-level="1"] {
-  height: 39px !important;
-}
-
-/* h2: 25px * 1.15 = 28.75px */
-.bn-side-menu[data-block-type="heading"][data-level="2"],
-.bn-mantine .bn-side-menu[data-block-type="heading"][data-level="2"] {
-  height: 29px !important;
-}
-
-/* h3: 20px * 1.15 = 23px */
-.bn-side-menu[data-block-type="heading"][data-level="3"],
-.bn-mantine .bn-side-menu[data-block-type="heading"][data-level="3"] {
-  height: 23px !important;
-}
-
 /* Table handles (drag + extend buttons) */
 
 .bn-mantine .bn-table-handle,
