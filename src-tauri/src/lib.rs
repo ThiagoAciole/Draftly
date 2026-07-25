@@ -1,5 +1,10 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::sync::Mutex;
+use std::time::Duration;
+use tauri::State;
 
 const SUPPORTED_IMAGE_EXTENSIONS: &[&str] = &["avif", "gif", "jpeg", "jpg", "png", "svg", "webp"];
 
@@ -8,6 +13,171 @@ const SUPPORTED_IMAGE_EXTENSIONS: &[&str] = &["avif", "gif", "jpeg", "jpg", "png
 struct StoredImageAsset {
     relative_path: String,
     absolute_path: String,
+}
+
+fn parse_windows_registry_value(output: &str, name: &str) -> Option<String> {
+    output
+        .lines()
+        .find_map(|line| {
+            line.trim()
+                .strip_prefix(name)
+                .and_then(|value| value.trim_start().strip_prefix("REG_SZ"))
+                .map(str::trim)
+        })
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned)
+}
+
+fn read_windows_user_environment_variable(name: &str) -> Option<String> {
+    let output = Command::new("reg.exe")
+        .args(["query", r"HKCU\Environment", "/v", name])
+        .output()
+        .ok()
+        .filter(|output| output.status.success())?;
+
+    parse_windows_registry_value(&String::from_utf8_lossy(&output.stdout), name)
+}
+
+fn gemini_api_key_from_environment() -> Option<String> {
+    ["GEMINI_API_KEY", "GOOGLE_API_KEY"]
+        .into_iter()
+        .find_map(|name| {
+            read_windows_user_environment_variable(name).or_else(|| std::env::var(name).ok())
+        })
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+}
+
+#[derive(Deserialize)]
+struct GeminiResponse {
+    steps: Option<Vec<GeminiStep>>,
+}
+#[derive(Deserialize)]
+struct GeminiStep {
+    #[serde(rename = "type")]
+    kind: String,
+    content: Option<Vec<GeminiPart>>,
+}
+#[derive(Deserialize)]
+struct GeminiPart {
+    text: Option<String>,
+}
+
+#[derive(Default)]
+struct GeminiRequestRegistry(Mutex<HashMap<String, tokio::sync::oneshot::Sender<()>>>);
+
+impl GeminiRequestRegistry {
+    fn insert(&self, request_id: String) -> tokio::sync::oneshot::Receiver<()> {
+        let (sender, receiver) = tokio::sync::oneshot::channel();
+        self.0
+            .lock()
+            .expect("registro Gemini indisponível")
+            .insert(request_id, sender);
+        receiver
+    }
+
+    fn cancel(&self, request_id: &str) -> bool {
+        self.0
+            .lock()
+            .expect("registro Gemini indisponível")
+            .remove(request_id)
+            .is_some_and(|sender| sender.send(()).is_ok())
+    }
+
+    fn remove(&self, request_id: &str) {
+        self.0
+            .lock()
+            .expect("registro Gemini indisponível")
+            .remove(request_id);
+    }
+}
+
+#[tauri::command]
+fn has_gemini_api_key_in_environment() -> bool {
+    gemini_api_key_from_environment().is_some()
+}
+
+#[tauri::command]
+fn open_gemini_environment_settings() -> Result<(), String> {
+    Command::new("rundll32.exe")
+        .arg("sysdm.cpl,EditEnvironmentVariables")
+        .spawn()
+        .map(|_| ())
+        .map_err(|error| {
+            format!("Não foi possível abrir as Variáveis de Ambiente do Windows: {error}")
+        })
+}
+
+#[tauri::command]
+async fn run_gemini_action(
+    prompt: String,
+    model: String,
+    request_id: String,
+    registry: State<'_, GeminiRequestRegistry>,
+) -> Result<String, String> {
+    if prompt.trim().is_empty() {
+        return Err("Não há conteúdo para analisar.".into());
+    }
+    if request_id.trim().is_empty() {
+        return Err("Identificador de solicitação inválido.".into());
+    }
+    let api_key = gemini_api_key_from_environment().ok_or_else(|| {
+        "Defina a variável GEMINI_API_KEY no Windows e reinicie o Draftly.".to_string()
+    })?;
+    let model = if model.trim().is_empty() {
+        "gemini-3.5-flash-lite"
+    } else {
+        model.trim()
+    };
+    let url = "https://generativelanguage.googleapis.com/v1beta/interactions";
+    let mut cancellation = registry.insert(request_id.clone());
+    let request = reqwest::Client::builder()
+        .timeout(Duration::from_secs(12))
+        .build()
+        .map_err(|error| error.to_string())?
+        .post(url)
+        .header("x-goog-api-key", api_key)
+        .header("Api-Revision", "2026-05-20")
+        .json(&serde_json::json!({
+            "model": model,
+            "input": prompt,
+            "store": false,
+            "generation_config": { "thinking_level": "low" }
+        }));
+    let response = tokio::select! {
+        _ = &mut cancellation => Err("A solicitação Gemini foi cancelada.".to_string()),
+        response = request.send() => response.map_err(|_| "A Gemini não respondeu em até 12 segundos. Verifique sua internet e tente novamente.".to_string()),
+    };
+    registry.remove(&request_id);
+    let response = response?;
+    if !response.status().is_success() {
+        let status = response.status();
+        let detail = response.text().await.unwrap_or_default();
+        return Err(format!(
+            "A Gemini recusou a solicitação ({status}). {detail}"
+        ));
+    }
+    let payload: GeminiResponse = response
+        .json()
+        .await
+        .map_err(|_| "A Gemini retornou uma resposta inválida.".to_string())?;
+    payload
+        .steps
+        .and_then(|steps| {
+            steps
+                .into_iter()
+                .rev()
+                .find(|step| step.kind == "model_output")
+        })
+        .and_then(|step| step.content)
+        .and_then(|parts| parts.into_iter().find_map(|part| part.text))
+        .filter(|text| !text.trim().is_empty())
+        .ok_or_else(|| "A Gemini não retornou conteúdo.".into())
+}
+
+#[tauri::command]
+fn cancel_gemini_action(request_id: String, registry: State<'_, GeminiRequestRegistry>) -> bool {
+    registry.cancel(&request_id)
 }
 
 fn ensure_supported_text_path(path: &str) -> Result<(), String> {
@@ -83,7 +253,11 @@ fn sanitize_image_file_name(file_name: &str) -> Result<(String, String), String>
         })
         .collect();
     let safe_stem = safe_stem.trim_matches('-');
-    let safe_stem = if safe_stem.is_empty() { "imagem" } else { safe_stem };
+    let safe_stem = if safe_stem.is_empty() {
+        "imagem"
+    } else {
+        safe_stem
+    };
 
     Ok((safe_stem.to_string(), extension))
 }
@@ -170,21 +344,54 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .expect("system clock must be after Unix epoch")
             .as_nanos();
-        let directory = std::env::temp_dir().join(format!("draftly-tests-{}-{nonce}", std::process::id()));
+        let directory =
+            std::env::temp_dir().join(format!("draftly-tests-{}-{nonce}", std::process::id()));
         std::fs::create_dir_all(&directory).expect("temporary directory must be created");
         directory
     }
 
     #[test]
     fn accepts_only_supported_text_extensions_case_insensitively() {
-        for path in ["nota.md", "README.TXT", "dados.json", "app.js", "app.ts", "script.py", "index.html"] {
-            assert!(ensure_supported_text_path(path).is_ok(), "{path} should be supported");
+        for path in [
+            "nota.md",
+            "README.TXT",
+            "dados.json",
+            "app.js",
+            "app.ts",
+            "script.py",
+            "index.html",
+        ] {
+            assert!(
+                ensure_supported_text_path(path).is_ok(),
+                "{path} should be supported"
+            );
         }
 
         assert!(ensure_supported_text_path("arquivo.pdf").is_err());
         assert!(ensure_supported_text_path("sem-extensao").is_err());
         assert!(ensure_pdf_path("exportacao.pdf").is_ok());
         assert!(ensure_pdf_path("exportacao.md").is_err());
+    }
+
+    #[test]
+    fn reads_a_gemini_key_from_the_persisted_windows_user_environment() {
+        let registry_output =
+            "\r\nHKEY_CURRENT_USER\\Environment\r\n    GEMINI_API_KEY    REG_SZ    test-key\r\n";
+
+        assert_eq!(
+            parse_windows_registry_value(registry_output, "GEMINI_API_KEY"),
+            Some("test-key".to_string())
+        );
+    }
+
+    #[test]
+    fn cancels_a_pending_gemini_request() {
+        let registry = GeminiRequestRegistry::default();
+        let mut cancellation = registry.insert("request-1".to_string());
+
+        assert!(registry.cancel("request-1"));
+        assert!(cancellation.try_recv().is_ok());
+        assert!(!registry.cancel("request-1"));
     }
 
     #[test]
@@ -242,6 +449,7 @@ mod tests {
 
 pub fn run() {
     tauri::Builder::default()
+        .manage(GeminiRequestRegistry::default())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
@@ -250,7 +458,11 @@ pub fn run() {
             write_text_file,
             store_image_asset,
             write_pdf_file,
-            get_initial_text_file_path
+            get_initial_text_file_path,
+            has_gemini_api_key_in_environment,
+            open_gemini_environment_settings,
+            run_gemini_action,
+            cancel_gemini_action
         ])
         .run(tauri::generate_context!())
         .expect("error while running Draftly");

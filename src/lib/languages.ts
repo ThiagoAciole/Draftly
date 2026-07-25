@@ -11,7 +11,7 @@ export type DocumentLanguageDefinition = {
 
 export const documentLanguages: DocumentLanguageDefinition[] = [
   { id: "markdown", label: "Markdown", extensions: ["md"], editorKind: "visual-markdown" },
-  { id: "plaintext", label: "Texto", extensions: ["txt"], editorKind: "plain-text" },
+  { id: "plaintext", label: "Texto", extensions: ["txt"], editorKind: "visual-markdown" },
   { id: "json", label: "JSON", extensions: ["json"], editorKind: "code", prettierParser: "json" },
   { id: "javascript", label: "JavaScript", extensions: ["js"], editorKind: "code", prettierParser: "babel" },
   { id: "typescript", label: "TypeScript", extensions: ["ts"], editorKind: "code", prettierParser: "typescript" },

@@ -1,5 +1,5 @@
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { FileCode2, FileText, FileType } from "lucide-react";
+import { FileCode2, FileText } from "lucide-react";
 import type { ReactNode } from "react";
 import type { DocumentLanguage } from "../../lib/languages";
 
@@ -13,7 +13,6 @@ type NewDocumentDropdownProps = {
 const documentTypes: Array<{ language: DocumentLanguage; label: string; icon: typeof FileText }> = [
   { language: "markdown", label: "Markdown", icon: FileText },
   { language: "json", label: "JSON", icon: FileCode2 },
-  { language: "plaintext", label: "Texto", icon: FileType },
 ];
 
 export function NewDocumentDropdown({ children, className, onCreate, sideOffset = 8 }: NewDocumentDropdownProps) {

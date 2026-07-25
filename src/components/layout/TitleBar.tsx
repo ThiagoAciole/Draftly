@@ -1,4 +1,4 @@
-import { Check, Clipboard, ListTree, Plus, Search, Sparkles, WandSparkles } from "lucide-react";
+import { Check, Clipboard, ListTree, Plus, Search, WandSparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useWorkspace } from "../../contexts/WorkspaceContext";
 import { useTabsContext } from "../../contexts/TabsContext";
@@ -11,11 +11,12 @@ import appIcon from "../../assets/icon.svg";
 import { openSourceEditorSearch } from "../../lib/editorEvents";
 import { copyTextToClipboard, markdownToPlainText } from "../../lib/clipboard";
 import { NewDocumentDropdown } from "../ui/NewDocumentDropdown";
+import { MarkdownAiMenu } from "../ai/MarkdownAiMenu";
 
 export function TitleBar() {
   const { setView, view, openSearch, editorMode, isOutlineOpen, toggleOutline } = useWorkspace();
-  const { tabsMeta, activeTab } = useTabsContext();
-  const { createDocument, formatDocument, formatMarkdownDocument } = useFileActions();
+  const { tabsMeta, activeTab, updateActiveMarkdown } = useTabsContext();
+  const { createDocument, formatDocument } = useFileActions();
   const { settings } = useSettings();
   const [hasCopiedText, setHasCopiedText] = useState(false);
   const copiedTextTimeoutRef = useRef<number | null>(null);
@@ -114,17 +115,7 @@ export function TitleBar() {
             <WandSparkles size={16} />
           </button>
         ) : null}
-        {showMarkdownFormatter ? (
-          <button
-            className="titlebar-button titlebar-compact-action"
-            type="button"
-            aria-label="Organizar Markdown"
-            title="Organizar Markdown"
-            onClick={formatMarkdownDocument}
-          >
-            <Sparkles size={16} />
-          </button>
-        ) : null}
+        {showMarkdownFormatter && activeTab ? <MarkdownAiMenu content={activeTab.markdown} onApply={updateActiveMarkdown} onError={() => {}} /> : null}
         {showEditorActions && activeTab?.editorKind === "visual-markdown" ? (
           <button
             className={`titlebar-button titlebar-compact-action ${isOutlineOpen ? "is-active" : ""}`}

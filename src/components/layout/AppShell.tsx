@@ -5,7 +5,7 @@ import { useTabsContext } from "../../contexts/TabsContext";
 import { useFileActions } from "../../contexts/FileActionsContext";
 import { useSettings } from "../../contexts/SettingsContext";
 import { EditorLoading } from "../editor/EditorLoading";
-import { MarkdownEditor, PlainTextEditor, StatusBar } from "../editor/Editor.lazy";
+import { MarkdownEditor, StatusBar } from "../editor/Editor.lazy";
 import { SourceEditor } from "../editor/SourceEditor";
 import { DocumentOutline } from "../editor/DocumentOutline";
 import { CommandPalette } from "../commands/CommandPalette";
@@ -43,7 +43,6 @@ export function AppShell() {
 
     // Preload editor chunk so first file open doesn't flash loading
     import("../editor/MarkdownEditor").then((m) => { void m.MarkdownEditor; });
-    import("../editor/PlainTextEditor").then((m) => { void m.PlainTextEditor; });
     import("../layout/StatusBar").then((m) => { void m.StatusBar; });
   }, [initializeWorkspace]);
 
@@ -116,12 +115,6 @@ export function AppShell() {
                   markdown={activeTab.markdown}
                   onChange={updateActiveMarkdown}
                   onError={setError}
-                />
-              ) : activeTab.editorKind === "plain-text" ? (
-                <PlainTextEditor
-                  key={activeTab.id}
-                  content={activeTab.markdown}
-                  onChange={updateActiveMarkdown}
                 />
               ) : (
                 <SourceEditor key={activeTab.id} content={activeTab.markdown} language={activeTab.language} showModeSwitch={activeTab.editorKind === "visual-markdown"} onChange={updateActiveMarkdown} />

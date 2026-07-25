@@ -9,6 +9,7 @@ import {
   saveTextFile,
   exportMarkdownToPdf,
 } from "../lib/fs";
+import type { TextFile } from "../lib/fs";
 import { formatDocumentContent } from "../lib/formatDocument";
 import { getLanguageForPath } from "../lib/languages";
 import { useTabsContext } from "./TabsContext";
@@ -26,6 +27,7 @@ import { getRecoverableDrafts } from "../lib/recoveryDrafts";
 import type { RecoverableDraft } from "../lib/recoveryDrafts";
 import { retryOnce } from "../lib/retry";
 import { formatPlainTextAsMarkdown } from "../lib/smartMarkdown";
+import { getTemporaryMarkdownName, isTextImportPath } from "../lib/txtImport";
 
 type FileActionsContextValue = {
   initializeWorkspace: () => Promise<void>;
@@ -104,7 +106,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
         const tab = tabsRef.current.find((current) => current.id === pendingTab.id);
         if (!tab || !tab.isDirty) continue;
 
-        const targetPath = tab.path ?? (await pickTextSavePath());
+        const targetPath = tab.path ?? (await pickTextSavePath(tab.name));
         if (!targetPath) {
           resolveCloseDecision(false);
           return;
@@ -153,6 +155,28 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
     settings.codeEditor.formatOnSave
       ? formatDocumentContent(tab.markdown, getLanguageForPath(path).id)
       : Promise.resolve(tab.markdown);
+
+  const createTabFromFile = (file: TextFile): DocumentTab => {
+    if (isTextImportPath(file.path)) {
+      return {
+        ...createBlankTab("markdown"),
+        name: getTemporaryMarkdownName(file.name),
+        markdown: file.content,
+        savedMarkdown: "",
+        isDirty: file.content.length > 0,
+      };
+    }
+
+    return {
+      ...createBlankTab(),
+      path: file.path,
+      name: file.name,
+      language: file.language,
+      editorKind: getLanguageForPath(file.path).editorKind,
+      markdown: file.content,
+      savedMarkdown: file.content,
+    };
+  };
 
   useEffect(() => {
     if (!store) return;
@@ -307,15 +331,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
             for (const path of session.paths) {
               try {
                 const file = await readTextFile(path);
-                const tab = {
-                  ...createBlankTab(),
-                  path: file.path,
-                  name: file.name,
-                  language: file.language,
-                  editorKind: getLanguageForPath(file.path).editorKind,
-                  markdown: file.content,
-                  savedMarkdown: file.content,
-                };
+                const tab = createTabFromFile(file);
                 addTab(tab);
                 restoredTabs.push(tab);
                 addRecentFile(file.path);
@@ -338,15 +354,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
         return;
       }
       const file = await readTextFile(initialPath);
-      const tab = {
-        ...createBlankTab(),
-        path: file.path,
-        name: file.name,
-        language: file.language,
-        editorKind: getLanguageForPath(file.path).editorKind,
-        markdown: file.content,
-        savedMarkdown: file.content,
-      };
+      const tab = createTabFromFile(file);
       addTab(tab);
       addRecentFile(file.path);
       setView("editor");
@@ -379,15 +387,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const tab = {
-        ...createBlankTab(),
-        path: file.path,
-        name: file.name,
-        language: file.language,
-        editorKind: getLanguageForPath(file.path).editorKind,
-        markdown: file.content,
-        savedMarkdown: file.content,
-      };
+      const tab = createTabFromFile(file);
       addTab(tab);
       addRecentFile(file.path);
       setView("editor");
@@ -409,15 +409,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
         switchTab(existing.id);
         return true;
       }
-      const tab = {
-        ...createBlankTab(),
-        path: file.path,
-        name: file.name,
-        language: file.language,
-        editorKind: getLanguageForPath(file.path).editorKind,
-        markdown: file.content,
-        savedMarkdown: file.content,
-      };
+      const tab = createTabFromFile(file);
       addTab(tab);
       addRecentFile(file.path);
       setView("editor");
@@ -432,7 +424,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
 
   const saveDocument = async () => {
     if (!activeTab) return;
-    const targetPath = activeTab.path ?? (await pickTextSavePath());
+    const targetPath = activeTab.path ?? (await pickTextSavePath(activeTab.name));
     if (!targetPath) return;
 
     setIsBusy(true);
@@ -464,7 +456,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
 
   const saveDocumentAs = async () => {
     if (!activeTab) return;
-    const targetPath = await pickTextSavePath(activeTab.path);
+    const targetPath = await pickTextSavePath(activeTab.path ?? activeTab.name);
     if (!targetPath) return;
 
     setIsBusy(true);

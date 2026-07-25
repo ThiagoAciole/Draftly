@@ -14,7 +14,7 @@ import {
   TableHandlesController,
   useCreateBlockNote,
 } from "@blocknote/react";
-import type { PointerEvent as ReactPointerEvent } from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CalloutBlock } from "./CalloutBlock";
 import { CustomSideMenuController } from "./CustomSideMenu";
@@ -30,6 +30,8 @@ import { exportBlocksToHtml } from "../../lib/fs";
 import { storeImageAsset } from "../../lib/fs";
 import { EXPORT_VISUAL_HTML_EVENT } from "../../lib/editorEvents";
 import { handleSelectAllShortcut } from "../../lib/editorShortcuts";
+import { getResizedEditorCanvasWidth, MIN_EDITOR_CANVAS_WIDTH } from "../../lib/editorCanvasWidth";
+import { AiSelectionMenu } from "../ai/AiSelectionMenu";
 import {
   getImageAssetAbsolutePath,
   isImportableImage,
@@ -135,6 +137,7 @@ export function MarkdownEditor({
   const isApplyingExternalContent = useRef(false);
   const [scrollThumb, setScrollThumb] = useState(initialScrollThumb);
   const [isScrollbarActive, setIsScrollbarActive] = useState(false);
+  const [canvasWidth, setCanvasWidth] = useState(920);
 
   const editor = useCreateBlockNote({
     animations: false,
@@ -221,6 +224,13 @@ export function MarkdownEditor({
       window.requestAnimationFrame(updateScrollThumb);
     }
   }, [editor, markdown, path, updateScrollThumb]);
+
+  useEffect(() => {
+    const editorElement = editor.domElement;
+    if (!editorElement) return;
+    editorElement.setAttribute("spellcheck", "true");
+    editorElement.setAttribute("lang", "pt-BR");
+  }, [editor]);
 
   const handleEditorChange = (nextEditor: BlockNoteEditor<any, any, any>) => {
     if (isApplyingExternalContent.current) return;
@@ -323,12 +333,11 @@ export function MarkdownEditor({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!(event.ctrlKey || event.metaKey)) return;
-
-      const key = event.key.toLowerCase();
-
       const isEditorFocused = editor.domElement?.contains(document.activeElement);
       if (!isEditorFocused) return;
+
+      const key = event.key.toLowerCase();
+      if (!(event.ctrlKey || event.metaKey)) return;
 
       if (key === "z") {
         event.preventDefault();
@@ -442,8 +451,32 @@ export function MarkdownEditor({
     window.addEventListener("pointerup", handlePointerUp);
   };
 
+  const handleCanvasResizeStart = (side: "left" | "right") => (event: ReactPointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const initialWidth = canvasWidth;
+    const maximumWidth = Math.max(
+      MIN_EDITOR_CANVAS_WIDTH,
+      (scrollAreaRef.current?.clientWidth ?? window.innerWidth) - 48,
+    );
+    const startX = event.clientX;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      setCanvasWidth(getResizedEditorCanvasWidth(initialWidth, moveEvent.clientX - startX, side, maximumWidth));
+    };
+    const handlePointerUp = () => {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+  };
+
   return (
-    <section className="editor-surface">
+    <section className="editor-surface" style={{ "--editor-canvas-width": `${canvasWidth}px` } as CSSProperties}>
       <div className="editor-toolbar-row">
         <EditorToolbar editor={editor} />
         <EditorModeSwitch />
@@ -461,6 +494,7 @@ export function MarkdownEditor({
         renderEditor={false}
         theme="dark"
       >
+        <AiSelectionMenu editor={editor} onError={onError} />
         <CustomSideMenuController />
         <TableHandlesController
           extendButton={DraftlyExtendButton}
@@ -479,8 +513,12 @@ export function MarkdownEditor({
             ref={scrollAreaRef}
             onScroll={handleEditorScroll}
           >
-            <div className="editor-canvas">
+            <div className="editor-canvas-resize-frame">
+              <div className="editor-canvas-resizer is-left" onPointerDown={handleCanvasResizeStart("left")} role="separator" aria-label="Diminuir ou aumentar largura do texto" aria-orientation="vertical" />
+              <div className="editor-canvas-resizer is-right" onPointerDown={handleCanvasResizeStart("right")} role="separator" aria-label="Diminuir ou aumentar largura do texto" aria-orientation="vertical" />
+              <div className="editor-canvas">
               <BlockNoteViewEditor />
+              </div>
             </div>
           </main>
           <div

@@ -25,6 +25,10 @@ export type AppSettings = {
     formatOnSave: boolean;
     autocomplete: boolean;
   };
+  ai: {
+    enabled: boolean;
+    model: string;
+  };
 };
 
 export const DEFAULTS: AppSettings = {
@@ -46,6 +50,10 @@ export const DEFAULTS: AppSettings = {
     showLineNumbers: true,
     formatOnSave: true,
     autocomplete: true,
+  },
+  ai: {
+    enabled: true,
+    model: "gemini-3.5-flash-lite",
   },
 };
 
@@ -111,6 +119,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           if (stored.general) merged.general = { ...DEFAULTS.general, ...stored.general };
           if (stored.appearance) merged.appearance = { ...DEFAULTS.appearance, ...stored.appearance };
           if (stored.codeEditor) merged.codeEditor = { ...DEFAULTS.codeEditor, ...stored.codeEditor };
+          if (stored.ai) merged.ai = { ...DEFAULTS.ai, ...stored.ai };
           setSettings(merged);
           applyCssVars(merged);
         }
