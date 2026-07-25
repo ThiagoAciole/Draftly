@@ -242,6 +242,54 @@
 .version-history-item p { margin: 5px 0 0; color: var(--faint); font-size: 12px; white-space: pre-wrap; }
 .version-history-empty { margin: 24px 0; color: var(--faint); font-size: 13px; }
 
+.external-changes-dialog {
+  position: fixed;
+  z-index: 601;
+  top: 50%;
+  left: 50%;
+  width: min(760px, calc(100vw - 32px));
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 22px;
+  background: var(--bg-elevated);
+  box-shadow: 0 20px 56px rgba(0, 0, 0, 0.45);
+}
+
+.external-changes-comparison {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.external-changes-comparison section {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.external-changes-comparison h3 {
+  margin: 0;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.external-changes-comparison pre {
+  max-height: 280px;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  color: var(--text);
+  font: 12px/1.5 var(--code-font, monospace);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .command-palette-overlay {
   position: fixed;
   inset: 0;

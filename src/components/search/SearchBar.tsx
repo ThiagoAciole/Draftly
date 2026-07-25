@@ -1,8 +1,10 @@
-import { ChevronDown, ChevronUp, Search, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Replace, Search, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type SearchBarProps = {
   onClose: () => void;
+  onReplace: (query: string, replacement: string, matchIndex: number) => boolean;
+  onReplaceAll: (query: string, replacement: string) => number;
 };
 
 type TextRange = {
@@ -11,8 +13,9 @@ type TextRange = {
   end: number;
 };
 
-export function SearchBar({ onClose }: SearchBarProps) {
+export function SearchBar({ onClose, onReplace, onReplaceAll }: SearchBarProps) {
   const [query, setQuery] = useState("");
+  const [replacement, setReplacement] = useState("");
   const [matchIndex, setMatchIndex] = useState(0);
   const [matchCount, setMatchCount] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -164,6 +167,26 @@ export function SearchBar({ onClose }: SearchBarProps) {
     inputRef.current?.focus();
   };
 
+  const refreshMatches = useCallback(() => {
+    const matches = findMatches(query);
+    matchesRef.current = matches;
+    setMatchCount(matches.length);
+    const nextIndex = matches.length > 0 ? Math.min(Math.max(matchIndex, 1), matches.length) : 0;
+    setMatchIndex(nextIndex);
+    applyHighlights(matches, nextIndex);
+  }, [applyHighlights, findMatches, matchIndex, query]);
+
+  const handleReplace = () => {
+    if (!query || matchIndex === 0) return;
+    if (!onReplace(query, replacement, matchIndex - 1)) return;
+    window.setTimeout(refreshMatches, 0);
+  };
+
+  const handleReplaceAll = () => {
+    if (!query || onReplaceAll(query, replacement) === 0) return;
+    window.setTimeout(refreshMatches, 0);
+  };
+
   useEffect(() => {
     inputRef.current?.focus();
     inputRef.current?.select();
@@ -255,6 +278,20 @@ export function SearchBar({ onClose }: SearchBarProps) {
           onChange={(e) => setQuery(e.target.value)}
         />
       </div>
+      <input
+        className="search-bar-replace-input"
+        type="text"
+        placeholder="Substituir por..."
+        value={replacement}
+        onChange={(event) => setReplacement(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key !== "Enter") return;
+          event.preventDefault();
+          event.stopPropagation();
+          handleReplace();
+        }}
+        aria-label="Substituir por"
+      />
 
       {hasQuery ? (
         <>
@@ -283,6 +320,25 @@ export function SearchBar({ onClose }: SearchBarProps) {
             <ChevronDown size={16} />
           </button>
 
+          <button
+            className="search-bar-replace"
+            type="button"
+            title="Substituir ocorrência atual"
+            disabled={!hasMatches}
+            onClick={handleReplace}
+          >
+            <Replace size={15} />
+            Substituir
+          </button>
+          <button
+            className="search-bar-replace"
+            type="button"
+            title="Substituir todas as ocorrências"
+            disabled={!hasMatches}
+            onClick={handleReplaceAll}
+          >
+            Tudo
+          </button>
           <button
             className="search-bar-clear"
             type="button"

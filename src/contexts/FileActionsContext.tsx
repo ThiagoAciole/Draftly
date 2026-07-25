@@ -18,9 +18,13 @@ import { useSettings } from "./SettingsContext";
 import { getRestoredActiveTabId } from "../lib/documentUtils";
 import { UnsavedChangesDialog } from "../components/dialogs/UnsavedChangesDialog";
 import { VersionHistoryDialog } from "../components/dialogs/VersionHistoryDialog";
+import { ExternalChangesDialog } from "../components/dialogs/ExternalChangesDialog";
 import { addVersionSnapshot, getVersionHistoryKey } from "../lib/versionHistory";
 import type { VersionSnapshot } from "../lib/versionHistory";
 import type { DocumentLanguage } from "../lib/languages";
+import { getRecoverableDrafts } from "../lib/recoveryDrafts";
+import type { RecoverableDraft } from "../lib/recoveryDrafts";
+import { retryOnce } from "../lib/retry";
 
 type FileActionsContextValue = {
   initializeWorkspace: () => Promise<void>;
@@ -37,10 +41,19 @@ type FileActionsContextValue = {
 };
 
 const SESSION_KEY = "last-session";
+const RECOVERY_KEY = "recovery-drafts";
 
 type SessionData = {
   paths: string[];
   activeTabPath: string | null;
+};
+
+type ExternalChange = {
+  tabId: string;
+  fileName: string;
+  path: string;
+  localContent: string;
+  diskContent: string;
 };
 
 const FileActionsContext = createContext<FileActionsContextValue | null>(null);
@@ -55,6 +68,8 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
   const [pendingCloseTabs, setPendingCloseTabs] = useState<DocumentTab[] | null>(null);
   const [isSavingBeforeClose, setIsSavingBeforeClose] = useState(false);
   const [versionHistory, setVersionHistory] = useState<VersionSnapshot[] | null>(null);
+  const [externalChange, setExternalChange] = useState<ExternalChange | null>(null);
+  const ignoredExternalChanges = useRef(new Map<string, string>());
   tabsRef.current = tabs;
 
   const resolveCloseDecision = (canClose: boolean) => {
@@ -137,6 +152,25 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
       ? formatDocumentContent(tab.markdown, getLanguageForPath(path).id)
       : Promise.resolve(tab.markdown);
 
+  useEffect(() => {
+    if (!store) return;
+
+    const timeout = window.setTimeout(() => {
+      const drafts = getRecoverableDrafts(tabsRef.current);
+      void (async () => {
+        try {
+          if (drafts.length === 0) await store.delete(RECOVERY_KEY);
+          else await store.set(RECOVERY_KEY, drafts);
+          await store.save();
+        } catch {
+          // A versão em memória continua disponível mesmo se o armazenamento local falhar.
+        }
+      })();
+    }, 1_000);
+
+    return () => window.clearTimeout(timeout);
+  }, [store, tabs]);
+
   // Autosave: every 30s, save dirty tabs that have a path
   useEffect(() => {
     if (!settings.general.autosave) return;
@@ -147,7 +181,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
         try {
           await saveVersionSnapshot(tab);
           const content = await getFormattedContentForPath(tab, tab.path!);
-          await saveTextFile(tab.path!, content);
+          await retryOnce(() => saveTextFile(tab.path!, content));
           replaceTab({
             ...tab,
             markdown: content,
@@ -156,6 +190,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
             lastSavedAt: new Date(),
           });
         } catch {
+          setError("O salvamento automático falhou após duas tentativas. Suas alterações continuam abertas; use Ctrl+S para tentar novamente.");
           // Silently skip — autosave failures shouldn't disrupt the user
         }
       }
@@ -164,6 +199,33 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
     const id = window.setInterval(autosave, 30_000);
     return () => window.clearInterval(id);
   }, [settings.general.autosave, replaceTab]);
+
+  useEffect(() => {
+    if (externalChange) return;
+
+    const checkExternalChanges = async () => {
+      for (const tab of tabsRef.current) {
+        if (!tab.path) continue;
+
+        try {
+          const file = await readTextFile(tab.path);
+          if (file.content === tab.savedMarkdown || ignoredExternalChanges.current.get(tab.path) === file.content) continue;
+          setExternalChange({ tabId: tab.id, fileName: tab.name, path: tab.path, localContent: tab.markdown, diskContent: file.content });
+          return;
+        } catch {
+          // Arquivos removidos ou indisponíveis continuam com o conteúdo aberto na aba.
+        }
+      }
+    };
+
+    const interval = window.setInterval(() => void checkExternalChanges(), 15_000);
+    const onFocus = () => void checkExternalChanges();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [externalChange]);
 
   // Persist session on beforeunload
   useEffect(() => {
@@ -191,6 +253,48 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
     setError(null);
     try {
       const initialPath = await getInitialTextFilePath();
+
+      if (!initialPath && store) {
+        const drafts = (await store.get<RecoverableDraft[]>(RECOVERY_KEY)) ?? [];
+        if (drafts.length > 0) {
+          for (const draft of drafts) {
+            let savedMarkdown = draft.savedMarkdown;
+            let path = draft.path;
+            let name = draft.name;
+            let language = getLanguageForPath(draft.path ?? draft.name).id;
+            let editorKind = getLanguageForPath(draft.path ?? draft.name).editorKind;
+
+            if (draft.path) {
+              try {
+                const file = await readTextFile(draft.path);
+                savedMarkdown = file.content;
+                path = file.path;
+                name = file.name;
+                language = file.language;
+                editorKind = getLanguageForPath(file.path).editorKind;
+              } catch {
+                path = null;
+              }
+            }
+
+            addTab({
+              ...createBlankTab(language),
+              path,
+              name,
+              language,
+              editorKind,
+              markdown: draft.markdown,
+              savedMarkdown,
+              isDirty: draft.markdown !== savedMarkdown,
+            });
+          }
+          await store.delete(RECOVERY_KEY);
+          await store.save();
+          setError("Rascunhos não salvos foram recuperados.");
+          setView("editor");
+          return;
+        }
+      }
 
       // Session restore takes precedence over CLI args
       if (settings.general.restoreSession && !initialPath && store) {
@@ -431,6 +535,36 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
     setVersionHistory(null);
   };
 
+  const keepExternalChange = () => {
+    if (!externalChange) return;
+    const tab = tabsRef.current.find((current) => current.id === externalChange.tabId);
+    if (tab) {
+      replaceTab({
+        ...tab,
+        savedMarkdown: externalChange.diskContent,
+        isDirty: tab.markdown !== externalChange.diskContent,
+      });
+    }
+    ignoredExternalChanges.current.set(externalChange.path, externalChange.diskContent);
+    setExternalChange(null);
+  };
+
+  const reloadExternalChange = () => {
+    if (!externalChange) return;
+    const tab = tabsRef.current.find((current) => current.id === externalChange.tabId);
+    if (tab) {
+      replaceTab({
+        ...tab,
+        markdown: externalChange.diskContent,
+        savedMarkdown: externalChange.diskContent,
+        isDirty: false,
+        lastSavedAt: new Date(),
+      });
+    }
+    ignoredExternalChanges.current.delete(externalChange.path);
+    setExternalChange(null);
+  };
+
   const closeDocument = async (id: string): Promise<boolean> => {
     const tab = tabs.find((t) => t.id === id);
     if (!tab) return false;
@@ -439,7 +573,18 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
-  const canCloseApp = () => requestCloseDecision(tabs);
+  const canCloseApp = async () => {
+    const canClose = await requestCloseDecision(tabs);
+    if (canClose && store) {
+      try {
+        await store.delete(RECOVERY_KEY);
+        await store.save();
+      } catch {
+        // O fechamento não deve ser bloqueado se a limpeza local falhar.
+      }
+    }
+    return canClose;
+  };
 
   return (
     <FileActionsContext.Provider
@@ -472,6 +617,15 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
           snapshots={versionHistory}
           onClose={() => setVersionHistory(null)}
           onRestore={restoreVersion}
+        />
+      ) : null}
+      {externalChange ? (
+        <ExternalChangesDialog
+          fileName={externalChange.fileName}
+          localContent={externalChange.localContent}
+          diskContent={externalChange.diskContent}
+          onKeep={keepExternalChange}
+          onReload={reloadExternalChange}
         />
       ) : null}
     </FileActionsContext.Provider>

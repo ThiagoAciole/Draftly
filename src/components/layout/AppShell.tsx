@@ -15,6 +15,7 @@ import { SettingsModal } from "../settings/SettingsModal";
 import { TitleBar } from "./TitleBar";
 import { WindowResizeHandles } from "./WindowResizeHandles";
 import { openSourceEditorSearch } from "../../lib/editorEvents";
+import { replaceLiteralMatch, replaceLiteralMatches } from "../../lib/visualSearch";
 import "../../styles/settings.css";
 import "../../styles/search.css";
 
@@ -131,7 +132,21 @@ export function AppShell() {
               )}
               {activeTab.editorKind === "visual-markdown" ? <DocumentOutline markdown={activeTab.markdown} mode={editorMode} isOpen={isOutlineOpen} /> : null}
             </div>
-            {activeTab.editorKind === "visual-markdown" && editorMode === "visual" && isSearchOpen ? <SearchBar onClose={closeSearch} /> : <StatusBar />}
+            {activeTab.editorKind === "visual-markdown" && editorMode === "visual" && isSearchOpen ? (
+              <SearchBar
+                onClose={closeSearch}
+                onReplace={(query, replacement, matchIndex) => {
+                  const result = replaceLiteralMatch(activeTab.markdown, query, replacement, matchIndex);
+                  if (result.replaced) updateActiveMarkdown(result.content);
+                  return result.replaced;
+                }}
+                onReplaceAll={(query, replacement) => {
+                  const result = replaceLiteralMatches(activeTab.markdown, query, replacement);
+                  if (result.count > 0) updateActiveMarkdown(result.content);
+                  return result.count;
+                }}
+              />
+            ) : <StatusBar />}
           </div>
         </Suspense>
       ) : (
