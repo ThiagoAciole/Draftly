@@ -1,4 +1,5 @@
-import { ListTree, Plus, Search, WandSparkles } from "lucide-react";
+import { Check, Clipboard, ListTree, Plus, Search, WandSparkles } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useWorkspace } from "../../contexts/WorkspaceContext";
 import { useTabsContext } from "../../contexts/TabsContext";
 import { useFileActions } from "../../contexts/FileActionsContext";
@@ -8,6 +9,7 @@ import { FileTabs } from "./FileTabs";
 import { WindowControls } from "./WindowControls";
 import appIcon from "../../assets/icon.svg";
 import { openSourceEditorSearch } from "../../lib/editorEvents";
+import { copyTextToClipboard, markdownToPlainText } from "../../lib/clipboard";
 import { NewDocumentDropdown } from "../ui/NewDocumentDropdown";
 
 export function TitleBar() {
@@ -15,6 +17,8 @@ export function TitleBar() {
   const { tabsMeta, activeTab } = useTabsContext();
   const { createDocument, formatDocument } = useFileActions();
   const { settings } = useSettings();
+  const [hasCopiedText, setHasCopiedText] = useState(false);
+  const copiedTextTimeoutRef = useRef<number | null>(null);
 
   const hasTabs = tabsMeta.length > 0;
   const showTabs = settings.appearance.showTabs;
@@ -22,10 +26,31 @@ export function TitleBar() {
   const isVisualMarkdown = activeTab?.editorKind === "visual-markdown" && editorMode === "visual";
   const showSearch = showEditorActions && activeTab != null && activeTab.editorKind !== "plain-text";
   const showFormat = showEditorActions && activeTab?.editorKind === "code" && activeTab.language !== "python";
+  const showCopy = showEditorActions && activeTab?.editorKind === "visual-markdown";
   const handleSearch = () => {
     if (isVisualMarkdown) openSearch();
     else openSourceEditorSearch();
   };
+  const handleCopy = async () => {
+    if (!activeTab) return;
+
+    await copyTextToClipboard(markdownToPlainText(activeTab.markdown));
+    setHasCopiedText(true);
+
+    if (copiedTextTimeoutRef.current !== null) {
+      window.clearTimeout(copiedTextTimeoutRef.current);
+    }
+    copiedTextTimeoutRef.current = window.setTimeout(() => {
+      setHasCopiedText(false);
+      copiedTextTimeoutRef.current = null;
+    }, 1600);
+  };
+
+  useEffect(() => () => {
+    if (copiedTextTimeoutRef.current !== null) {
+      window.clearTimeout(copiedTextTimeoutRef.current);
+    }
+  }, []);
 
   return (
     <header className="title-bar" data-tauri-drag-region>
@@ -55,6 +80,17 @@ export function TitleBar() {
       </div>
 
       <div className="title-actions">
+        {showCopy ? (
+          <button
+            className="titlebar-button titlebar-compact-action"
+            type="button"
+            aria-label={hasCopiedText ? "Texto limpo copiado" : "Copiar texto limpo"}
+            title={hasCopiedText ? "Texto limpo copiado" : "Copiar texto limpo"}
+            onClick={() => void handleCopy()}
+          >
+            {hasCopiedText ? <Check size={16} /> : <Clipboard size={16} />}
+          </button>
+        ) : null}
         {showSearch ? (
           <button
             className="titlebar-button titlebar-compact-action"

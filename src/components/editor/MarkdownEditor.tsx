@@ -133,16 +133,35 @@ export function MarkdownEditor({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === "s") {
+      if (!(event.ctrlKey || event.metaKey)) return;
+
+      const key = event.key.toLowerCase();
+      if (!event.shiftKey && key === "s") {
         event.preventDefault();
         onSave();
+        return;
+      }
+
+      const isEditorFocused = editor.domElement?.contains(document.activeElement);
+      if (!isEditorFocused) return;
+
+      if (key === "z") {
+        event.preventDefault();
+        if (event.shiftKey) editor.redo();
+        else editor.undo();
+        return;
+      }
+
+      if (key === "y") {
+        event.preventDefault();
+        editor.redo();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
 
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onSave]);
+  }, [editor, onSave]);
 
   useEffect(() => {
     const scrollArea = scrollAreaRef.current;
