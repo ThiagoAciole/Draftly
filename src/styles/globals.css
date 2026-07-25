@@ -414,28 +414,50 @@ button {
 .bn-mantine .bn-table-handle,
 .bn-mantine .bn-table-cell-handle,
 .bn-mantine .bn-extend-button {
-  background: rgba(45, 45, 45, 0.92) !important;
-  border: 1px solid rgba(255, 255, 255, 0.07) !important;
-  border-radius: 6px !important;
-  box-shadow: 0 2px 6px rgba(124, 124, 124, 0.18) !important;
-  color: #7a7f8f !important;
-  margin: 8px !important;
-  transition: background 500ms ease, color 500ms ease, border-color 500ms ease !important;
+  background: rgba(45, 45, 45, 0.58) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 5px !important;
+  box-shadow: none !important;
+  color: var(--faint) !important;
+  margin: 3px !important;
+  opacity: 0.72;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease, opacity 120ms ease !important;
 }
 
 .bn-mantine .bn-table-handle:hover,
 .bn-mantine .bn-table-cell-handle:hover,
 .bn-mantine .bn-extend-button:hover {
-  background: rgba(60, 60, 60, 0.95) !important;
-  border-color: rgba(255, 255, 255, 0.14) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22) !important;
-  color: #c8cbd3 !important;
+  background: var(--bg-panel) !important;
+  border-color: var(--border) !important;
+  box-shadow: none !important;
+  color: var(--muted) !important;
+  opacity: 1;
 }
 
 .bn-mantine .bn-table-handle > *,
 .bn-mantine .bn-table-cell-handle > *,
 .bn-mantine .bn-extend-button > * {
   box-shadow: none !important;
+}
+
+.bn-mantine .bn-table-handle .table-handle-grip {
+  margin: 0 !important;
+}
+
+.table-corner-extend {
+  display: contents;
+}
+
+.table-corner-extend .bn-extend-button {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: transparent !important;
+}
+
+.table-corner-extend.is-corner-active .bn-extend-button {
+  background: rgba(45, 45, 45, 0.58) !important;
+  border-color: rgba(255, 255, 255, 0.05) !important;
+  color: var(--faint) !important;
 }
 
 /* Form popover (e.g. link edit) */

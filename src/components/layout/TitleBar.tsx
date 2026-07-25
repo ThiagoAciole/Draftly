@@ -1,4 +1,4 @@
-import { Check, Clipboard, ListTree, Plus, Search, WandSparkles } from "lucide-react";
+import { Check, Clipboard, ListTree, Plus, Search, Sparkles, WandSparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useWorkspace } from "../../contexts/WorkspaceContext";
 import { useTabsContext } from "../../contexts/TabsContext";
@@ -15,7 +15,7 @@ import { NewDocumentDropdown } from "../ui/NewDocumentDropdown";
 export function TitleBar() {
   const { setView, view, openSearch, editorMode, isOutlineOpen, toggleOutline } = useWorkspace();
   const { tabsMeta, activeTab } = useTabsContext();
-  const { createDocument, formatDocument } = useFileActions();
+  const { createDocument, formatDocument, formatMarkdownDocument } = useFileActions();
   const { settings } = useSettings();
   const [hasCopiedText, setHasCopiedText] = useState(false);
   const copiedTextTimeoutRef = useRef<number | null>(null);
@@ -26,6 +26,7 @@ export function TitleBar() {
   const isVisualMarkdown = activeTab?.editorKind === "visual-markdown" && editorMode === "visual";
   const showSearch = showEditorActions && activeTab != null && activeTab.editorKind !== "plain-text";
   const showFormat = showEditorActions && activeTab?.editorKind === "code" && activeTab.language !== "python";
+  const showMarkdownFormatter = showEditorActions && activeTab?.language === "markdown";
   const showCopy = showEditorActions && activeTab?.editorKind === "visual-markdown";
   const handleSearch = () => {
     if (isVisualMarkdown) openSearch();
@@ -111,6 +112,17 @@ export function TitleBar() {
             onClick={() => void formatDocument()}
           >
             <WandSparkles size={16} />
+          </button>
+        ) : null}
+        {showMarkdownFormatter ? (
+          <button
+            className="titlebar-button titlebar-compact-action"
+            type="button"
+            aria-label="Organizar Markdown"
+            title="Organizar Markdown"
+            onClick={formatMarkdownDocument}
+          >
+            <Sparkles size={16} />
           </button>
         ) : null}
         {showEditorActions && activeTab?.editorKind === "visual-markdown" ? (

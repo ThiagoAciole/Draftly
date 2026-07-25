@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { documentFileFilters, getLanguageForPath, supportedDocumentFilter } from "./languages";
 import type { DocumentLanguage } from "./languages";
+import { createHtmlDocument } from "./htmlExport";
 
 export type TextFile = {
   path: string;
@@ -10,10 +11,22 @@ export type TextFile = {
   language: DocumentLanguage;
 };
 
+export type StoredImageAsset = {
+  relativePath: string;
+  absolutePath: string;
+};
+
 const pdfFilters = [
   {
     name: "PDF",
     extensions: ["pdf"],
+  },
+];
+
+const htmlFilters = [
+  {
+    name: "HTML",
+    extensions: ["html"],
   },
 ];
 
@@ -56,12 +69,36 @@ export async function saveTextFile(path: string, content: string) {
   await invoke("write_text_file", { path, content });
 }
 
+export async function storeImageAsset(documentPath: string, file: File) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+
+  return invoke<StoredImageAsset>("store_image_asset", {
+    documentPath,
+    fileName: file.name,
+    bytes: Array.from(bytes),
+  });
+}
+
 export async function getInitialTextFilePath() {
   return invoke<string | null>("get_initial_text_file_path");
 }
 
 function getPdfName(name: string) {
   return `${name.replace(/\.md$/i, "") || "Untitled"}.pdf`;
+}
+
+function getHtmlName(name: string) {
+  return `${name.replace(/\.md$/i, "") || "Untitled"}.html`;
+}
+
+export async function exportBlocksToHtml(name: string, blocksHtml: string) {
+  const targetPath = await save({
+    defaultPath: getHtmlName(name),
+    filters: htmlFilters,
+  });
+
+  if (!targetPath) return;
+  await saveTextFile(targetPath, createHtmlDocument(name, blocksHtml));
 }
 
 function escapeHtml(value: string) {

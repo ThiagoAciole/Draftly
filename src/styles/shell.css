@@ -11,6 +11,31 @@
   background: #242424;
 }
 
+html[data-platform="linux"],
+html[data-platform="linux"] body {
+  background: #242424;
+}
+
+html[data-platform="linux"] .app-shell {
+  border: 0;
+  border-radius: 0;
+}
+
+html[data-platform="linux"] .window-controls,
+html[data-platform="linux"] .resize-handle {
+  display: none;
+}
+
+html[data-platform="windows"],
+html[data-platform="windows"] body {
+  background: #242424;
+}
+
+html[data-platform="windows"] .app-shell {
+  border: 0;
+  border-radius: 0;
+}
+
 .resize-handle {
   position: fixed;
   z-index: 999;
@@ -78,20 +103,6 @@
   width: 12px;
   height: 12px;
   cursor: sw-resize;
-}
-
-.error-banner {
-  position: absolute;
-  z-index: 20;
-  top: 56px;
-  left: 24px;
-  right: 24px;
-  padding: 10px 12px;
-  border: 1px solid rgba(255, 107, 107, 0.32);
-  border-radius: 8px;
-  background: rgba(255, 107, 107, 0.12);
-  color: #ffd0d0;
-  text-align: left;
 }
 
 .status-bar {
@@ -277,6 +288,25 @@
   border-bottom: 1px solid var(--border-soft);
   color: var(--muted);
   font-size: 12px;
+}
+
+.status-error {
+  min-width: 0;
+  max-width: min(620px, 52vw);
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  color: #ffaaa4;
+  font: inherit;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.status-error:hover {
+  color: #ffd0cc;
 }
 
 .external-changes-comparison pre {

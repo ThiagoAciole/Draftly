@@ -1,0 +1,64 @@
+name: Quality
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+          - name: Linux
+            os: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar dependências do sistema (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Configurar Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Restaurar cache do Rust
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: ./src-tauri -> target
+
+      - name: Instalar dependências JavaScript
+        run: npm ci
+
+      - name: Executar testes JavaScript
+        run: npm test
+
+      - name: Verificar tipos TypeScript
+        run: npx tsc --noEmit
+
+      - name: Executar testes Rust
+        working-directory: src-tauri
+        run: cargo test
+
+      - name: Verificar Rust
+        working-directory: src-tauri
+        run: cargo check

@@ -1,6 +1,11 @@
 import { useTabsContext } from "../../contexts/TabsContext";
 
-export function StatusBar() {
+type StatusBarProps = {
+  error?: string | null;
+  onClearError?: () => void;
+};
+
+export function StatusBar({ error, onClearError }: StatusBarProps) {
   const { activeTab } = useTabsContext();
   if (!activeTab) return null;
 
@@ -12,7 +17,19 @@ export function StatusBar() {
 
   return (
     <footer className="status-bar">
-      <span>{status}</span>
+      {error ? (
+        <button
+          className="status-error"
+          onClick={onClearError}
+          role="alert"
+          title="Clique para dispensar"
+          type="button"
+        >
+          {error}
+        </button>
+      ) : (
+        <span>{status}</span>
+      )}
       <span>{activeTab.language === "plaintext" ? "Texto simples" : activeTab.language === "html" ? "HTML" : activeTab.language === "json" ? "JSON" : activeTab.language === "javascript" ? "JavaScript" : activeTab.language === "typescript" ? "TypeScript" : activeTab.language === "python" ? "Python" : "Markdown"}</span>
       <span>UTF-8</span>
       <span className="status-path">{activeTab.path || "Arquivo novo"}</span>

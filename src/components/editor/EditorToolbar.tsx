@@ -1,11 +1,12 @@
 import type { BlockNoteEditor } from "@blocknote/core";
 import {
-  getDefaultReactSlashMenuItems,
   useEditorChange,
   useEditorSelectionChange,
   useSelectedBlocks,
 } from "@blocknote/react";
 import {
+  ArrowLeft,
+  ArrowRight,
   Bold,
   ChevronLeft,
   ChevronRight,
@@ -13,26 +14,40 @@ import {
   Heading1,
   Heading2,
   Heading3,
+  Heading4,
+  Heading5,
+  Heading6,
   Image,
   Italic,
   Link,
+  Lightbulb,
   List,
   ListChecks,
   ListOrdered,
+  Minus,
   Pencil,
   Quote,
   Redo2,
   SquareCode,
   Strikethrough,
   Table,
+  Text,
+  Type,
   Undo2,
   UploadCloud,
 } from "lucide-react";
-import type { KeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from "react";
+import type {
+  KeyboardEvent,
+  PointerEvent as ReactPointerEvent,
+  ReactNode,
+} from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { parseDelimitedTable } from "../../lib/tableConversion";
+import { getTablePickerPosition } from "./tablePickerPosition";
 
 type EditorToolbarProps = {
-  editor: BlockNoteEditor;
+  editor: BlockNoteEditor<any, any, any>;
 };
 
 type FormatButtonProps = {
@@ -43,7 +58,13 @@ type FormatButtonProps = {
   children: ReactNode;
 };
 
-function FormatButton({ label, active, disabled, onClick, children }: FormatButtonProps) {
+function FormatButton({
+  label,
+  active,
+  disabled,
+  onClick,
+  children,
+}: FormatButtonProps) {
   return (
     <button
       aria-label={label}
@@ -65,7 +86,12 @@ type LinkModalProps = {
   onClose: () => void;
 };
 
-function LinkModal({ initialUrl, initialText, onConfirm, onClose }: LinkModalProps) {
+function LinkModal({
+  initialUrl,
+  initialText,
+  onConfirm,
+  onClose,
+}: LinkModalProps) {
   const [url, setUrl] = useState(initialUrl);
   const [text, setText] = useState(initialText);
   const urlInputRef = useRef<HTMLInputElement>(null);
@@ -92,11 +118,28 @@ function LinkModal({ initialUrl, initialText, onConfirm, onClose }: LinkModalPro
   };
 
   return (
-    <div className="link-modal-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="link-modal" role="dialog" aria-modal="true" aria-label="Inserir link">
+    <div
+      className="link-modal-overlay"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="link-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Inserir link"
+      >
         <div className="link-modal-header">
           <span className="link-modal-title">Inserir link</span>
-          <button className="link-modal-close" type="button" aria-label="Fechar" onClick={onClose}>✕</button>
+          <button
+            className="link-modal-close"
+            type="button"
+            aria-label="Fechar"
+            onClick={onClose}
+          >
+            ✕
+          </button>
         </div>
         <div className="link-modal-body">
           <label className="link-modal-label">
@@ -112,7 +155,8 @@ function LinkModal({ initialUrl, initialText, onConfirm, onClose }: LinkModalPro
             onKeyDown={handleKeyDown}
           />
           <label className="link-modal-label" style={{ marginTop: 14 }}>
-            Texto exibido <span className="link-modal-optional">(opcional)</span>
+            Texto exibido{" "}
+            <span className="link-modal-optional">(opcional)</span>
           </label>
           <input
             className="link-modal-input"
@@ -188,35 +232,72 @@ function ImageModal({ onConfirm, onClose }: ImageModalProps) {
   };
 
   return (
-    <div className="link-modal-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="link-modal" role="dialog" aria-modal="true" aria-label="Inserir imagem">
+    <div
+      className="link-modal-overlay"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="link-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Inserir imagem"
+      >
         <div className="link-modal-header">
           <span className="link-modal-title">Insira a Imagem</span>
-          <button className="link-modal-close" type="button" aria-label="Fechar" onClick={onClose}>✕</button>
+          <button
+            className="link-modal-close"
+            type="button"
+            aria-label="Fechar"
+            onClick={onClose}
+          >
+            ✕
+          </button>
         </div>
         <div className="link-modal-body">
           <div
             className={`image-dropzone ${dragging ? "is-dragging" : ""}`}
-            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragging(true);
+            }}
             onDragLeave={() => setDragging(false)}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
           >
-            <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFileInput} />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={handleFileInput}
+            />
             <div className="image-dropzone-icon">
               <UploadCloud size={28} />
             </div>
-            <p className="image-dropzone-title">Arraste e solte ou clique para selecionar</p>
-            <p className="image-dropzone-hint">PNG, JPG, GIF ou WebP — até 5 MB</p>
+            <p className="image-dropzone-title">
+              Arraste e solte ou clique para selecionar
+            </p>
+            <p className="image-dropzone-hint">
+              PNG, JPG, GIF ou WebP — até 5 MB
+            </p>
             <button
               className="image-dropzone-browse"
               type="button"
-              onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
             >
               Escolher arquivo
             </button>
           </div>
-          {error ? <p className="image-dropzone-error" role="alert">{error}</p> : null}
+          {error ? (
+            <p className="image-dropzone-error" role="alert">
+              {error}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>
@@ -257,7 +338,13 @@ type ColorSwatchProps = {
   isText?: boolean;
 };
 
-function ColorSwatch({ label, hex, active, onClick, isText }: ColorSwatchProps) {
+function ColorSwatch({
+  label,
+  hex,
+  active,
+  onClick,
+  isText,
+}: ColorSwatchProps) {
   return (
     <button
       aria-label={label}
@@ -265,7 +352,11 @@ function ColorSwatch({ label, hex, active, onClick, isText }: ColorSwatchProps) 
       onClick={onClick}
       title={label}
       type="button"
-      style={isText ? { color: hex ?? "inherit" } : { background: hex ?? "transparent" }}
+      style={
+        isText
+          ? { color: hex ?? "inherit" }
+          : { background: hex ?? "transparent" }
+      }
     >
       {isText ? (
         <span className="color-swatch-text">A</span>
@@ -283,7 +374,12 @@ type ColorPickerPopoverProps = {
   onClose: () => void;
 };
 
-function ColorPickerPopover({ editor, activeTextColor, activeBgColor, onClose }: ColorPickerPopoverProps) {
+function ColorPickerPopover({
+  editor,
+  activeTextColor,
+  activeBgColor,
+  onClose,
+}: ColorPickerPopoverProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -324,19 +420,27 @@ function ColorPickerPopover({ editor, activeTextColor, activeBgColor, onClose }:
             label={c.label}
             hex={c.hex}
             isText
-            active={c.value === "default" ? !activeTextColor : activeTextColor === c.value}
+            active={
+              c.value === "default"
+                ? !activeTextColor
+                : activeTextColor === c.value
+            }
             onClick={() => applyTextColor(c.value)}
           />
         ))}
       </div>
-      <div className="color-picker-section-label" style={{ marginTop: 10 }}>Cor de fundo</div>
+      <div className="color-picker-section-label" style={{ marginTop: 10 }}>
+        Cor de fundo
+      </div>
       <div className="color-picker-swatches">
         {BG_COLORS.map((c) => (
           <ColorSwatch
             key={c.value}
             label={c.label}
             hex={c.hex}
-            active={c.value === "default" ? !activeBgColor : activeBgColor === c.value}
+            active={
+              c.value === "default" ? !activeBgColor : activeBgColor === c.value
+            }
             onClick={() => applyBgColor(c.value)}
           />
         ))}
@@ -346,8 +450,10 @@ function ColorPickerPopover({ editor, activeTextColor, activeBgColor, onClose }:
         type="button"
         onClick={() => {
           editor.focus();
-          if (activeTextColor) editor.removeStyles({ textColor: activeTextColor as never });
-          if (activeBgColor) editor.removeStyles({ backgroundColor: activeBgColor as never });
+          if (activeTextColor)
+            editor.removeStyles({ textColor: activeTextColor as never });
+          if (activeBgColor)
+            editor.removeStyles({ backgroundColor: activeBgColor as never });
         }}
       >
         Remover cor
@@ -356,20 +462,129 @@ function ColorPickerPopover({ editor, activeTextColor, activeBgColor, onClose }:
   );
 }
 
+type TablePickerPopoverProps = {
+  anchor: DOMRect;
+  conversionRows: string[][] | null;
+  onClose: () => void;
+  onConvert: () => void;
+  onInsert: (rows: number, columns: number) => void;
+};
+
+function TablePickerPopover({
+  anchor,
+  conversionRows,
+  onClose,
+  onConvert,
+  onInsert,
+}: TablePickerPopoverProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [hoveredSize, setHoveredSize] = useState({ columns: 2, rows: 1 });
+  const position = getTablePickerPosition(anchor, window.innerWidth);
+
+  useEffect(() => {
+    const handleClick = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [onClose]);
+
+  return createPortal(
+    <div
+      className="color-picker-popover table-picker-popover"
+      ref={ref}
+      role="dialog"
+      aria-label="Inserir tabela"
+      style={{
+        left: position.left,
+        position: "fixed",
+        top: position.top,
+        transform: "none",
+      }}
+    >
+      <div className="table-picker-header">
+        <button
+          aria-label="Fechar seletor de tabela"
+          className="table-picker-back"
+          onClick={onClose}
+          type="button"
+        >
+          <ArrowLeft size={17} />
+        </button>
+        <span>{hoveredSize.columns} × {hoveredSize.rows}</span>
+      </div>
+      <div className="table-picker-grid">
+        {Array.from({ length: 8 }, (_, rowIndex) =>
+          Array.from({ length: 8 }, (_, columnIndex) => {
+            const rows = rowIndex + 1;
+            const columns = columnIndex + 1;
+            const selected =
+              columns <= hoveredSize.columns && rows <= hoveredSize.rows;
+
+            return (
+              <button
+                key={`${rows}x${columns}`}
+                aria-label={`${columns} × ${rows}`}
+                className={`table-picker-option ${selected ? "is-selected" : ""}`}
+                onClick={() => onInsert(rows, columns)}
+                onMouseEnter={() => setHoveredSize({ columns, rows })}
+                type="button"
+              />
+            );
+          }),
+        )}
+      </div>
+      {conversionRows ? (
+        <button
+          className="color-picker-remove table-picker-convert"
+          type="button"
+          onClick={onConvert}
+        >
+          Converter seleção em tabela ({conversionRows.length} ×{" "}
+          {conversionRows[0]?.length ?? 0})
+        </button>
+      ) : (
+        <p className="table-picker-hint">Clique para inserir uma tabela.</p>
+      )}
+    </div>
+    ,
+    document.body,
+  );
+}
+
 export function EditorToolbar({ editor }: EditorToolbarProps) {
   const [, setRevision] = useState(0);
-  const [optimisticStyles, setOptimisticStyles] = useState<Record<string, boolean>>({});
-  const [optimisticBlockType, setOptimisticBlockType] = useState<string | null>(null);
+  const [optimisticStyles, setOptimisticStyles] = useState<
+    Record<string, boolean>
+  >({});
+  const [optimisticBlockType, setOptimisticBlockType] = useState<string | null>(
+    null,
+  );
   const [showColors, setShowColors] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [linkInitialUrl, setLinkInitialUrl] = useState("");
   const [linkInitialText, setLinkInitialText] = useState("");
-  const [toolbarScroll, setToolbarScroll] = useState({ left: false, right: false });
+  const [toolbarScroll, setToolbarScroll] = useState({
+    left: false,
+    right: false,
+  });
   const [showImageModal, setShowImageModal] = useState(false);
+  const [showTablePicker, setShowTablePicker] = useState(false);
+  const [tablePickerAnchor, setTablePickerAnchor] = useState<DOMRect | null>(null);
+  const [tableConversionRows, setTableConversionRows] = useState<
+    string[][] | null
+  >(null);
+  const [showAdditionalHeadings, setShowAdditionalHeadings] = useState(false);
   const selectedBlocks = useSelectedBlocks(editor);
   const colorButtonRef = useRef<HTMLButtonElement>(null);
+  const tableButtonRef = useRef<HTMLDivElement>(null);
   const toolbarScrollRef = useRef<HTMLDivElement>(null);
-  const toolbarDragRef = useRef({ pointerId: 0, startX: 0, startScrollLeft: 0, moved: false });
+  const toolbarDragRef = useRef({
+    pointerId: 0,
+    startX: 0,
+    startScrollLeft: 0,
+    moved: false,
+  });
   const suppressToolbarClickRef = useRef(false);
 
   const clearOptimistic = useCallback(() => {
@@ -382,9 +597,6 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
   useEditorSelectionChange(clearOptimistic, editor);
 
   const activeStyles = editor.getActiveStyles() as Record<string, unknown>;
-  const activeBlock = selectedBlocks[0];
-  const activeHeadingLevel =
-    activeBlock?.type === "heading" ? Number(activeBlock.props.level) : null;
   const activeTextColor = activeStyles.textColor as string | undefined;
   const activeBgColor = activeStyles.backgroundColor as string | undefined;
 
@@ -412,10 +624,15 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
   }, [updateToolbarScroll]);
 
   const scrollToolbar = (direction: -1 | 1) => {
-    toolbarScrollRef.current?.scrollBy({ left: direction * 220, behavior: "smooth" });
+    toolbarScrollRef.current?.scrollBy({
+      left: direction * 220,
+      behavior: "smooth",
+    });
   };
 
-  const handleToolbarPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const handleToolbarPointerDown = (
+    event: ReactPointerEvent<HTMLDivElement>,
+  ) => {
     const element = event.currentTarget;
     toolbarDragRef.current = {
       pointerId: event.pointerId,
@@ -443,7 +660,9 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
       window.removeEventListener("pointerup", handleUp);
       if (toolbarDragRef.current.moved) {
         suppressToolbarClickRef.current = true;
-        requestAnimationFrame(() => { suppressToolbarClickRef.current = false; });
+        requestAnimationFrame(() => {
+          suppressToolbarClickRef.current = false;
+        });
       }
       toolbarDragRef.current.pointerId = 0;
     };
@@ -458,25 +677,39 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
       : Boolean(activeStyles[style]);
 
   const isBlockActive = (type: string) =>
-    optimisticBlockType !== null ? optimisticBlockType === type : activeBlock?.type === type;
+    optimisticBlockType !== null
+      ? optimisticBlockType === type
+      : selectedBlocks.length > 0 &&
+        selectedBlocks.every((block) => block.type === type);
 
   const isHeadingActive = (level: number) =>
     optimisticBlockType !== null
       ? optimisticBlockType === `heading${level}`
-      : activeHeadingLevel === level;
+      : selectedBlocks.length > 0 &&
+        selectedBlocks.every(
+          (block) =>
+            block.type === "heading" && Number(block.props.level) === level,
+        );
 
-  const toggleStyle = (style: "bold" | "italic" | "underline" | "strike" | "code") => {
+  const toggleStyle = (
+    style: "bold" | "italic" | "underline" | "strike" | "code",
+  ) => {
     const next = !isStyleActive(style);
     setOptimisticStyles((prev) => ({ ...prev, [style]: next }));
     editor.focus();
     editor.toggleStyles({ [style]: true });
   };
 
-  const setHeading = (level: 1 | 2 | 3) => {
+  const getBlocksToChange = () =>
+    selectedBlocks.length > 0
+      ? selectedBlocks
+      : [editor.getTextCursorPosition().block];
+
+  const setHeading = (level: 1 | 2 | 3 | 4 | 5 | 6) => {
     const isActive = isHeadingActive(level);
     setOptimisticBlockType(isActive ? "paragraph" : `heading${level}`);
     editor.focus();
-    for (const block of selectedBlocks) {
+    for (const block of getBlocksToChange()) {
       if (isActive) {
         editor.updateBlock(block, { type: "paragraph" });
       } else {
@@ -485,11 +718,11 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
     }
   };
 
-  const setBlockType = (type: string) => {
-    const isActive = isBlockActive(type);
+  const setBlockType = (type: string, force = false) => {
+    const isActive = !force && isBlockActive(type);
     setOptimisticBlockType(isActive ? "paragraph" : type);
     editor.focus();
-    for (const block of selectedBlocks) {
+    for (const block of getBlocksToChange()) {
       if (isActive) {
         editor.updateBlock(block, { type: "paragraph" });
       } else {
@@ -498,18 +731,79 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
     }
   };
 
-  const insertBlock = (type: string) => {
-    editor.focus();
-    if (type === "table") {
-      const tableItem = getDefaultReactSlashMenuItems(editor).find((i) => i.title === "Table");
-      if (tableItem) {
-        tableItem.onItemClick();
-        refresh();
-        return;
-      }
+  const getSelectedDelimitedRows = () => {
+    const tiptapEditor = editor._tiptapEditor;
+    const selection = tiptapEditor.state.selection;
+    if (selection.empty) return null;
+
+    const { $from, $to } = selection;
+    if (
+      $from.parentOffset !== 0 ||
+      $to.parentOffset !== $to.parent.content.size
+    ) {
+      return null;
     }
-    const pos = editor.getTextCursorPosition();
-    editor.insertBlocks([{ type: type as "divider" }], pos.block, "after");
+
+    return parseDelimitedTable(
+      tiptapEditor.state.doc.textBetween(selection.from, selection.to, "\n"),
+    );
+  };
+
+  const createTableBlock = (rows: string[][]) => ({
+    type: "table",
+    content: {
+      type: "tableContent",
+      rows: rows.map((cells) => ({ cells })),
+    },
+  });
+
+  const insertTable = (rows: number, columns: number) => {
+    editor.focus();
+    const referenceBlock =
+      getBlocksToChange().at(-1) ?? editor.getTextCursorPosition().block;
+    const emptyRows = Array.from({ length: rows }, () =>
+      Array(columns).fill(""),
+    );
+    editor.insertBlocks(
+      [createTableBlock(emptyRows) as never],
+      referenceBlock,
+      "after",
+    );
+    setShowTablePicker(false);
+    refresh();
+  };
+
+  const convertSelectionToTable = () => {
+    if (!tableConversionRows) return;
+
+    editor.focus();
+    editor.replaceBlocks(getBlocksToChange(), [
+      createTableBlock(tableConversionRows) as never,
+    ]);
+    setShowTablePicker(false);
+    setTableConversionRows(null);
+    refresh();
+  };
+
+  const openTablePicker = () => {
+    if (showTablePicker) {
+      setShowTablePicker(false);
+      return;
+    }
+
+    const anchor = tableButtonRef.current?.getBoundingClientRect();
+    if (!anchor) return;
+
+    setTablePickerAnchor(anchor);
+    setTableConversionRows(getSelectedDelimitedRows());
+    setShowTablePicker(true);
+  };
+
+  const insertDivider = () => {
+    editor.focus();
+    const referenceBlock =
+      getBlocksToChange().at(-1) ?? editor.getTextCursorPosition().block;
+    editor.insertBlocks([{ type: "divider" }], referenceBlock, "after");
     refresh();
   };
 
@@ -546,153 +840,286 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
     setShowImageModal(false);
     editor.focus();
     const pos = editor.getTextCursorPosition();
-    editor.insertBlocks([{ type: "image", props: { url } }], pos.block, "after");
+    editor.insertBlocks(
+      [{ type: "image", props: { url } }],
+      pos.block,
+      "after",
+    );
     refresh();
   };
 
   const hasColor = Boolean(activeTextColor || activeBgColor);
-  const currentTextHex = TEXT_COLORS.find((c) => c.value === activeTextColor)?.hex;
+  const currentTextHex = TEXT_COLORS.find(
+    (c) => c.value === activeTextColor,
+  )?.hex;
 
   return (
     <>
-    {showLinkModal && (
-      <LinkModal
-        initialUrl={linkInitialUrl}
-        initialText={linkInitialText}
-        onConfirm={handleLinkConfirm}
-        onClose={() => setShowLinkModal(false)}
-      />
-    )}
-    {showImageModal && (
-      <ImageModal
-        onConfirm={handleImageConfirm}
-        onClose={() => setShowImageModal(false)}
-      />
-    )}
-    <div className={`editor-toolbar ${toolbarScroll.left || toolbarScroll.right ? "is-scrollable" : ""}`} role="toolbar" aria-label="Editor">
-      <button
-        className="editor-toolbar-scroll-button is-left"
-        type="button"
-        aria-label="Ver ferramentas anteriores"
-        title="Ferramentas anteriores"
-        disabled={!toolbarScroll.left}
-        onClick={() => scrollToolbar(-1)}
-      >
-        <ChevronLeft size={16} />
-      </button>
+      {showLinkModal && (
+        <LinkModal
+          initialUrl={linkInitialUrl}
+          initialText={linkInitialText}
+          onConfirm={handleLinkConfirm}
+          onClose={() => setShowLinkModal(false)}
+        />
+      )}
+      {showImageModal && (
+        <ImageModal
+          onConfirm={handleImageConfirm}
+          onClose={() => setShowImageModal(false)}
+        />
+      )}
       <div
-        ref={toolbarScrollRef}
-        className="editor-toolbar-scroll-area"
-        onScroll={updateToolbarScroll}
-        onPointerDown={handleToolbarPointerDown}
-        onClickCapture={(event) => {
-          if (!suppressToolbarClickRef.current) return;
-          event.preventDefault();
-          event.stopPropagation();
-        }}
+        className={`editor-toolbar ${toolbarScroll.left || toolbarScroll.right ? "is-scrollable" : ""}`}
+        role="toolbar"
+        aria-label="Editor"
       >
-        <div className="editor-formatting-toolbar">
-        <FormatButton label="Desfazer" onClick={undo}>
-          <Undo2 size={17} />
-        </FormatButton>
-        <FormatButton label="Refazer" onClick={redo}>
-          <Redo2 size={17} />
-        </FormatButton>
-        <span className="format-separator" />
-        <FormatButton active={isStyleActive("bold")} label="Negrito" onClick={() => toggleStyle("bold")}>
-          <Bold size={17} />
-        </FormatButton>
-        <FormatButton active={isStyleActive("italic")} label="Itálico" onClick={() => toggleStyle("italic")}>
-          <Italic size={17} />
-        </FormatButton>
-        <FormatButton active={isStyleActive("strike")} label="Tachado" onClick={() => toggleStyle("strike")}>
-          <Strikethrough size={17} />
-        </FormatButton>
-        <FormatButton active={isStyleActive("underline")} label="Sublinhado" onClick={() => toggleStyle("underline")}>
-          <Pencil size={16} />
-        </FormatButton>
-        <FormatButton active={isStyleActive("code")} label="Código inline" onClick={() => toggleStyle("code")}>
-          <Code2 size={17} />
-        </FormatButton>
-        <FormatButton label="Link" onClick={createLink}>
-          <Link size={17} />
-        </FormatButton>
-        <div className="color-button-wrapper">
-          <button
-            ref={colorButtonRef}
-            aria-label="Cor"
-            className={`format-button color-format-button ${hasColor ? "is-active" : ""}`}
-            onClick={() => setShowColors((v) => !v)}
-            title="Cor"
-            type="button"
-          >
-            <span
-              className="color-icon-letter"
-              style={{ color: currentTextHex ?? "#c8cbd3" }}
-            >A</span>
-            <span
-              className="color-indicator"
-              style={{ background: currentTextHex ?? "rgba(255,255,255,0.25)" }}
-            />
-          </button>
-          {showColors && (
-            <ColorPickerPopover
-              editor={editor}
-              activeTextColor={activeTextColor}
-              activeBgColor={activeBgColor}
-              onClose={() => setShowColors(false)}
-            />
-          )}
+        <button
+          className="editor-toolbar-scroll-button is-left"
+          type="button"
+          aria-label="Ver ferramentas anteriores"
+          title="Ferramentas anteriores"
+          disabled={!toolbarScroll.left}
+          onClick={() => scrollToolbar(-1)}
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <div
+          ref={toolbarScrollRef}
+          className="editor-toolbar-scroll-area"
+          onScroll={updateToolbarScroll}
+          onPointerDown={handleToolbarPointerDown}
+          onClickCapture={(event) => {
+            if (!suppressToolbarClickRef.current) return;
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+        >
+          <div className="editor-formatting-toolbar">
+            <FormatButton label="Desfazer" onClick={undo}>
+              <Undo2 size={17} />
+            </FormatButton>
+            <FormatButton label="Refazer" onClick={redo}>
+              <Redo2 size={17} />
+            </FormatButton>
+            <span className="format-separator" />
+            <FormatButton
+              active={isStyleActive("bold")}
+              label="Negrito"
+              onClick={() => toggleStyle("bold")}
+            >
+              <Bold size={17} />
+            </FormatButton>
+            <FormatButton
+              active={isStyleActive("italic")}
+              label="Itálico"
+              onClick={() => toggleStyle("italic")}
+            >
+              <Italic size={17} />
+            </FormatButton>
+            <FormatButton
+              active={isStyleActive("strike")}
+              label="Tachado"
+              onClick={() => toggleStyle("strike")}
+            >
+              <Strikethrough size={17} />
+            </FormatButton>
+            <FormatButton
+              active={isStyleActive("underline")}
+              label="Sublinhado"
+              onClick={() => toggleStyle("underline")}
+            >
+              <Pencil size={16} />
+            </FormatButton>
+            <FormatButton
+              active={isStyleActive("code")}
+              label="Código inline"
+              onClick={() => toggleStyle("code")}
+            >
+              <Code2 size={17} />
+            </FormatButton>
+            <FormatButton label="Link" onClick={createLink}>
+              <Link size={17} />
+            </FormatButton>
+            <div className="color-button-wrapper">
+              <button
+                ref={colorButtonRef}
+                aria-label="Cor"
+                className={`format-button color-format-button ${hasColor ? "is-active" : ""}`}
+                onClick={() => setShowColors((v) => !v)}
+                title="Cor"
+                type="button"
+              >
+                <span
+                  className="color-icon-letter"
+                  style={{ color: currentTextHex ?? "#c8cbd3" }}
+                >
+                  A
+                </span>
+                <span
+                  className="color-indicator"
+                  style={{
+                    background: currentTextHex ?? "rgba(255,255,255,0.25)",
+                  }}
+                />
+              </button>
+              {showColors && (
+                <ColorPickerPopover
+                  editor={editor}
+                  activeTextColor={activeTextColor}
+                  activeBgColor={activeBgColor}
+                  onClose={() => setShowColors(false)}
+                />
+              )}
+            </div>
+            <span className="format-separator" />
+            <FormatButton
+              active={isBlockActive("paragraph")}
+              label="Parágrafo"
+              onClick={() => setBlockType("paragraph", true)}
+            >
+              <Type size={17} />
+            </FormatButton>
+            <FormatButton
+              active={isHeadingActive(1)}
+              label="Título 1"
+              onClick={() => setHeading(1)}
+            >
+              <Heading1 size={18} />
+            </FormatButton>
+            <FormatButton
+              active={isHeadingActive(2)}
+              label="Título 2"
+              onClick={() => setHeading(2)}
+            >
+              <Heading2 size={18} />
+            </FormatButton>
+            <FormatButton
+              active={isHeadingActive(3)}
+              label="Título 3"
+              onClick={() => setHeading(3)}
+            >
+              <Heading3 size={18} />
+            </FormatButton>
+            {!showAdditionalHeadings ? (
+              <FormatButton
+                label="Mostrar mais títulos"
+                onClick={() => setShowAdditionalHeadings(true)}
+              >
+                <ChevronRight size={17} />
+              </FormatButton>
+            ) : null}
+            {showAdditionalHeadings ? (
+              <>
+                <FormatButton
+                  active={isHeadingActive(4)}
+                  label="Título 4"
+                  onClick={() => setHeading(4)}
+                >
+                  <Heading4 size={18} />
+                </FormatButton>
+                <FormatButton
+                  active={isHeadingActive(5)}
+                  label="Título 5"
+                  onClick={() => setHeading(5)}
+                >
+                  <Heading5 size={18} />
+                </FormatButton>
+                <FormatButton
+                  active={isHeadingActive(6)}
+                  label="Título 6"
+                  onClick={() => setHeading(6)}
+                >
+                  <Heading6 size={18} />
+                </FormatButton>
+                <FormatButton
+                  label="Ocultar títulos adicionais"
+                  onClick={() => setShowAdditionalHeadings(false)}
+                >
+                  <ChevronLeft size={17} />
+                </FormatButton>
+              </>
+            ) : null}
+            <span className="format-separator" />
+            <FormatButton
+              active={isBlockActive("quote")}
+              label="Citação"
+              onClick={() => setBlockType("quote")}
+            >
+              <Quote size={17} />
+            </FormatButton>
+            <FormatButton
+              active={isBlockActive("callout")}
+              label="Frase de destaque"
+              onClick={() => setBlockType("callout")}
+            >
+              <Lightbulb size={17} />
+            </FormatButton>
+            <FormatButton
+              active={isBlockActive("bulletListItem")}
+              label="Lista com Marcadores"
+              onClick={() => setBlockType("bulletListItem")}
+            >
+              <List size={17} />
+            </FormatButton>
+            <FormatButton
+              active={isBlockActive("numberedListItem")}
+              label="Lista Numerada"
+              onClick={() => setBlockType("numberedListItem")}
+            >
+              <ListOrdered size={17} />
+            </FormatButton>
+            <FormatButton
+              active={isBlockActive("checkListItem")}
+              label="Lista de Tarefas"
+              onClick={() => setBlockType("checkListItem")}
+            >
+              <ListChecks size={17} />
+            </FormatButton>
+            <span className="format-separator" />
+            <FormatButton
+              active={isBlockActive("codeBlock")}
+              label="Bloco de Código"
+              onClick={() => setBlockType("codeBlock")}
+            >
+              <SquareCode size={17} />
+            </FormatButton>
+            <div className="color-button-wrapper" ref={tableButtonRef}>
+              <FormatButton label="Tabela" onClick={openTablePicker}>
+                <Table size={17} />
+              </FormatButton>
+              {showTablePicker && tablePickerAnchor ? (
+                <TablePickerPopover
+                  anchor={tablePickerAnchor}
+                  conversionRows={tableConversionRows}
+                  onClose={() => {
+                    setShowTablePicker(false);
+                    setTablePickerAnchor(null);
+                  }}
+                  onConvert={convertSelectionToTable}
+                  onInsert={insertTable}
+                />
+              ) : null}
+            </div>
+            <FormatButton label="Divisor" onClick={insertDivider}>
+              <Minus size={17} />
+            </FormatButton>
+            <FormatButton label="Imagem" onClick={handleImageClick}>
+              <Image size={17} />
+            </FormatButton>
+          </div>
         </div>
-        <span className="format-separator" />
-        <FormatButton active={isHeadingActive(1)} label="Título 1" onClick={() => setHeading(1)}>
-          <Heading1 size={18} />
-        </FormatButton>
-        <FormatButton active={isHeadingActive(2)} label="Título 2" onClick={() => setHeading(2)}>
-          <Heading2 size={18} />
-        </FormatButton>
-        <FormatButton active={isHeadingActive(3)} label="Título 3" onClick={() => setHeading(3)}>
-          <Heading3 size={18} />
-        </FormatButton>
-        <span className="format-separator" />
-        <FormatButton active={isBlockActive("quote")} label="Citação" onClick={() => setBlockType("quote")}>
-          <Quote size={17} />
-        </FormatButton>
-        <FormatButton active={isBlockActive("bulletListItem")} label="Lista com Marcadores" onClick={() => setBlockType("bulletListItem")}>
-          <List size={17} />
-        </FormatButton>
-        <FormatButton active={isBlockActive("numberedListItem")} label="Lista Numerada" onClick={() => setBlockType("numberedListItem")}>
-          <ListOrdered size={17} />
-        </FormatButton>
-        <FormatButton active={isBlockActive("checkListItem")} label="Lista de Tarefas" onClick={() => setBlockType("checkListItem")}>
-          <ListChecks size={17} />
-        </FormatButton>
-        <FormatButton active={isBlockActive("toggleListItem")} label="Toggle List" onClick={() => setBlockType("toggleListItem")}>
-          <ChevronRight size={17} />
-        </FormatButton>
-        <span className="format-separator" />
-        <FormatButton active={isBlockActive("codeBlock")} label="Bloco de Código" onClick={() => setBlockType("codeBlock")}>
-          <SquareCode size={17} />
-        </FormatButton>
-        <FormatButton label="Tabela" onClick={() => insertBlock("table")}>
-          <Table size={17} />
-        </FormatButton>
-        <FormatButton label="Imagem" onClick={handleImageClick}>
-          <Image size={17} />
-        </FormatButton>
-        </div>
+        <button
+          className="editor-toolbar-scroll-button is-right"
+          type="button"
+          aria-label="Ver próximas ferramentas"
+          title="Próximas ferramentas"
+          disabled={!toolbarScroll.right}
+          onClick={() => scrollToolbar(1)}
+        >
+          <ChevronRight size={16} />
+        </button>
       </div>
-      <button
-        className="editor-toolbar-scroll-button is-right"
-        type="button"
-        aria-label="Ver próximas ferramentas"
-        title="Próximas ferramentas"
-        disabled={!toolbarScroll.right}
-        onClick={() => scrollToolbar(1)}
-      >
-        <ChevronRight size={16} />
-      </button>
-    </div>
     </>
   );
 }

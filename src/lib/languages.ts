@@ -41,7 +41,4 @@ export function isSupportedDocumentPath(path: string): boolean {
   return supportedExtensions.includes(getFileExtension(path) ?? "");
 }
 
-export const documentFileFilters = documentLanguages.map((language) => ({
-  name: language.label,
-  extensions: language.extensions,
-}));
+export const documentFileFilters = [supportedDocumentFilter];

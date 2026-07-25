@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getLanguageForPath, isSupportedDocumentPath, supportedDocumentFilter, supportedExtensions } from "./languages";
+import { documentFileFilters, getLanguageForPath, isSupportedDocumentPath, supportedDocumentFilter, supportedExtensions } from "./languages";
 
 describe("document languages", () => {
   it("infers every supported extension case-insensitively", () => {
@@ -12,6 +12,7 @@ describe("document languages", () => {
       name: "Arquivos suportados",
       extensions: ["md", "txt", "json", "js", "ts", "py", "html"],
     });
+    expect(documentFileFilters).toEqual([supportedDocumentFilter]);
   });
 
   it("accepts only the document extensions exposed by Draftly", () => {

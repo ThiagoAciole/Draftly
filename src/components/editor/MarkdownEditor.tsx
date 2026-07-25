@@ -1,4 +1,6 @@
+import { BlockNoteSchema, defaultBlockSpecs } from "@blocknote/core";
 import type { BlockNoteEditor } from "@blocknote/core";
+import { convertFileSrc } from "@tauri-apps/api/core";
 // @ts-ignore: CSS module declarations are not provided by @blocknote/core
 import "@blocknote/core/fonts/inter.css";
 import { filterSuggestionItems } from "@blocknote/core/extensions";
@@ -7,21 +9,39 @@ import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
 import {
   BlockNoteViewEditor,
+  LinkToolbarController,
   SuggestionMenuController,
+  TableHandlesController,
   useCreateBlockNote,
 } from "@blocknote/react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { CalloutBlock } from "./CalloutBlock";
 import { CustomSideMenuController } from "./CustomSideMenu";
 import { EditorToolbar } from "./EditorToolbar";
 import { EditorModeSwitch } from "./EditorModeSwitch";
+import {
+  DraftlyExtendButton,
+  DraftlyTableHandle,
+} from "./TableHandleGripIcon";
 import { getSlashMenuItems } from "./slashMenu";
 import { normalizeImportedMarkdown } from "../../lib/normalizeImportedMarkdown";
+import { exportBlocksToHtml } from "../../lib/fs";
+import { storeImageAsset } from "../../lib/fs";
+import { EXPORT_VISUAL_HTML_EVENT } from "../../lib/editorEvents";
+import { handleSelectAllShortcut } from "../../lib/editorShortcuts";
+import {
+  getImageAssetAbsolutePath,
+  isImportableImage,
+  isRelativeImagePath,
+} from "../../lib/imageAssets";
 
 type MarkdownEditorProps = {
+  name: string;
+  path: string | null;
   markdown: string;
   onChange: (markdown: string) => void;
-  onSave: () => void;
+  onError: (message: string) => void;
 };
 
 const EMPTY_BLOCK = {
@@ -29,37 +49,114 @@ const EMPTY_BLOCK = {
   content: "",
 } as const;
 
+const editorSchema = BlockNoteSchema.create({
+  blockSpecs: {
+    ...defaultBlockSpecs,
+    callout: CalloutBlock(),
+  },
+});
+
 const initialScrollThumb = {
   height: 0,
   top: 0,
   visible: false,
 };
 
-function parseMarkdown(editor: BlockNoteEditor, markdown: string) {
+const MAX_IMPORTED_IMAGE_SIZE = 20 * 1024 * 1024;
+
+function getExternalContentKey(path: string | null, markdown: string) {
+  return `${path ?? ""}\u0000${markdown}`;
+}
+
+function resolveLocalImageSources(
+  blocks: any[],
+  documentPath: string | null,
+  localImageSources: Map<string, string>,
+) {
+  if (!documentPath) return blocks;
+
+  return blocks.map((block) => {
+    const source = block.type === "image" ? block.props?.url : undefined;
+    if (typeof source !== "string" || !isRelativeImagePath(source)) {
+      return block;
+    }
+
+    const localSource = convertFileSrc(
+      getImageAssetAbsolutePath(documentPath, source),
+    );
+    localImageSources.set(localSource, source);
+
+    return {
+      ...block,
+      props: { ...block.props, url: localSource },
+    };
+  });
+}
+
+function getMarkdownBlocks(
+  blocks: any[],
+  localImageSources: Map<string, string>,
+) {
+  return blocks.map((block) => {
+    const source = block.type === "image" ? block.props?.url : undefined;
+    const relativeSource =
+      typeof source === "string" ? localImageSources.get(source) : undefined;
+
+    return relativeSource
+      ? { ...block, props: { ...block.props, url: relativeSource } }
+      : block;
+  });
+}
+
+function parseMarkdown(
+  editor: BlockNoteEditor<any, any, any>,
+  markdown: string,
+  documentPath: string | null,
+  localImageSources: Map<string, string>,
+) {
   const blocks = editor.tryParseMarkdownToBlocks(
     normalizeImportedMarkdown(markdown),
   );
-  return blocks.length > 0 ? blocks : [EMPTY_BLOCK];
+  const nextBlocks = blocks.length > 0 ? blocks : [EMPTY_BLOCK];
+  return resolveLocalImageSources(nextBlocks, documentPath, localImageSources);
 }
 
 export function MarkdownEditor({
+  name,
+  path,
   markdown,
   onChange,
-  onSave,
+  onError,
 }: MarkdownEditorProps) {
   const scrollAreaRef = useRef<HTMLElement | null>(null);
   const hideScrollbarTimeoutRef = useRef<number | null>(null);
-  const externalMarkdown = useRef<string | null>(null);
+  const externalContent = useRef<string | null>(null);
+  const localImageSources = useRef(new Map<string, string>());
   const isApplyingExternalContent = useRef(false);
   const [scrollThumb, setScrollThumb] = useState(initialScrollThumb);
   const [isScrollbarActive, setIsScrollbarActive] = useState(false);
 
   const editor = useCreateBlockNote({
     animations: false,
-    links: {
-      onClick: () => false,
+    schema: editorSchema,
+    tables: {
+      headers: true,
+      splitCells: true,
+      cellBackgroundColor: true,
+      cellTextColor: true,
     },
   });
+
+  useEffect(() => {
+    const exportHtml = () => {
+      void exportBlocksToHtml(name, editor.blocksToHTMLLossy(editor.document)).catch((error) => {
+        onError(error instanceof Error ? error.message : "Não foi possível exportar o HTML.");
+      });
+    };
+
+    window.addEventListener(EXPORT_VISUAL_HTML_EVENT, exportHtml);
+    return () => window.removeEventListener(EXPORT_VISUAL_HTML_EVENT, exportHtml);
+  }, [editor, name, onError]);
 
   const updateScrollThumb = useCallback(() => {
     const scrollArea = scrollAreaRef.current;
@@ -102,29 +199,122 @@ export function MarkdownEditor({
   }, []);
 
   useEffect(() => {
-    if (externalMarkdown.current === markdown) return;
+    const contentKey = getExternalContentKey(path, markdown);
+    if (externalContent.current === contentKey) return;
 
-    externalMarkdown.current = markdown;
+    externalContent.current = contentKey;
+    localImageSources.current.clear();
     isApplyingExternalContent.current = true;
 
     try {
-      editor.replaceBlocks(editor.document, parseMarkdown(editor, markdown));
+      editor.replaceBlocks(
+        editor.document,
+        parseMarkdown(
+          editor,
+          markdown,
+          path,
+          localImageSources.current,
+        ) as never,
+      );
     } finally {
       isApplyingExternalContent.current = false;
       window.requestAnimationFrame(updateScrollThumb);
     }
-  }, [editor, markdown, updateScrollThumb]);
+  }, [editor, markdown, path, updateScrollThumb]);
 
-  const handleEditorChange = (nextEditor: BlockNoteEditor) => {
+  const handleEditorChange = (nextEditor: BlockNoteEditor<any, any, any>) => {
     if (isApplyingExternalContent.current) return;
 
     const nextMarkdown = nextEditor
-      .blocksToMarkdownLossy(nextEditor.document)
+      .blocksToMarkdownLossy(
+        getMarkdownBlocks(nextEditor.document, localImageSources.current),
+      )
       .trimEnd();
-    externalMarkdown.current = nextMarkdown;
+    externalContent.current = getExternalContentKey(path, nextMarkdown);
     onChange(nextMarkdown);
     window.requestAnimationFrame(updateScrollThumb);
   };
+
+  const importImageFiles = useCallback(
+    async (files: File[]) => {
+      const images = files.filter(isImportableImage);
+      if (images.length === 0) return;
+
+      if (!path) {
+        onError("Salve o arquivo Markdown antes de adicionar imagens locais.");
+        return;
+      }
+
+      const imageTooLarge = images.find(
+        (file) => file.size > MAX_IMPORTED_IMAGE_SIZE,
+      );
+      if (imageTooLarge) {
+        onError(`A imagem “${imageTooLarge.name}” excede o limite de 20 MB.`);
+        return;
+      }
+
+      try {
+        const imageBlocks = [] as Array<{ type: "image"; props: { url: string } }>;
+        for (const file of images) {
+          const asset = await storeImageAsset(path, file);
+          const localSource = convertFileSrc(asset.absolutePath);
+          localImageSources.current.set(localSource, asset.relativePath);
+          imageBlocks.push({ type: "image", props: { url: localSource } });
+        }
+
+        const referenceBlock = editor.getTextCursorPosition().block;
+        editor.insertBlocks(imageBlocks as never, referenceBlock, "after");
+        editor.focus();
+      } catch (error) {
+        onError(
+          error instanceof Error
+            ? error.message
+            : "NÃ£o foi possÃ­vel adicionar esta imagem.",
+        );
+      }
+    },
+    [editor, onError, path],
+  );
+
+  useEffect(() => {
+    const editorElement = editor.domElement;
+    if (!editorElement) return;
+
+    const getImageFiles = (transfer: DataTransfer | null) =>
+      transfer ? Array.from(transfer.files).filter(isImportableImage) : [];
+
+    const handleDragOver = (event: DragEvent) => {
+      if (getImageFiles(event.dataTransfer).length > 0) event.preventDefault();
+    };
+
+    const handleDrop = (event: DragEvent) => {
+      const images = getImageFiles(event.dataTransfer);
+      if (images.length === 0) return;
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      void importImageFiles(images);
+    };
+
+    const handlePaste = (event: ClipboardEvent) => {
+      const images = getImageFiles(event.clipboardData);
+      if (images.length === 0) return;
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      void importImageFiles(images);
+    };
+
+    editorElement.addEventListener("dragover", handleDragOver, true);
+    editorElement.addEventListener("drop", handleDrop, true);
+    editorElement.addEventListener("paste", handlePaste, true);
+
+    return () => {
+      editorElement.removeEventListener("dragover", handleDragOver, true);
+      editorElement.removeEventListener("drop", handleDrop, true);
+      editorElement.removeEventListener("paste", handlePaste, true);
+    };
+  }, [editor, importImageFiles]);
 
   const handleEditorScroll = () => {
     updateScrollThumb();
@@ -136,11 +326,6 @@ export function MarkdownEditor({
       if (!(event.ctrlKey || event.metaKey)) return;
 
       const key = event.key.toLowerCase();
-      if (!event.shiftKey && key === "s") {
-        event.preventDefault();
-        onSave();
-        return;
-      }
 
       const isEditorFocused = editor.domElement?.contains(document.activeElement);
       if (!isEditorFocused) return;
@@ -161,7 +346,21 @@ export function MarkdownEditor({
     window.addEventListener("keydown", handleKeyDown);
 
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [editor, onSave]);
+  }, [editor]);
+
+  useEffect(() => {
+    const editorElement = editor.domElement;
+    if (!editorElement) return;
+
+    const handleSelectAll = (event: KeyboardEvent) => {
+      handleSelectAllShortcut(event, () => {
+        editor._tiptapEditor.commands.selectAll();
+      });
+    };
+
+    editorElement.addEventListener("keydown", handleSelectAll, true);
+    return () => editorElement.removeEventListener("keydown", handleSelectAll, true);
+  }, [editor]);
 
   useEffect(() => {
     const scrollArea = scrollAreaRef.current;
@@ -252,15 +451,22 @@ export function MarkdownEditor({
       <BlockNoteView
         className="blocknote-editor"
         editor={editor}
-        emojiPicker={false}
         formattingToolbar={false}
         sideMenu={false}
         slashMenu={false}
+        linkToolbar={false}
+        emojiPicker
+        tableHandles={false}
         onChange={handleEditorChange}
         renderEditor={false}
         theme="dark"
       >
         <CustomSideMenuController />
+        <TableHandlesController
+          extendButton={DraftlyExtendButton}
+          tableHandle={DraftlyTableHandle}
+        />
+        <LinkToolbarController />
         <SuggestionMenuController
           triggerCharacter="/"
           getItems={async (query) =>

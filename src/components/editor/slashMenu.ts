@@ -1,6 +1,8 @@
 import type { BlockNoteEditor } from "@blocknote/core";
 import type { DefaultReactSuggestionItem } from "@blocknote/react";
 import { getDefaultReactSlashMenuItems } from "@blocknote/react";
+import { Lightbulb } from "lucide-react";
+import { createElement } from "react";
 
 const ITEMS_TO_REMOVE = new Set(["Video", "Audio", "File"]);
 
@@ -33,9 +35,9 @@ const ITEM_TRANSLATIONS: Record<string, { title: string; subtext: string }> = {
 };
 
 export function getSlashMenuItems(
-  editor: BlockNoteEditor,
+  editor: BlockNoteEditor<any, any, any>,
 ): DefaultReactSuggestionItem[] {
-  return getDefaultReactSlashMenuItems(editor)
+  const defaultItems = getDefaultReactSlashMenuItems(editor)
     .filter((item) => !ITEMS_TO_REMOVE.has(item.title))
     .map((item) => {
       const translation = ITEM_TRANSLATIONS[item.title];
@@ -46,4 +48,20 @@ export function getSlashMenuItems(
         ...(groupTranslation ? { group: groupTranslation } : {}),
       };
     });
+
+  return [
+    ...defaultItems,
+    {
+      title: "Frase de destaque",
+      subtext: "💡 Destaque uma ideia importante",
+      aliases: ["destaque", "callout", "frase"],
+      group: "Bloco Básico",
+      icon: createElement(Lightbulb, { size: 18 }),
+      onItemClick: () => {
+        editor.updateBlock(editor.getTextCursorPosition().block, {
+          type: "callout" as never,
+        });
+      },
+    },
+  ];
 }

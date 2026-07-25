@@ -14,14 +14,15 @@ import { SearchBar } from "../search/SearchBar";
 import { SettingsModal } from "../settings/SettingsModal";
 import { TitleBar } from "./TitleBar";
 import { WindowResizeHandles } from "./WindowResizeHandles";
-import { openSourceEditorSearch } from "../../lib/editorEvents";
+import { exportVisualHtml, openSourceEditorSearch } from "../../lib/editorEvents";
 import { replaceLiteralMatch, replaceLiteralMatches } from "../../lib/visualSearch";
+import { handleSaveShortcut } from "../../lib/editorShortcuts";
 import "../../styles/settings.css";
 import "../../styles/search.css";
 
 export function AppShell() {
   const didInitialize = useRef(false);
-  const { view, isBusy, error, clearError, openSettings, isSearchOpen, openSearch, closeSearch, editorMode, toggleEditorMode, isCommandPaletteOpen, openCommandPalette, closeCommandPalette, isOutlineOpen } = useWorkspace();
+  const { view, isBusy, error, clearError, setError, openSettings, isSearchOpen, openSearch, closeSearch, editorMode, toggleEditorMode, isCommandPaletteOpen, openCommandPalette, closeCommandPalette, isOutlineOpen } = useWorkspace();
   const { activeTab, recentFiles, updateActiveMarkdown, removeRecentFile, clearRecentFiles } = useTabsContext();
   const {
     initializeWorkspace,
@@ -48,15 +49,13 @@ export function AppShell() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (handleSaveShortcut(event, () => void saveDocument())) return;
+
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "p") {
         if (activeTab?.language === "markdown") {
           event.preventDefault();
           void exportDocumentPdf();
         }
-      }
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s" && !event.shiftKey) {
-        event.preventDefault();
-        void saveDocument();
       }
       if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "i") {
         if (activeTab?.editorKind !== "code") return;
@@ -106,20 +105,17 @@ export function AppShell() {
     <div className="app-shell">
       <WindowResizeHandles />
       <TitleBar />
-      {error ? (
-        <button className="error-banner" type="button" onClick={clearError}>
-          {error}
-        </button>
-      ) : null}
       {showEditor ? (
         <Suspense fallback={<EditorLoading />}>
           <div className="editor-section">
             <div className="editor-content">
               {activeTab.editorKind === "visual-markdown" && editorMode === "visual" ? (
                 <MarkdownEditor
+                  name={activeTab.name}
+                  path={activeTab.path}
                   markdown={activeTab.markdown}
                   onChange={updateActiveMarkdown}
-                  onSave={() => void saveDocument()}
+                  onError={setError}
                 />
               ) : activeTab.editorKind === "plain-text" ? (
                 <PlainTextEditor
@@ -146,7 +142,8 @@ export function AppShell() {
                   return result.count;
                 }}
               />
-            ) : <StatusBar />}
+            ) : null}
+            <StatusBar error={error} onClearError={clearError} />
           </div>
         </Suspense>
       ) : (
@@ -174,6 +171,7 @@ export function AppShell() {
             { id: "search", label: "Buscar no arquivo", shortcut: "Ctrl+F", icon: <Search size={16} />, disabled: !activeTab || activeTab.editorKind === "plain-text", run: () => activeTab?.editorKind === "visual-markdown" && editorMode === "visual" ? openSearch() : openSourceEditorSearch() },
             { id: "history", label: "Histórico de versões", icon: <History size={16} />, disabled: !activeTab?.path, run: () => void openVersionHistory() },
             { id: "export", label: "Exportar PDF", shortcut: "Ctrl+P", icon: <FileText size={16} />, disabled: !activeTab || activeTab.language !== "markdown", run: () => void exportDocumentPdf() },
+            { id: "export-html", label: "Exportar HTML", icon: <FileCode2 size={16} />, disabled: !activeTab || activeTab.editorKind !== "visual-markdown" || editorMode !== "visual", run: exportVisualHtml },
             { id: "settings", label: "Configurações", shortcut: "Ctrl+,", icon: <Settings size={16} />, run: openSettings },
           ]}
         />

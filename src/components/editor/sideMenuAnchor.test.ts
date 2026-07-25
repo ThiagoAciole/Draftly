@@ -13,7 +13,9 @@ describe("getSideMenuAnchorRect", () => {
   it("usa a primeira linha renderizada de um bloco textual", () => {
     const block = document.createElement("div");
     block.innerHTML = '<div class="bn-block-content"><div class="bn-inline-content">linha um<br>linha dois</div></div>';
+    const content = block.firstElementChild!;
     const inlineContent = block.querySelector(".bn-inline-content")!;
+    const contentRect = new DOMRect(78, 40, 600, 32);
     const range = {
       selectNodeContents: vi.fn(),
       getClientRects: () =>
@@ -26,8 +28,13 @@ describe("getSideMenuAnchorRect", () => {
       detach: vi.fn(),
     };
     vi.spyOn(document, "createRange").mockReturnValue(range as unknown as Range);
+    vi.spyOn(content, "getBoundingClientRect").mockReturnValue(contentRect);
 
-    expect(getSideMenuAnchorRect(block)).toEqual(firstLineRect);
+    const anchor = getSideMenuAnchorRect(block);
+    expect(anchor.x).toBe(78);
+    expect(anchor.y).toBe(40);
+    expect(anchor.width).toBe(600);
+    expect(anchor.height).toBe(30);
     expect(range.selectNodeContents).toHaveBeenCalledWith(inlineContent);
     expect(range.detach).toHaveBeenCalledOnce();
   });
@@ -40,6 +47,31 @@ describe("getSideMenuAnchorRect", () => {
     vi.spyOn(content, "getBoundingClientRect").mockReturnValue(contentRect);
 
     expect(getSideMenuAnchorRect(block)).toEqual(contentRect);
+  });
+
+  it("anchors a quote by its outer edge while aligning with the first text line", () => {
+    const block = document.createElement("div");
+    block.innerHTML = '<div class="bn-block-content" data-content-type="quote"><div class="bn-inline-content">quote</div></div>';
+    const content = block.firstElementChild!;
+    const quoteRect = new DOMRect(100, 40, 600, 88);
+    vi.spyOn(content, "getBoundingClientRect").mockReturnValue(quoteRect);
+    const range = {
+      selectNodeContents: vi.fn(),
+      getClientRects: () =>
+        ({
+          0: firstLineRect,
+          length: 1,
+          item: (index: number) => (index === 0 ? firstLineRect : null),
+        }) as unknown as DOMRectList,
+      detach: vi.fn(),
+    };
+    vi.spyOn(document, "createRange").mockReturnValue(range as unknown as Range);
+
+    const anchor = getSideMenuAnchorRect(block);
+    expect(anchor.x).toBe(100);
+    expect(anchor.y).toBe(40);
+    expect(anchor.width).toBe(600);
+    expect(anchor.height).toBe(30);
   });
 
   it("localiza somente o bloco solicitado", () => {

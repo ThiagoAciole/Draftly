@@ -1,4 +1,4 @@
-import { SideMenuExtension } from "@blocknote/core/extensions";
+import { SideMenuExtension, SuggestionMenu } from "@blocknote/core/extensions";
 import {
   AddBlockButton,
   DragHandleButton,
@@ -6,12 +6,14 @@ import {
   SideMenu,
   useBlockNoteEditor,
   useComponentsContext,
+  useExtension,
   useExtensionState,
 } from "@blocknote/react";
 import type { SideMenuProps } from "@blocknote/react";
-import { SeparatorHorizontal, Trash2 } from "lucide-react";
+import { SeparatorHorizontal, SmilePlus, Trash2 } from "lucide-react";
 import React from "react";
 import { PremiumSideMenuController } from "./PremiumSideMenuController";
+import { openQuickEmojiPicker } from "./quickEmoji";
 
 function DeleteBlockButton() {
   const editor = useBlockNoteEditor();
@@ -28,6 +30,19 @@ function DeleteBlockButton() {
       label="Deletar bloco"
       icon={<Trash2 size={15} />}
       onClick={() => editor.removeBlocks([block])}
+    />
+  );
+}
+
+function QuickEmojiButton() {
+  const Components = useComponentsContext()!;
+  const suggestionMenu = useExtension(SuggestionMenu);
+
+  return (
+    <Components.SideMenu.Button
+      label="Adicionar emoji"
+      icon={<SmilePlus size={15} />}
+      onClick={() => openQuickEmojiPicker(suggestionMenu)}
     />
   );
 }
@@ -72,6 +87,7 @@ function CustomSideMenu(props: SideMenuProps) {
       <DeleteBlockButton />
       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       <AddBlockButton {...(props as any)} />
+      <QuickEmojiButton />
       <AnyDragHandleButton dragHandleMenu={CustomDragHandleMenu} />
     </SideMenu>
   );

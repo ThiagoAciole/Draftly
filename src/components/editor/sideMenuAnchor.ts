@@ -21,8 +21,17 @@ export function getSideMenuAnchorRect(blockElement: HTMLElement) {
   const content = blockElement.querySelector<HTMLElement>(".bn-block-content");
   if (!content) return blockElement.getBoundingClientRect();
 
+  const contentRect = content.getBoundingClientRect();
+
   const inlineContent = content.querySelector<HTMLElement>(".bn-inline-content");
   const firstLine = inlineContent ? getFirstLineRect(inlineContent) : null;
 
-  return firstLine ?? content.getBoundingClientRect();
+  if (!firstLine) return contentRect;
+
+  return new DOMRect(
+    contentRect.x,
+    firstLine.y,
+    contentRect.width,
+    firstLine.height,
+  );
 }

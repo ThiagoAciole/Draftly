@@ -25,6 +25,7 @@ import type { DocumentLanguage } from "../lib/languages";
 import { getRecoverableDrafts } from "../lib/recoveryDrafts";
 import type { RecoverableDraft } from "../lib/recoveryDrafts";
 import { retryOnce } from "../lib/retry";
+import { formatPlainTextAsMarkdown } from "../lib/smartMarkdown";
 
 type FileActionsContextValue = {
   initializeWorkspace: () => Promise<void>;
@@ -35,6 +36,7 @@ type FileActionsContextValue = {
   saveDocumentAs: () => Promise<void>;
   exportDocumentPdf: () => Promise<void>;
   formatDocument: () => Promise<boolean>;
+  formatMarkdownDocument: () => boolean;
   openVersionHistory: () => Promise<void>;
   closeDocument: (id: string) => Promise<boolean>;
   canCloseApp: () => Promise<boolean>;
@@ -516,6 +518,14 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const formatMarkdownDocument = (): boolean => {
+    if (!activeTab || activeTab.language !== "markdown") return false;
+    const content = formatPlainTextAsMarkdown(activeTab.markdown);
+    if (content === activeTab.markdown) return false;
+    updateActiveMarkdown(content);
+    return true;
+  };
+
   const openVersionHistory = async () => {
     if (!activeTab?.path || !store) {
       setError("Salve o arquivo antes de acessar o histórico de versões.");
@@ -597,6 +607,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
         saveDocumentAs,
         exportDocumentPdf,
         formatDocument,
+        formatMarkdownDocument,
         openVersionHistory,
         closeDocument,
         canCloseApp,

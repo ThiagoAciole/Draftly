@@ -2,6 +2,7 @@ import { SideMenuExtension } from "@blocknote/core/extensions";
 import {
   autoUpdate,
   FloatingPortal,
+  offset,
   useDismiss,
   useFloating,
   useInteractions,
@@ -69,6 +70,7 @@ export function PremiumSideMenuController({
   const { context, floatingStyles, refs, update } = useFloating({
     open: Boolean(show && block),
     placement: "left",
+    middleware: [offset(6)],
     whileElementsMounted,
   });
   const dismiss = useDismiss(context, { enabled: false });

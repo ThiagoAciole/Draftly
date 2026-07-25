@@ -125,17 +125,18 @@ export function TabsProvider({ children }: { children: ReactNode }) {
   };
 
   const closeTabById = (id: string) => {
-    setTabs((prev) => {
-      const next = prev.filter((t) => t.id !== id);
-      if (next.length === 0) {
-        setActiveTabId(null);
-        setView("home");
-      } else if (activeTabId === id) {
-        const idx = prev.findIndex((t) => t.id === id);
-        setActiveTabId(next[Math.max(0, idx - 1)].id);
-      }
-      return next;
-    });
+    const index = tabs.findIndex((tab) => tab.id === id);
+    if (index === -1) return;
+
+    const next = tabs.filter((tab) => tab.id !== id);
+    setTabs(next);
+
+    if (next.length === 0) {
+      setActiveTabId(null);
+      setView("home");
+    } else if (activeTabId === id) {
+      setActiveTabId(next[Math.max(0, index - 1)].id);
+    }
   };
 
   const addRecentFile = (path: string) => {

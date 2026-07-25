@@ -1,9 +1,10 @@
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { FilePlus, FileText, FolderOpen, History, ListTree, MoreVertical, Save, SaveAll, Search, Settings, WandSparkles } from "lucide-react";
+import { FileCode2, FilePlus, FileText, FolderOpen, History, ListTree, MoreVertical, Save, SaveAll, Search, Settings, WandSparkles } from "lucide-react";
 import { useTabsContext } from "../../contexts/TabsContext";
 import { useFileActions } from "../../contexts/FileActionsContext";
 import { useWorkspace } from "../../contexts/WorkspaceContext";
 import { openSourceEditorSearch } from "../../lib/editorEvents";
+import { exportVisualHtml } from "../../lib/editorEvents";
 
 export function FileMenu() {
   const { activeTab } = useTabsContext();
@@ -84,6 +85,16 @@ export function FileMenu() {
             <span className="title-menu-label">
               <History size={15} />
               Histórico de versões
+            </span>
+          </DropdownMenu.Item>
+          <DropdownMenu.Item
+            className="title-menu-item"
+            onSelect={exportVisualHtml}
+            disabled={!isVisualMarkdown}
+          >
+            <span className="title-menu-label">
+              <FileCode2 size={15} />
+              Exportar HTML
             </span>
           </DropdownMenu.Item>
 
