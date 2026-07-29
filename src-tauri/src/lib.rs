@@ -1,7 +1,52 @@
 use serde::Serialize;
+use spellbook::Dictionary;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 const SUPPORTED_IMAGE_EXTENSIONS: &[&str] = &["avif", "gif", "jpeg", "jpg", "png", "svg", "webp"];
+const PT_BR_AFF: &str = include_str!("../resources/dictionaries/pt-br/pt_BR.aff");
+const PT_BR_DIC: &str = include_str!("../resources/dictionaries/pt-br/pt_BR.dic");
+
+static SPELLING_DICTIONARY: OnceLock<Result<Dictionary, String>> = OnceLock::new();
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SpellingError {
+    word: String,
+    suggestions: Vec<String>,
+}
+
+fn spelling_dictionary() -> Result<&'static Dictionary, String> {
+    match SPELLING_DICTIONARY.get_or_init(|| {
+        Dictionary::new(PT_BR_AFF, PT_BR_DIC)
+            .map_err(|error| format!("Dicionário pt-BR inválido: {error}"))
+    }) {
+        Ok(dictionary) => Ok(dictionary),
+        Err(error) => Err(error.clone()),
+    }
+}
+
+#[tauri::command]
+fn check_spelling(text: String) -> Result<Vec<SpellingError>, String> {
+    let dictionary = spelling_dictionary()?;
+    let mut errors = Vec::new();
+    let mut suggestions = Vec::new();
+
+    for word in text.split(|character: char| !character.is_alphabetic() && character != '\'') {
+        if word.len() < 3 || dictionary.check(word) {
+            continue;
+        }
+
+        suggestions.clear();
+        dictionary.suggest(word, &mut suggestions);
+        errors.push(SpellingError {
+            word: word.to_string(),
+            suggestions: suggestions.iter().take(5).cloned().collect(),
+        });
+    }
+
+    Ok(errors)
+}
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -254,6 +299,13 @@ mod tests {
         assert!(result.is_err());
         std::fs::remove_dir_all(directory).expect("temporary directory must be removed");
     }
+
+    #[test]
+    fn checks_portuguese_spelling_and_returns_suggestions() {
+        let errors = check_spelling("Eu vi um caxorro".into()).expect("dictionary must load");
+        assert_eq!(errors[0].word, "caxorro");
+        assert!(errors[0].suggestions.iter().any(|word| word == "cachorro"));
+    }
 }
 
 pub fn run() {
@@ -266,7 +318,8 @@ pub fn run() {
             write_text_file,
             store_image_asset,
             write_pdf_file,
-            get_initial_text_file_path
+            get_initial_text_file_path,
+            check_spelling
         ])
         .run(tauri::generate_context!())
         .expect("error while running Draftly");

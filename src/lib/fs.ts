@@ -16,6 +16,11 @@ export type StoredImageAsset = {
   absolutePath: string;
 };
 
+export type SpellingError = {
+  word: string;
+  suggestions: string[];
+};
+
 const pdfFilters = [
   {
     name: "PDF",
@@ -67,6 +72,10 @@ export async function pickTextSavePath(defaultPath?: string | null) {
 
 export async function saveTextFile(path: string, content: string) {
   await invoke("write_text_file", { path, content });
+}
+
+export function checkSpelling(text: string) {
+  return invoke<SpellingError[]>("check_spelling", { text });
 }
 
 export async function storeImageAsset(documentPath: string, file: File) {
