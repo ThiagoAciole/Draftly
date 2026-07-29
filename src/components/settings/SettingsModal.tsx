@@ -1,5 +1,5 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { Bot, Code2, Download, Keyboard, Palette, Settings, X } from "lucide-react";
+import { Code2, Download, Keyboard, Palette, Settings, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useWorkspace } from "../../contexts/WorkspaceContext";
 import { useSettings } from "../../contexts/SettingsContext";
@@ -7,7 +7,6 @@ import type { AppSettings } from "../../contexts/SettingsContext";
 import { Toggle } from "../ui/Toggle";
 import { SettingsSelect } from "../ui/SettingsSelect";
 import { checkForAppUpdate, downloadAppUpdate } from "../../lib/updates";
-import { hasGeminiApiKey, openGeminiEnvironmentSettings } from "../../lib/ai/client";
 
 const ACCENT_COLORS = [
   { value: "#8b6cff", label: "Roxo" },
@@ -47,12 +46,11 @@ const SHORTCUTS = [
   { action: "Configurações", key: "Ctrl+," },
 ];
 
-type TabId = "general" | "appearance" | "code" | "ai" | "shortcuts";
+type TabId = "general" | "appearance" | "code" | "shortcuts";
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "general", label: "Geral", icon: <Settings size={16} /> },
   { id: "code", label: "Código", icon: <Code2 size={16} /> },
-  { id: "ai", label: "IA", icon: <Bot size={16} /> },
   { id: "appearance", label: "Aparência", icon: <Palette size={16} /> },
   { id: "shortcuts", label: "Atalhos", icon: <Keyboard size={16} /> },
 ];
@@ -63,31 +61,12 @@ export function SettingsModal() {
   const [activeTab, setActiveTab] = useState<TabId>("general");
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [updateToast, setUpdateToast] = useState<string | null>(null);
-  const [hasGeminiKey, setHasGeminiKey] = useState(false);
-  const [isOpeningGeminiSettings, setIsOpeningGeminiSettings] = useState(false);
-  const [geminiKeyFeedback, setGeminiKeyFeedback] = useState<string | null>(null);
   const updateToastTimer = useRef<number | null>(null);
 
   useEffect(() => () => {
     if (updateToastTimer.current !== null) window.clearTimeout(updateToastTimer.current);
   }, []);
 
-  useEffect(() => {
-    if (!isSettingsOpen) return;
-    void hasGeminiApiKey().then(setHasGeminiKey).catch(() => setHasGeminiKey(false));
-  }, [isSettingsOpen]);
-
-  const handleOpenGeminiEnvironmentSettings = async () => {
-    setIsOpeningGeminiSettings(true);
-    setGeminiKeyFeedback(null);
-    try {
-      await openGeminiEnvironmentSettings();
-      setGeminiKeyFeedback("Crie ou edite GEMINI_API_KEY nas Variáveis de usuário do Windows. Depois, reinicie o Draftly.");
-    } catch (error) {
-      setGeminiKeyFeedback(error instanceof Error ? error.message : "Não foi possível abrir as configurações do Windows.");
-    }
-    finally { setIsOpeningGeminiSettings(false); }
-  };
 
   const handleReset = () => {
     void resetAll();
@@ -372,31 +351,6 @@ export function SettingsModal() {
                       label="Formatar ao salvar"
                     />
                   </div>
-                </div>
-              )}
-
-              {activeTab === "ai" && (
-                <div className="settings-group">
-                  <p className="settings-group-title">Gemini</p>
-                  <div className="settings-row">
-                    <div className="settings-row-label"><span className="settings-row-title">Ativar assistência de IA</span><span className="settings-row-hint">Sugestões e ferramentas para Markdown</span></div>
-                    <Toggle checked={settings.ai.enabled} onChange={(value) => void updateSetting(["ai", "enabled"], value)} label="Ativar assistência de IA" />
-                  </div>
-                  <div className="settings-row">
-                    <div className="settings-row-label"><span className="settings-row-title">Modelo</span><span className="settings-row-hint">Modelo usado nas sugestões</span></div>
-                    <SettingsSelect value={settings.ai.model} options={[{ value: "gemini-3.5-flash-lite", label: "Gemini 3.5 Flash-Lite" }]} onChange={(value) => void updateSetting(["ai", "model"], value)} width={200} />
-                  </div>
-                  <div className="settings-key-section">
-                    <div className="settings-row-label"><span className="settings-row-title">Chave da API</span><span className="settings-row-hint">{hasGeminiKey ? "Configurada na variável GEMINI_API_KEY do Windows" : "Crie uma chave no Google AI Studio"}</span></div>
-                    <div className="settings-key-row">
-                      <button className="settings-key-save" type="button" disabled={isOpeningGeminiSettings} onClick={() => void handleOpenGeminiEnvironmentSettings()}>
-                        {isOpeningGeminiSettings ? <span className="settings-loading-dots" aria-hidden="true"><i /><i /><i /></span> : "Configurar no Windows"}
-                      </button>
-                      <span className={`settings-gemini-status ${hasGeminiKey ? "is-connected" : ""}`}>{hasGeminiKey ? "Conectado" : "Não configurada"}</span>
-                    </div>
-                  </div>
-                  {geminiKeyFeedback ? <p className="settings-key-feedback" role="status">{geminiKeyFeedback}</p> : null}
-                  <p className="settings-row-hint">Por segurança, a chave nunca é salva ou exposta pelo Draftly. Após defini-la, reinicie o app para atualizar o status.</p>
                 </div>
               )}
 

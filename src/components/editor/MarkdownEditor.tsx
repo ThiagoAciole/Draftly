@@ -31,7 +31,6 @@ import { storeImageAsset } from "../../lib/fs";
 import { EXPORT_VISUAL_HTML_EVENT } from "../../lib/editorEvents";
 import { handleSelectAllShortcut } from "../../lib/editorShortcuts";
 import { getResizedEditorCanvasWidth, MIN_EDITOR_CANVAS_WIDTH } from "../../lib/editorCanvasWidth";
-import { AiSelectionMenu } from "../ai/AiSelectionMenu";
 import {
   getImageAssetAbsolutePath,
   isImportableImage,
@@ -494,7 +493,6 @@ export function MarkdownEditor({
         renderEditor={false}
         theme="dark"
       >
-        <AiSelectionMenu editor={editor} onError={onError} />
         <CustomSideMenuController />
         <TableHandlesController
           extendButton={DraftlyExtendButton}

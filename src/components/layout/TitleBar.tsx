@@ -11,11 +11,10 @@ import appIcon from "../../assets/icon.svg";
 import { openSourceEditorSearch } from "../../lib/editorEvents";
 import { copyTextToClipboard, markdownToPlainText } from "../../lib/clipboard";
 import { NewDocumentDropdown } from "../ui/NewDocumentDropdown";
-import { MarkdownAiMenu } from "../ai/MarkdownAiMenu";
 
 export function TitleBar() {
   const { setView, view, openSearch, editorMode, isOutlineOpen, toggleOutline } = useWorkspace();
-  const { tabsMeta, activeTab, updateActiveMarkdown } = useTabsContext();
+  const { tabsMeta, activeTab } = useTabsContext();
   const { createDocument, formatDocument } = useFileActions();
   const { settings } = useSettings();
   const [hasCopiedText, setHasCopiedText] = useState(false);
@@ -27,7 +26,6 @@ export function TitleBar() {
   const isVisualMarkdown = activeTab?.editorKind === "visual-markdown" && editorMode === "visual";
   const showSearch = showEditorActions && activeTab != null && activeTab.editorKind !== "plain-text";
   const showFormat = showEditorActions && activeTab?.editorKind === "code" && activeTab.language !== "python";
-  const showMarkdownFormatter = showEditorActions && activeTab?.language === "markdown";
   const showCopy = showEditorActions && activeTab?.editorKind === "visual-markdown";
   const handleSearch = () => {
     if (isVisualMarkdown) openSearch();
@@ -115,7 +113,6 @@ export function TitleBar() {
             <WandSparkles size={16} />
           </button>
         ) : null}
-        {showMarkdownFormatter && activeTab ? <MarkdownAiMenu content={activeTab.markdown} onApply={updateActiveMarkdown} onError={() => {}} /> : null}
         {showEditorActions && activeTab?.editorKind === "visual-markdown" ? (
           <button
             className={`titlebar-button titlebar-compact-action ${isOutlineOpen ? "is-active" : ""}`}
