@@ -381,12 +381,22 @@ export function MarkdownEditor({
       resizeObserver.observe(scrollArea.firstElementChild);
     }
 
+    const logWindowSize = () => {
+      console.log("[Draftly] tamanho da janela", {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+
     window.addEventListener("resize", updateScrollThumb);
+    window.addEventListener("resize", logWindowSize);
+    logWindowSize();
     window.requestAnimationFrame(updateScrollThumb);
 
     return () => {
       resizeObserver.disconnect();
       window.removeEventListener("resize", updateScrollThumb);
+      window.removeEventListener("resize", logWindowSize);
       if (hideScrollbarTimeoutRef.current !== null) {
         window.clearTimeout(hideScrollbarTimeoutRef.current);
       }

@@ -15,15 +15,29 @@ import React from "react";
 import { PremiumSideMenuController } from "./PremiumSideMenuController";
 import { openQuickEmojiPicker } from "./quickEmoji";
 
-function DeleteBlockButton() {
+function hasBlockContent(block: unknown) {
+  const content = (block as { content?: unknown } | null)?.content;
+  if (!Array.isArray(content)) return content != null;
+
+  return content.some((item) => {
+    if (typeof item !== "object" || item === null) return false;
+
+    const inline = item as { text?: unknown; type?: unknown };
+    return inline.type !== "text" || (typeof inline.text === "string" && inline.text.trim().length > 0);
+  });
+}
+
+function PrimaryBlockAction(props: SideMenuProps) {
   const editor = useBlockNoteEditor();
   const Components = useComponentsContext()!;
-
   const block = useExtensionState(SideMenuExtension, {
     selector: (state) => state?.block,
   });
 
-  if (!block) return null;
+  if (!block || !hasBlockContent(block)) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return <AddBlockButton {...(props as any)} />;
+  }
 
   return (
     <Components.SideMenu.Button
@@ -34,23 +48,10 @@ function DeleteBlockButton() {
   );
 }
 
-function QuickEmojiButton() {
-  const Components = useComponentsContext()!;
-  const suggestionMenu = useExtension(SuggestionMenu);
-
-  return (
-    <Components.SideMenu.Button
-      label="Adicionar emoji"
-      icon={<SmilePlus size={15} />}
-      onClick={() => openQuickEmojiPicker(suggestionMenu)}
-    />
-  );
-}
-
 function CustomDragHandleMenu() {
   const editor = useBlockNoteEditor();
   const Components = useComponentsContext()!;
-
+  const suggestionMenu = useExtension(SuggestionMenu);
   const block = useExtensionState(SideMenuExtension, {
     selector: (state) => state?.block,
   });
@@ -74,6 +75,22 @@ function CustomDragHandleMenu() {
           Dividir
         </span>
       </Components.Generic.Menu.Item>
+      {!hasBlockContent(block) && (
+        <Components.Generic.Menu.Item
+          onClick={() => editor.removeBlocks([block])}
+        >
+          <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Trash2 size={15} />
+            Deletar bloco
+          </span>
+        </Components.Generic.Menu.Item>
+      )}
+      <Components.Generic.Menu.Item onClick={() => openQuickEmojiPicker(suggestionMenu)}>
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <SmilePlus size={15} />
+          Adicionar emoji
+        </span>
+      </Components.Generic.Menu.Item>
     </DragHandleMenu>
   );
 }
@@ -84,10 +101,7 @@ const AnyDragHandleButton: any = DragHandleButton;
 function CustomSideMenu(props: SideMenuProps) {
   return (
     <SideMenu {...props}>
-      <DeleteBlockButton />
-      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-      <AddBlockButton {...(props as any)} />
-      <QuickEmojiButton />
+      <PrimaryBlockAction {...props} />
       <AnyDragHandleButton dragHandleMenu={CustomDragHandleMenu} />
     </SideMenu>
   );

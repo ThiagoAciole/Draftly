@@ -102,25 +102,27 @@
 .editor-toolbar-row {
   align-self: center;
   justify-self: center;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   justify-content: center;
   position: relative;
   width: min(var(--editor-canvas-width), calc(100% - 48px));
   max-width: calc(100% - 48px);
   min-width: 0;
-  gap: 48px;
+  gap: clamp(8px, 3vw, 32px);
 }
 
 .editor-toolbar-row > .editor-mode-switch {
-  position: absolute;
-  left: calc(100% + 48px);
+  position: static;
   flex: 0 0 auto;
 }
 
 .editor-toolbar-row > .editor-toolbar {
   width: fit-content;
-  flex: 0 1 auto;
+  min-width: 0;
+  flex: 1 1 auto;
+  justify-self: center;
 }
 
 .editor-surface > .blocknote-editor,
@@ -283,6 +285,16 @@
 .format-button:disabled {
   cursor: not-allowed;
   opacity: 0.45;
+}
+
+.editor-history-controls {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(45, 45, 45, 0.92);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
 }
 
 
@@ -809,7 +821,7 @@
 
 .editor-canvas-resize-frame {
   position: relative;
-  width: min(var(--editor-canvas-width), 100%);
+  width: min(var(--editor-canvas-width), calc(100% - 80px));
   min-height: 100%;
   margin: 0 auto;
 }
@@ -1241,10 +1253,31 @@
 
 .syntax-code-block { color: #abb2bf; }
 
+@media (max-width: 1000px) {
+  .editor-toolbar-row {
+    width: calc(100% - 32px);
+    max-width: none;
+    gap: 16px;
+  }
+
+  .editor-canvas-resizer {
+    display: none;
+  }
+
+  .editor-scroll {
+    padding: 18px 24px 72px;
+  }
+
+  .editor-canvas-resize-frame {
+    margin: 0 24px 0 56px;
+  }
+}
+
 @media (max-width: 760px) {
   .editor-toolbar-row {
     width: calc(100% - 24px);
     max-width: none;
+    gap: 8px;
   }
 
   .editor-toolbar-row > .editor-mode-switch {
@@ -1259,10 +1292,14 @@
     display: none;
   }
   .editor-toolbar {
-    justify-self: stretch;
-    width: auto;
-    margin: 0 12px;
+    min-width: 0;
     overflow: hidden;
+  }
+
+  .editor-toolbar-row > .editor-toolbar {
+    flex: 1 1 auto;
+    width: auto;
+    margin: 0;
   }
 
   .editor-scroll {

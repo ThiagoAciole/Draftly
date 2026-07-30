@@ -127,6 +127,21 @@ html[data-platform="windows"] .app-shell {
   color: var(--faint);
 }
 
+@media (max-width: 760px) {
+  .status-bar {
+    gap: 12px;
+    padding-inline: 12px;
+  }
+}
+
+@media (max-width: 500px) {
+  .status-bar {
+    gap: 8px;
+    padding-inline: 8px;
+    font-size: 11px;
+  }
+}
+
 .unsaved-dialog-overlay {
   position: fixed;
   inset: 0;

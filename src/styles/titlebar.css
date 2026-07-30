@@ -378,6 +378,28 @@
   display: none;
 }
 
+@media (max-width: 900px) {
+  .title-bar {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+  }
+
+  .file-tab {
+    flex-basis: 180px;
+    min-width: 140px;
+    padding-inline: 10px;
+  }
+
+  .titlebar-button,
+  .window-control,
+  .new-tab-button {
+    width: 34px;
+  }
+
+  .window-controls {
+    margin-left: 2px;
+  }
+}
+
 @media (max-width: 500px) {
   .titlebar-compact-action {
     display: none;

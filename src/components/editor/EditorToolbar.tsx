@@ -869,6 +869,14 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
           onClose={() => setShowImageModal(false)}
         />
       )}
+      <div className="editor-history-controls" role="toolbar" aria-label="Histórico de edição">
+        <FormatButton label="Desfazer" onClick={undo}>
+          <Undo2 size={17} />
+        </FormatButton>
+        <FormatButton label="Refazer" onClick={redo}>
+          <Redo2 size={17} />
+        </FormatButton>
+      </div>
       <div
         className={`editor-toolbar ${toolbarScroll.left || toolbarScroll.right ? "is-scrollable" : ""}`}
         role="toolbar"
@@ -896,13 +904,6 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
           }}
         >
           <div className="editor-formatting-toolbar">
-            <FormatButton label="Desfazer" onClick={undo}>
-              <Undo2 size={17} />
-            </FormatButton>
-            <FormatButton label="Refazer" onClick={redo}>
-              <Redo2 size={17} />
-            </FormatButton>
-            <span className="format-separator" />
             <FormatButton
               active={isStyleActive("bold")}
               label="Negrito"
