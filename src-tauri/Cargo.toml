@@ -1,6 +1,6 @@
 [package]
 name = "draftly"
-version = "0.1.6"
+version = "0.1.7"
 description = "Draftly Markdown editor"
 authors = ["Thiago Aciole"]
 edition = "2021"
